@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "id": "gas_leak",
+  "name": "燃气泄漏",
+  "aliases": [
+    "煤气泄漏",
+    "煤气味",
+    "燃气漏了",
+    "闻到煤气味",
+    "天然气泄漏",
+    "液化气泄漏"
+  ],
+  "category": "gas_leak",
+  "keywords": [
+    "燃气",
+    "煤气",
+    "天然气",
+    "液化气",
+    "泄漏",
+    "漏气",
+    "臭味",
+    "煤气味"
+  ],
+  "life_threatening": true,
+  "triage": {
+    "question": "关掉总阀门以后，还能闻到很浓的味道吗？",
+    "options": [
+      {
+        "value": "still_strong",
+        "label": "还有很浓的味",
+        "override": {
+          "immediate": [
+            {
+              "text": "立刻离开屋子，别回去",
+              "tool": null
+            },
+            {
+              "text": "到室外拨打 119",
+              "tool": {
+                "name": "dial",
+                "number": "119"
+              }
+            },
+            {
+              "text": "敲邻居门，让大家一起撤",
+              "tool": null
+            }
+          ]
+        }
+      },
+      {
+        "value": "weaker",
+        "label": "味小了或没有了",
+        "override": null
+      }
+    ]
+  },
+  "steps": {
+    "immediate": [
+      {
+        "text": "打开所有门窗通风",
+        "tool": null
+      },
+      {
+        "text": "关掉燃气灶和总阀门",
+        "tool": null
+      },
+      {
+        "text": "离开屋子，到室外去",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "在室外联系燃气公司报修",
+        "tool": null
+      },
+      {
+        "text": "情况严重就在室外打 119",
+        "tool": {
+          "name": "dial",
+          "number": "119"
+        }
+      }
+    ],
+    "never": [
+      {
+        "text": "不要开灯或关灯",
+        "tool": null
+      },
+      {
+        "text": "不要使用明火、不要打火机试漏",
+        "tool": null
+      },
+      {
+        "text": "关阀后仍有浓味就别回屋",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "119",
+  "source": {
+    "name": "中华人民共和国应急管理部《中秋将至，六类安全提示要牢记！》（居家安全第 3 条）",
+    "url": "https://www.mem.gov.cn/kp/shaq/202209/t20220909_422147.shtml",
+    "date": "2026-11-18",
+    "quote": "燃气一旦发生泄漏，一定要确保窗户打开，关闭燃气灶、燃气阀门，远离泄漏地点，联系燃气公司工作人员前来检查，如果关闭总阀还无法阻止漏气，千万不要在室内逗留，不要开灯和关灯，更不能使用明火。"
+  },
+  "daily": {
+    "summary": "燃气泄漏遇明火或电火花可能爆炸，先通风、关阀、离开室内，再报警。",
+    "why": "燃气泄漏后会在室内聚集，达到一定浓度时，开灯、按门铃、打电话产生的微小电火花都可能引爆。所以要先把气源关掉、把门窗打开稀释浓度，人先离开，到室外再联系报修和报警。",
+    "prevention": [
+      "每年检查一次燃气软管",
+      "用完燃气关灶具和阀门",
+      "建议安装燃气报警器"
+    ],
+    "misconception": "闻到味道先开抽油烟机把气抽走——错，抽油烟机开关会产生电火花。"
+  },
+  "offline": true,
+  "version": "0.1",
+  "status": "draft",
+  "review": {
+    "author": "待填",
+    "approved_by": [],
+    "approved_at": null,
+    "checklist": {
+      "step_order_ok": false,
+      "never_non_empty": true,
+      "source_quote_verbatim": false
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-18",
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18"
+}

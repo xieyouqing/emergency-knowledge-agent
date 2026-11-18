@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "id": "fall_elderly",
+  "name": "老人跌倒",
+  "aliases": [
+    "摔倒了",
+    "老人摔倒",
+    "跌倒了",
+    "起不来",
+    "摔了一跤"
+  ],
+  "category": "fall_elderly",
+  "keywords": [
+    "跌倒",
+    "摔倒",
+    "摔跤",
+    "起不来",
+    "老人",
+    "骨折",
+    "爬不起来"
+  ],
+  "life_threatening": false,
+  "triage": {
+    "question": "现在能自己试着动一动胳膊腿吗？",
+    "options": [
+      {
+        "value": "cannot_move",
+        "label": "动不了 / 疼得厉害",
+        "override": {
+          "immediate": [
+            {
+              "text": "别动，原地保持姿势",
+              "tool": null
+            },
+            {
+              "text": "大声喊人或打电话求助",
+              "tool": null
+            },
+            {
+              "text": "用衣物垫子盖住保暖",
+              "tool": null
+            }
+          ]
+        }
+      },
+      {
+        "value": "can_move",
+        "label": "能活动，没有剧痛",
+        "override": null
+      }
+    ]
+  },
+  "steps": {
+    "immediate": [
+      {
+        "text": "别着急起身，先原地不动",
+        "tool": null
+      },
+      {
+        "text": "自己感觉哪里疼、能不能动",
+        "tool": null
+      },
+      {
+        "text": "身上盖点衣物，别受凉",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "起不来就喊人、敲地板求助",
+        "tool": null
+      },
+      {
+        "text": "能起来就先翻身趴着再撑起",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "不要猛一下站起来",
+        "tool": null
+      },
+      {
+        "text": "起不来时别硬撑着起身",
+        "tool": null
+      },
+      {
+        "text": "哪怕没受伤也要告诉家人",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "中国疾病预防控制中心慢病中心《预防老年人跌倒健康教育核心信息》（释义第 12 条）",
+    "url": "https://ncncd.chinacdc.cn/xzzq/202409/t20240923_311832.htm",
+    "date": "2026-11-18",
+    "quote": "如果老年人跌倒，首先要保持冷静，不要慌张。不要着急起身，先自行判断有无受伤，受伤部位、程度，能否自行站起等。经尝试后，如自己无法起身，不要强行站起；可以通过大声呼喊，打电话，敲打房门、地板、管道等物品发出声音求助，但要注意保持体力。在等待救助期间，可用垫子、衣物、床单等保暖。"
+  },
+  "daily": {
+    "summary": "跌倒是我国 65 岁以上老人因伤害死亡的首位原因，摔倒后最忌猛起身。",
+    "why": "老人骨质较脆，摔倒后贸然起身可能让骨折错位或加重损伤。所以第一步不是爬起来，而是原地判断有没有受伤、哪里疼、能不能动。起不来就保持体力呼救，用衣物保暖等待帮助。",
+    "prevention": [
+      "地面保持干燥防滑",
+      "卫生间和床边装扶手",
+      "起身、转身都放慢速度"
+    ],
+    "misconception": "摔倒后赶紧扶起来——错，先判断伤情，盲目扶起可能加重损伤。"
+  },
+  "offline": true,
+  "version": "0.1",
+  "status": "draft",
+  "review": {
+    "author": "待填",
+    "approved_by": [],
+    "approved_at": null,
+    "checklist": {
+      "step_order_ok": false,
+      "never_non_empty": true,
+      "source_quote_verbatim": false
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-18",
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18"
+}

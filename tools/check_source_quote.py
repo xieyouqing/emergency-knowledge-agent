@@ -17,6 +17,7 @@
   2 = 存在 unverified（无 fail 时）
 """
 import argparse
+import gzip
 import json
 import re
 import ssl
@@ -24,6 +25,7 @@ import sys
 import unicodedata
 import urllib.error
 import urllib.request
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -64,7 +66,14 @@ def fetch(url: str):
     if url.strip() in PLACEHOLDERS or not url.startswith("http"):
         return None, f"url 为占位或非法值: {url!r}"
 
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": UA,
+            # 明确要求不压缩；部分站点仍会返回 gzip，下面兜底解压
+            "Accept-Encoding": "identity",
+        },
+    )
     ctx = None
     if INSECURE:
         ctx = ssl.create_default_context()
@@ -73,6 +82,7 @@ def fetch(url: str):
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT, context=ctx) as resp:
             ctype = resp.headers.get("Content-Type", "")
+            cenc = (resp.headers.get("Content-Encoding") or "").lower()
             raw = resp.read()
     except urllib.error.HTTPError as e:
         return None, f"HTTP {e.code}（{e.reason}）"
@@ -87,17 +97,36 @@ def fetch(url: str):
     except Exception as e:
         return None, f"请求失败: {type(e).__name__}: {e}"
 
+    # ---- 解压：服务器可能无视 identity 仍返回压缩内容 ----
+    # 不解压会得到乱码，进而把合法来源误判为 fail（假 FAIL 比 unverified 更糟）
+    try:
+        if "gzip" in cenc or raw[:2] == b"\x1f\x8b":
+            raw = gzip.decompress(raw)
+        elif "deflate" in cenc:
+            try:
+                raw = zlib.decompress(raw)
+            except zlib.error:
+                raw = zlib.decompress(raw, -zlib.MAX_WBITS)
+        elif "br" in cenc:
+            return None, "服务器返回 br 压缩，当前环境无 brotli 解压能力，需人工核对"
+    except Exception as e:
+        return None, f"解压失败（Content-Encoding={cenc or '无'}）: {e}"
+
     if "pdf" in ctype.lower() or url.lower().endswith(".pdf"):
         return None, "PDF 无法直接逐字比对，需人工核对"
 
-    for enc in ("utf-8", "gb18030", "latin-1"):
+    # ---- 解码：只接受能确认的编码，不做 latin-1 兜底 ----
+    # latin-1 对任何字节都能"成功"，会把乱码当正文，导致假 FAIL
+    html = None
+    for enc in ("utf-8", "gb18030"):
         try:
             html = raw.decode(enc)
             break
         except UnicodeDecodeError:
             continue
-    else:
-        return None, "页面编码无法解码"
+    if html is None:
+        head = raw[:16].hex()
+        return None, f"页面编码无法确认（前 16 字节: {head}），需人工核对"
 
     # 去 script / style，去标签，反转义常见实体
     html = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", html)
