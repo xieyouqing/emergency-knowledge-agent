@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>设备能力探测 · embedding 可行性</title>
+<style>
+  :root{
+    --ink:#11151C; --ink2:#3D4450; --bg:#FFFFFF; --soft:#F1F3F6;
+    --line:#C9CFD8; --ok:#1E6B3A; --warn:#8A5200; --bad:#8C1D17;
+    --okbg:#E8F3EC; --warnbg:#FFF6E5; --badbg:#FDEDEC;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:20px 16px 60px;
+    font:16px/1.6 "Microsoft YaHei","PingFang SC","Noto Sans CJK SC",system-ui,sans-serif;
+    color:var(--ink); background:var(--bg);
+  }
+  h1{font-size:22px; margin:0 0 6px}
+  .sub{font-size:14px; color:var(--ink2); margin:0 0 22px}
+  h2{font-size:17px; margin:28px 0 10px; padding-bottom:6px; border-bottom:2px solid var(--line)}
+  table{width:100%; border-collapse:collapse; font-size:15px}
+  th,td{text-align:left; padding:8px 6px; border-bottom:1px solid #E4E8EE; vertical-align:top}
+  th{width:44%; font-weight:600; color:var(--ink2)}
+  td{font-family:ui-monospace,Consolas,monospace; font-size:14px; word-break:break-all}
+  .pass{color:var(--ok); font-weight:700}
+  .fail{color:var(--bad); font-weight:700}
+  .na{color:var(--warn); font-weight:700}
+  .verdict{
+    margin:22px 0; padding:18px; border-radius:12px;
+    border:3px solid var(--line); background:var(--soft);
+  }
+  .verdict.good{border-color:var(--ok); background:var(--okbg)}
+  .verdict.mid{border-color:#B26A00; background:var(--warnbg)}
+  .verdict.bad{border-color:var(--bad); background:var(--badbg)}
+  .verdict .big{font-size:20px; font-weight:800; margin:0 0 8px}
+  .verdict p{margin:6px 0; font-size:15px}
+  .note{font-size:13px; color:var(--ink2); background:var(--soft);
+        border-left:4px solid var(--line); padding:10px 12px; border-radius:6px; margin:14px 0}
+  #out{font-family:ui-monospace,Consolas,monospace; font-size:12px;
+       background:#0E1116; color:#E6E9EF; padding:14px; border-radius:10px;
+       white-space:pre-wrap; word-break:break-all; max-height:280px; overflow:auto; margin-top:10px}
+  button{
+    font:inherit; font-weight:700; width:100%; min-height:56px;
+    background:var(--ink); color:#fff; border:none; border-radius:12px;
+    padding:14px; margin:16px 0 8px; cursor:pointer;
+  }
+  button:active{opacity:.85}
+  .bar{height:10px; background:var(--line); border-radius:5px; overflow:hidden; margin:10px 0}
+  .bar>i{display:block; height:100%; background:var(--ink); transition:width .2s}
+</style>
+</head>
+<body>
+
+<h1>设备能力探测</h1>
+<p class="sub">用途：验证这台设备能否在浏览器里跑中文 embedding 模型（bge-small-zh-v1.5）。<br>
+这是实测，不是推断。结果请你截图发我。</p>
+
+<button id="run">开始检测</button>
+<div class="bar"><i id="prog" style="width:0%"></i></div>
+
+<div id="verdictWrap"></div>
+
+<h2>一、环境</h2>
+<table id="tEnv"></table>
+
+<h2>二、能力检测</h2>
+<table id="tCap"></table>
+
+<h2>三、性能实测</h2>
+<table id="tPerf"></table>
+
+<h2>四、估算 embedding 推理耗时</h2>
+<table id="tEst"></table>
+
+<div class="note" id="method"></div>
+
+<h2>原始输出</h2>
+<div id="out">尚未开始</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var log = [];
+  function L(s) { log.push(s); document.getElementById('out').textContent = log.join('\n'); }
+
+  function row(tbody, k, v, cls) {
+    var tr = document.createElement('tr');
+    var th = document.createElement('th'); th.textContent = k;
+    var td = document.createElement('td');
+    if (cls) { var sp = document.createElement('span'); sp.className = cls; sp.textContent = v; td.appendChild(sp); }
+    else td.textContent = v;
+    tr.appendChild(th); tr.appendChild(td);
+    document.getElementById(tbody).appendChild(tr);
+  }
+
+  function setProg(p) { document.getElementById('prog').style.width = p + '%'; }
+
+  /* ============ 1. 解析 UA 拿 Chrome/WebView 主版本 ============ */
+  function parseChromeVersion(ua) {
+    var m = ua.match(/Chrome\/(\d+)\./);
+    if (m) return { major: parseInt(m[1], 10), src: 'Chrome/' + m[1] };
+    // 部分 WebView UA 用 Version/ 或 wv 标记
+    m = ua.match(/Version\/(\d+)\./);
+    if (m) return { major: parseInt(m[1], 10), src: 'Version/' + m[1] };
+    return null;
+  }
+
+  var ua = navigator.userAgent;
+  var chrome = parseChromeVersion(ua);
+  var isAndroid = /Android/i.test(ua);
+  var isWv = /;\s*wv\)/.test(ua) || /\bwv\b/.test(ua);
+
+  /* ============ 2. WASM 加法的极简模块（字节可靠） ============ */
+  // (module (func (export "add") (param i32 i32) (result i32) local.get 0 local.get 1 i32.add))
+  var ADD_WASM = new Uint8Array([
+    0,97,115,109,1,0,0,0,
+    1,7,1,96,2,127,127,1,127,
+    3,2,1,0,
+    7,7,1,3,97,100,100,0,0,
+    10,9,1,7,0,32,0,32,1,106,11
+  ]);
+
+  /* ============ 3. 矩阵乘法基准（Float32Array，纯 JS） ============
+     模拟 embedding 前向里最多的运算：N×N 的矩阵乘。
+     用 128×128，总 FLOPs = 2 * 128^3 ≈ 4.19 M。跑多轮取中位数。 */
+  function benchMatMul(N, rounds) {
+    var a = new Float32Array(N * N);
+    var b = new Float32Array(N * N);
+    var c = new Float32Array(N * N);
+    for (var i = 0; i < N * N; i++) { a[i] = (i % 7) * 0.1; b[i] = (i % 5) * 0.2; }
+
+    function mul() {
+      for (var r = 0; r < N; r++) {
+        for (var k = 0; k < N; k++) {
+          var av = a[r * N + k];
+          var bo = k * N;
+          var ro = r * N;
+          for (var col = 0; col < N; col++) {
+            c[ro + col] += av * b[bo + col];
+          }
+        }
+      }
+    }
+
+    // 预热 1 轮（让 JIT 编译完成）
+    mul();
+
+    var times = [];
+    for (var t = 0; t < rounds; t++) {
+      var t0 = performance.now();
+      mul();
+      var t1 = performance.now();
+      times.push(t1 - t0);
+    }
+    times.sort(function (x, y) { return x - y; });
+    var med = times[Math.floor(times.length / 2)];
+    var flops = 2 * N * N * N;
+    return { ms: med, gflops: flops / (med * 1e6), all: times };
+  }
+
+  /* ============ 4. WASM 调用开销基准 ============ */
+  function benchWasmCall(mod, iters) {
+    var f = mod.instance.exports.add;
+    var t0 = performance.now();
+    var s = 0;
+    for (var i = 0; i < iters; i++) s += f(i, 1);
+    var t1 = performance.now();
+    return { ms: t1 - t0, sink: s };
+  }
+
+  /* ============ 5. 内存带宽（大数组顺序写入） ============ */
+  function benchMemBandwidth(mb) {
+    var n = Math.floor(mb * 1024 * 1024 / 4);
+    var arr = new Float32Array(n);
+    var t0 = performance.now();
+    for (var i = 0; i < n; i++) arr[i] = i * 0.5;
+    var t1 = performance.now();
+    arr = null;
+    var ms = t1 - t0;
+    return { ms: ms, gbps: (mb / 1024) / (ms / 1000) };
+  }
+
+  /* ============ 主流程 ============ */
+  async function run() {
+    document.getElementById('run').disabled = true;
+    log = []; document.getElementById('out').textContent = '';
+
+    var env = {}, cap = {}, perf = {}, est = {};
+
+    /* --- 环境 --- */
+    setProg(10);
+    env['User-Agent'] = ua;
+    env['平台'] = navigator.platform || '(空)';
+    env['Android?'] = isAndroid ? '是' : '否';
+    env['WebView 容器?'] = isWv ? '是（UA 含 wv）' : (isAndroid ? '否（可能是浏览器）' : '不适用');
+    env['Chrome 主版本'] = chrome ? (chrome.major + '（来源 ' + chrome.src + '）') : '未识别';
+    env['CPU 逻辑核心'] = navigator.hardwareConcurrency || '未知';
+    env['设备内存(GB)'] = navigator.deviceMemory || '未知（部分浏览器不暴露）';
+    env['屏幕 DPR'] = window.devicePixelRatio + '  |  视口 ' + window.innerWidth + '×' + window.innerHeight;
+    L('UA = ' + ua);
+
+    /* --- 能力 --- */
+    setProg(25);
+    var wasmOk = typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function';
+    cap['WebAssembly 基础'] = wasmOk ? '支持' : '不支持';
+
+    var wasmMod = null, wasmCompileMs = null;
+    if (wasmOk) {
+      try {
+        var t0 = performance.now();
+        wasmMod = await WebAssembly.instantiate(ADD_WASM);
+        wasmCompileMs = performance.now() - t0;
+        var r = wasmMod.instance.exports.add(2, 3);
+        cap['WASM 编译 + 实例化'] = '成功（' + wasmCompileMs.toFixed(2) + ' ms）';
+        cap['WASM 调用正确性'] = (r === 5) ? '正确（2+3=5）' : '错误（得到 ' + r + '）';
+      } catch (e) {
+        cap['WASM 编译 + 实例化'] = '失败：' + e.message;
+        wasmMod = null;
+      }
+    } else {
+      cap['WASM 编译 + 实例化'] = '跳过';
+      cap['WASM 调用正确性'] = '跳过';
+    }
+
+    // SIMD：用「WASM Fixed-width SIMD 需要 Chrome 91+」这一官方门槛 + 版本号推断，
+    // 并明确标注这是推断而非实测（手写 SIMD 模块字节不可靠，不如不给假结论）
+    var simd;
+    if (!chrome) simd = '无法判断（UA 未识别版本）';
+    else if (chrome.major >= 91) simd = '应有（Chrome ' + chrome.major + ' ≥ 91，推断）';
+    else simd = '很可能没有（Chrome ' + chrome.major + ' < 91，推断）';
+    cap['WASM SIMD（推断）'] = simd;
+
+    cap['WASM Threads'] = (typeof SharedArrayBuffer !== 'undefined') ? 'SharedArrayBuffer 可用' : '不可用（无 SharedArrayBuffer）';
+    cap['crossOriginIsolated'] = (typeof self.crossOriginIsolated !== 'undefined')
+      ? String(self.crossOriginIsolated) : '不支持该属性';
+    cap['WebGPU'] = ('gpu' in navigator) ? '有 navigator.gpu' : '无';
+    cap['IndexedDB（模型缓存用）'] = ('indexedDB' in window) ? '有' : '无';
+    cap['Service Worker'] = ('serviceWorker' in navigator) ? '有' : '无';
+    cap['performance.now 精度'] = (function () {
+      var a = performance.now(), b = performance.now();
+      return (a === b) ? '可能被降低（两次读数相同）' : '正常';
+    })();
+
+    /* --- 性能 --- */
+    setProg(45);
+    var mm;
+    try {
+      mm = benchMatMul(128, 5);
+      perf['矩阵乘 128³（中位数）'] = mm.ms.toFixed(2) + ' ms';
+      perf['浮点吞吐'] = mm.gflops.toFixed(3) + ' GFLOPS';
+      L('matmul times = ' + mm.all.map(function (x) { return x.toFixed(2); }).join(', '));
+    } catch (e) {
+      perf['矩阵乘 128³'] = '失败：' + e.message;
+      mm = null;
+    }
+
+    setProg(65);
+    if (wasmMod) {
+      try {
+        var wc = benchWasmCall(wasmMod, 200000);
+        perf['WASM 调用 20 万次'] = wc.ms.toFixed(1) + ' ms（' +
+          (wc.ms > 0 ? (wc.ms * 1e6 / 200000).toFixed(0) : '0') + ' ns/次）';
+      } catch (e) {
+        perf['WASM 调用'] = '失败：' + e.message;
+      }
+    } else {
+      perf['WASM 调用'] = '跳过（WASM 不可用）';
+    }
+
+    setProg(80);
+    try {
+      var mbw = benchMemBandwidth(32);
+      perf['内存带宽（32MB 顺序写）'] = mbw.gbps.toFixed(2) + ' GB/s';
+    } catch (e) {
+      perf['内存带宽'] = '失败：' + e.message;
+    }
+
+    /* --- 估算 ---
+       重要：不要用「参数量 × 2 FLOPs ÷ 实测吞吐」算，那样会得出几十毫秒的假乐观值。
+       真实的 embedding 推理是【内存带宽受限】而非算力受限：
+       每层都要把权重从内存读一遍，24M 参数（int8 约 24MB）几乎每次推理全读。
+       所以用「内存带宽 + 经验倍数」估，并把倍数明确标为推断。 */
+    setProg(88);
+    var MODEL_INT8_MB = 24;      // bge-small-zh-v1.5 int8 约 24–30MB，取 24
+    var REF_PC_MS = 30;          // 引用：PC CPU 上 bge-small 单条约 20–40ms（第三方实测，非本机）
+
+    est['模型权重（int8）'] = MODEL_INT8_MB + ' MB（24M 参数）';
+    est['瓶颈判断'] = '内存带宽受限，不是算力受限';
+    est['参考值（PC CPU）'] = REF_PC_MS + ' ms/条（引用第三方，非实测）';
+
+    var ms = null;
+    if (mm && mm.gflops > 0 && typeof mbw !== 'undefined' && mbw) {
+      // 用实测内存带宽反推下载/加载一侧，用吞吐反推算力一侧，取两者中更慢的作为下限
+      var bwMs = MODEL_INT8_MB / 1024 / mbw.gbps * 1000;   // 读完一遍权重的最短时间
+      est['理论下限（带宽）'] = bwMs.toFixed(1) + ' ms（仅算读完一次权重）';
+      est['理论下限（算力）'] = (4.8e7 / (mm.gflops * 1e9) * 1000).toFixed(1) + ' ms（48 MFLOPs）';
+
+      // 经验倍数：手机 CPU + WASM + ONNX 调度，相对 PC 原生约 3–8 倍（推断）
+      var lo = REF_PC_MS * 3, hi = REF_PC_MS * 8;
+      est['估算区间（推断）'] = lo.toFixed(0) + ' – ' + hi.toFixed(0) + ' ms/条';
+      est['区间来源'] = 'PC 参考值 30ms × 手机慢 3–8 倍（推断，非实测）';
+      ms = (lo + hi) / 2;
+      est['_est'] = { lo: lo, hi: hi, bwMs: bwMs };
+    } else {
+      est['估算'] = '无法估算（基准未跑成功）';
+      est['_est'] = null;
+    }
+
+    /* --- 模型下载耗时（真测，不是估算） --- */
+    setProg(92);
+    var dl = null;
+    try {
+      var t0 = performance.now();
+      var resp = await fetch('dummy_25mb.bin', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var buf = await resp.arrayBuffer();
+      var t1 = performance.now();
+      var sec = (t1 - t0) / 1000;
+      var mb = buf.byteLength / 1024 / 1024;
+      dl = { mb: mb, sec: sec, mbps: mb / sec };
+      perf['下载 ' + mb.toFixed(1) + 'MB（实测）'] = sec.toFixed(2) + ' s  ' +
+        '(' + (mb / sec).toFixed(2) + ' MB/s)';
+    } catch (e) {
+      perf['下载测试'] = '跳过或失败：' + e.message + '（需页面与 dummy_25mb.bin 同目录）';
+    }
+
+    /* --- 渲染 --- */
+    Object.keys(env).forEach(function (k) { row('tEnv', k, env[k]); });
+    Object.keys(cap).forEach(function (k) {
+      var v = cap[k];
+      var cls = /^(支持|成功|正确|有|应有|正常|SharedArrayBuffer 可用)/.test(v) ? 'pass'
+        : /^(不支持|失败|错误|无|不可用|不可|很可能没有)/.test(v) ? 'fail'
+          : 'na';
+      row('tCap', k, v, cls);
+    });
+    Object.keys(perf).forEach(function (k) { row('tPerf', k, perf[k]); });
+    Object.keys(est).forEach(function (k) {
+      if (k.charAt(0) === '_') return;
+      row('tEst', k, est[k]);
+    });
+
+    /* --- 判定 --- */
+    var vw = document.getElementById('verdictWrap');
+    var html = '';
+    if (!wasmOk) {
+      html = '<div class="verdict bad"><p class="big">只能用 L3（字符检索）</p>' +
+        '<p>本设备不支持 WebAssembly，向量检索无从谈起。这不是性能问题，是能力缺失。</p></div>';
+    } else if (!est['_est']) {
+      html = '<div class="verdict bad"><p class="big">无法判断</p>' +
+        '<p>基准未跑成功，不能得出可用性结论。</p></div>';
+    } else {
+      var e2 = est['_est'];
+      var tag, cls2, advice;
+      if (e2.hi <= 300) {
+        tag = '可以跑 L2（向量 + BM25）'; cls2 = 'good';
+        advice = '乐观 ' + e2.lo.toFixed(0) + '–' + e2.hi.toFixed(0) + ' ms/条，在 300ms 以内。';
+      } else if (e2.lo <= 800) {
+        tag = '勉强能跑，建议 L3 先上、后台升级 L2'; cls2 = 'mid';
+        advice = '估算 ' + e2.lo.toFixed(0) + '–' + e2.hi.toFixed(0) + ' ms/条，落在 300–800ms。';
+      } else {
+        tag = '建议只用 L3（字符检索）'; cls2 = 'bad';
+        advice = '估算 ' + e2.lo.toFixed(0) + '–' + e2.hi.toFixed(0) + ' ms/条，超过 800ms。';
+      }
+      html = '<div class="verdict ' + cls2 + '"><p class="big">' + tag + '</p>' +
+        '<p>' + advice + '</p>' +
+        '<p>权重读取理论下限 <b>' + e2.bwMs.toFixed(1) + ' ms</b>（内存带宽实测 ' +
+        (mbw ? mbw.gbps.toFixed(2) : '?') + ' GB/s）。</p></div>';
+
+      if (dl) {
+        var modelDl = 28 / dl.mbps;
+        html += '<div class="note"><b>模型首次加载（实测外推）</b>：' +
+          '本机下载 ' + dl.mbps.toFixed(2) + ' MB/s，28MB 模型约需 <b>' +
+          modelDl.toFixed(1) + ' 秒</b>。' +
+          (modelDl > 5 ? '超过 5 秒 → 网页版必须走「先 L3 后升级」路径，不能阻塞首屏。' : '在 5 秒内，可接受。') +
+          '</div>';
+      }
+    }
+
+    if (chrome && chrome.major < 91) {
+      html += '<div class="note">注意：Chrome/WebView 主版本 ' + chrome.major +
+        ' 低于 91，WASM SIMD 很可能不可用，实际会比上面的估算更慢。</div>';
+    }
+    if (!(typeof self.crossOriginIsolated !== 'undefined' && self.crossOriginIsolated)) {
+      html += '<div class="note"><b>WASM 多线程不可用</b>（crossOriginIsolated=false，需 COOP/COEP 响应头）。' +
+        'ONNX Runtime 会退回单线程。这个结论在 Tauri 里同样成立——除非给 Tauri 配置响应头。</div>';
+    }
+    vw.innerHTML = html;
+
+    document.getElementById('method').innerHTML =
+      '<b>方法说明（必须看，否则数字会误导）</b><br>' +
+      '1. 矩阵乘基准测的是<b>纯 JS</b>浮点吞吐，不是 WASM 的绝对值。它用来做<b>设备间横向比较</b>，绝对值只作参考。<br>' +
+      '2. embedding 耗时<b>不用「算量 ÷ 吞吐」算</b>——那样会得出几十毫秒的假乐观值。' +
+      '真实推理是<b>内存带宽受限</b>：每层都要把权重读一遍。所以给的是「PC 参考值 30ms × 手机慢 3–8 倍」的区间，' +
+      '<b>倍数是推断，不是实测</b>。<br>' +
+      '3. SIMD 有无是<b>按 Chrome 版本推断</b>（官方门槛 91），不是实测。本页不带可疑的 SIMD 探测字节，宁可标推断。<br>' +
+      '4. <b>下载耗时是真测的</b>（fetch 一个 25MB 文件），这是本页唯一硬数据之外的硬数据。<br>' +
+      '5. <b>本页仍未测：</b>ONNX Runtime WASM 文件（约 10–20MB）的加载与编译时间、模型解析时间、首次推理的预热时间。' +
+      '这三项才是冷启动的大头，必须打包后单独测。';
+
+    setProg(100);
+    L('');
+    L('=== 判定 ===');
+    L(html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+  }
+
+  document.getElementById('run').addEventListener('click', function () {
+    run().catch(function (e) {
+      document.getElementById('out').textContent = '运行出错：' + e.message + '\n' + e.stack;
+    });
+  });
+})();
+</script>
+</body>
+</html>

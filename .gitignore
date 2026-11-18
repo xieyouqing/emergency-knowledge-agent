@@ -18,6 +18,10 @@ knowledge/.*
 *.log
 ~$*
 
+# ---- 探测工具的大文件（25MB 下载测速用，本地生成，不进仓库） ----
+# 重新生成：python -c "import os;open('tools/probe/dummy_25mb.bin','wb').write(os.urandom(25*1024*1024))"
+tools/probe/dummy_25mb.bin
+
 # ---- 编辑器与系统 ----
 .vscode/
 .idea/
