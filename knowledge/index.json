@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-11-18",
+  "icon_set_version": "1",
+  "说明": "场景注册表。加场景 = 在此加一行 + 新建 <id>.json，前端代码不改。order 决定图标顺序，间隔 10 便于插队。本表是场景集合的唯一真源，条目 category 必须命中此处。",
+  "slots": [
+    {
+      "id": "gas_leak",
+      "name": "燃气泄漏",
+      "icon": "gas_leak",
+      "order": 10,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。内容待查证，来源未核"
+    },
+    {
+      "id": "fire_home",
+      "name": "家庭火灾",
+      "icon": "fire_home",
+      "order": 20,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。内容待查证，来源未核"
+    },
+    {
+      "id": "co_poisoning",
+      "name": "一氧化碳中毒",
+      "icon": "co_poisoning",
+      "order": 30,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。与燃气泄漏是两件事，无味无形，处置不同。来源待查"
+    },
+    {
+      "id": "fall_elderly",
+      "name": "老人跌倒",
+      "icon": "fall_elderly",
+      "order": 40,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。65 岁以上因伤害死亡首位原因（中国疾控中心），来源待补精确条目"
+    },
+    {
+      "id": "scald_burn",
+      "name": "烧烫伤",
+      "icon": "scald_burn",
+      "order": 50,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。内容待查证，来源未核"
+    },
+    {
+      "id": "electric_shock",
+      "name": "触电",
+      "icon": "electric_shock",
+      "order": 60,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。内容待查证，来源未核"
+    },
+    {
+      "id": "airway_obstruction",
+      "name": "气道梗阻",
+      "icon": "airway_obstruction",
+      "order": 70,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。原中暑槽位改立。老人进食噎食为主，年死亡量级高于火灾；一手源缺口最大，待补"
+    },
+    {
+      "id": "drowning",
+      "name": "溺水",
+      "icon": "drowning",
+      "order": 80,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。内容待查证，来源未核"
+    },
+    {
+      "id": "earthquake",
+      "name": "地震",
+      "icon": "earthquake",
+      "order": 90,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "候选池。前 30 秒动作价值较低，优先级待定"
+    },
+    {
+      "id": "elevator_trapped",
+      "name": "电梯困人",
+      "icon": "elevator_trapped",
+      "order": 100,
+      "state": "slot",
+      "show_when_empty": false,
+      "note": "已有一条 draft 条目，来源仍待补，未达 published"
+    }
+  ]
+}

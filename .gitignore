@@ -1,0 +1,38 @@
+# ---- 依赖与构建产物 ----
+node_modules/
+dist/
+build/
+target/
+src-tauri/target/
+*.exe
+*.msi
+*.apk
+*.aab
+
+# ---- 临时与备份文件 ----
+# knowledge/ 下 _ 或 . 开头的文件为临时备份，校验脚本会跳过，不纳入版本控制
+knowledge/_*
+knowledge/.*
+*.bak
+*.tmp
+*.log
+~$*
+
+# ---- 编辑器与系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 密钥与环境变量 ----
+# 严禁提交任何 API Key（云厂商 ASR/TTS 等）
+.env
+.env.*
+!.env.example
+*.key
+secrets.json
+
+# ---- 工具会话数据（本地工作记录，非项目资产） ----
+# 需要团队共享的记录请另写进 docs/，此目录不进仓库
+.workbuddy/
