@@ -618,8 +618,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "fire_home",
-      "expect_action": "refuse",
-      "expect_action_note": "fire_home 未发布，日常模式无内容 → 拒答（不许编）"
+      "expect_action": "daily",
+      "expect_action_note": "fire_home 未发布，日常模式无内容 → 拒答（不许编）",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "fire_home 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P014",
@@ -627,8 +633,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "fire_home",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "fire_home 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P015",
@@ -636,8 +648,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "fire_home",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "fire_home 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P016",
@@ -645,8 +663,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "co_poisoning",
-      "expect_action": "refuse",
-      "expect_action_note": "co_poisoning 未发布"
+      "expect_action": "daily",
+      "expect_action_note": "co_poisoning 未发布",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "co_poisoning 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P017",
@@ -654,8 +678,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "co_poisoning",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "co_poisoning 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P018",
@@ -663,8 +693,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "co_poisoning",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "co_poisoning 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P019",
@@ -672,8 +708,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "scald_burn",
-      "expect_action": "refuse",
-      "expect_action_note": "scald_burn 未发布"
+      "expect_action": "daily",
+      "expect_action_note": "scald_burn 未发布",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "scald_burn 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P020",
@@ -681,8 +723,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "scald_burn",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "scald_burn 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P021",
@@ -690,8 +738,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "scald_burn",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "scald_burn 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P022",
@@ -699,8 +753,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "electric_shock",
-      "expect_action": "refuse",
-      "expect_action_note": "electric_shock 未发布"
+      "expect_action": "daily",
+      "expect_action_note": "electric_shock 未发布",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "electric_shock 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P023",
@@ -708,8 +768,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "electric_shock",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "electric_shock 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P024",
@@ -717,8 +783,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "electric_shock",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "electric_shock 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P025",
@@ -726,8 +798,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "airway_obstruction",
-      "expect_action": "refuse",
-      "expect_action_note": "airway_obstruction 未发布"
+      "expect_action": "daily",
+      "expect_action_note": "airway_obstruction 未发布",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "airway_obstruction 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P026",
@@ -735,8 +813,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "airway_obstruction",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "airway_obstruction 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P027",
@@ -762,8 +846,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "earthquake",
-      "expect_action": "refuse",
-      "expect_action_note": "earthquake 未发布"
+      "expect_action": "daily",
+      "expect_action_note": "earthquake 未发布",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "earthquake 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "P030",
@@ -771,8 +861,14 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "earthquake",
-      "expect_action": "refuse",
-      "expect_action_note": "同上"
+      "expect_action": "daily",
+      "expect_action_note": "同上",
+      "_relabel": {
+        "date": "2026-11-18",
+        "from": "refuse",
+        "to": "daily",
+        "reason": "earthquake 已发布，prevention 类问题现在应给日常解释而不是拒答"
+      }
     },
     {
       "id": "O001",

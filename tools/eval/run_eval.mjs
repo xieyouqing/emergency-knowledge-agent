@@ -84,11 +84,12 @@ console.log(`  ${cases.length} 条 | id 唯一 ✓ | 分布 ${Object.entries(byG
 console.log(`  action 分布 ${Object.entries(byAction).map(([a, n]) => `${a}:${n}`).join(' ')}`);
 
 /* ============ 2. 加载引擎 ============ */
-const IMPLEMENTED = ['l3', 'bm25', 'hybrid'];
+const IMPLEMENTED = ['l3', 'bm25', 'hybrid', 'llm'];
 if (!IMPLEMENTED.includes(engineName)) {
   console.error(`\nFAIL: 引擎 ${engineName} 未实现。`);
-  console.error(`  已实现: ${IMPLEMENTED.join(' / ')}（见 app/retrieval.js）`);
-  console.error('  l1/l2 需要 embedding + 精排，等模型接入后再实现。');
+  console.error(`  已实现: ${IMPLEMENTED.join(' / ')}`);
+  console.error('  l3 / bm25 / hybrid 见 app/retrieval.js（纯本地计算）');
+  console.error('  llm 需要 tools/llm_proxy.mjs 先跑起来（默认 127.0.0.1:8787）');
   console.error('  不返回假数据：未实现就是未实现，宁可报错。');
   process.exit(1);
 }
@@ -109,6 +110,7 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'knowledge.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'llm.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
 const M = sandbox.window.__M1__;
 if (!M) {
@@ -120,6 +122,12 @@ if (!RET) {
   console.error('FAIL: retrieval.js 未导出 RETRIEVAL');
   process.exit(1);
 }
+// llm 引擎要与产品共用同一个路由函数，所以必须存在
+const LLM = sandbox.window.LLM;
+if (engineName === 'llm' && !LLM) {
+  console.error('FAIL: llm.js 未导出 LLM，无法复用产品的 routeByVerdict');
+  process.exit(1);
+}
 const ENTRIES = M.entries;
 
 /** 把路由结果映射成 action —— 必须与 app.js 的 routeOf/handleQuery 分支一致
@@ -129,7 +137,43 @@ const ENTRIES = M.entries;
  *  若 danger 命中的场景尚未发布（如 fire_home），必须走 dialonly，
  *  不能被检索结果「顶」成别的已发布场景（那会给出错误方向的步骤）。
  */
-function actualOf(text) {
+async function actualOf(text) {
+  /* llm 引擎：**必须复用 app/llm.js 的 routeByVerdict**，不能在这里另写一套。
+   *
+   * ⚠️ 2026-11-18 修 bug：上一版这里自己写了三行 if，
+   *    漏掉了 routeByVerdict 里的 danger-override 分支，
+   *    导致评测报 ④=3.3% 而产品实际会把「电梯广告怎么投诉」渲染成电梯困人步骤卡。
+   *    「测的」和「用的」不是同一个东西，数据就没有决策价值 —— 这是我自己犯的错。
+   *    现在评测与产品共用同一个路由函数，路由此处不可能再漂移。 */
+  if (engineName === 'llm') {
+    let v;
+    try {
+      v = await llmJudge(text);
+    } catch (e) {
+      v = { intent: 'off_scope', scene: null, error: String(e.message || e) };
+    }
+    const verdict = {
+      ok: true,
+      intent: v.intent,
+      scene: v.scene === undefined ? null : v.scene,
+      sceneUnpublished: !!v.scene_unpublished,
+      confidence: typeof v.confidence === 'number' ? v.confidence : 0
+    };
+    const lr = LLM.routeByVerdict(verdict, ENTRIES, RET.detectDanger, text);
+    if (!lr) throw new Error('routeByVerdict 返回 null（verdict.ok 应为 true）');
+
+    /* 把路由动作映射成评测的 action 口径。
+       steps 与 daily 都要求条目存在，否则视为 refuse —— 与 app.js 的 applyLlmRoute 一致。 */
+    let action;
+    if (lr.action === 'steps' && lr.entryId && ENTRIES[lr.entryId]) action = 'steps';
+    else if (lr.action === 'daily' && lr.entryId && ENTRIES[lr.entryId]) action = 'daily';
+    else if (lr.action === 'dialonly') action = 'dialonly';
+    else action = 'refuse';
+
+    const scene = verdict.scene || lr.sceneId || null;
+    return { action, intent: verdict.intent, scene, sceneAction: action === 'steps' || action === 'daily' ? lr.entryId : null, hit3: null };
+  }
+
   const danger = RET.detectDanger(text);
   const dangerId = danger ? danger.id : null;
 
@@ -168,12 +212,44 @@ function actualOf(text) {
 
 console.log(`\n=== 引擎: ${engineName} ===`);
 console.log('  只换场景检索；意图判定（DANGER_RULES）三层相同。');
+if (engineName === 'llm') {
+  console.log('  ⚠️ llm 引擎不同：意图与场景都由模型判定，不经过 DANGER_RULES 与检索层。');
+  console.log('     该引擎的 Hit@3 恒为 N/A（无检索排序）。');
+}
+
+/* ============ 2b. llm 引擎：需要先起代理 ============ */
+let llmJudge = null;
+if (engineName === 'llm') {
+  const PROXY = (argv.find(a => a.startsWith('--proxy=')) || '--proxy=http://127.0.0.1:8787/judge').split('=')[1];
+  let ok = false;
+  try {
+    const h = await fetch(PROXY.replace(/\/judge$/, '/health'), { signal: AbortSignal.timeout(3000) });
+    ok = h.ok;
+  } catch { ok = false; }
+  if (!ok) {
+    console.error(`\nFAIL: 连不上 LLM 代理 ${PROXY}`);
+    console.error('  先跑: node tools/llm_proxy.mjs');
+    console.error('  不返回假数据：代理没起就是没起，不编造一条「LLM 成绩」。');
+    process.exit(1);
+  }
+  llmJudge = async (text) => {
+    const r = await fetch(PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(20000)
+    });
+    if (!r.ok) throw new Error(`代理 ${r.status}`);
+    return r.json();
+  };
+}
 
 /* ============ 3. 跑评测 ============ */
-const rows = cases.map(c => {
-  const a = actualOf(c.text);
+const rows = [];
+for (const c of cases) {
+  const a = await actualOf(c.text);
   const hit3ok = (a.hit3 && c.expect_scene) ? a.hit3.includes(c.expect_scene) : null;
-  return {
+  rows.push({
     ...c,
     actual_action: a.action,
     actual_intent: a.intent,
@@ -183,8 +259,8 @@ const rows = cases.map(c => {
     action_ok: a.action === c.expect_action,
     intent_ok: a.intent === c.expect_intent,
     scene_ok: (a.scene || null) === (c.expect_scene || null)
-  };
-});
+  });
+}
 
 /* ============ 4. 混淆矩阵 ============ */
 const ACTIONS = ['steps', 'dialonly', 'daily', 'refuse'];

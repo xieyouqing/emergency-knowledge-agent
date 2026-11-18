@@ -49,6 +49,7 @@ vm.createContext(sandbox);
 
 vm.runInContext(fs.readFileSync(path.join(APP, 'knowledge.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'llm.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
 
 const M = sandbox.window.__M1__;
@@ -315,6 +316,100 @@ for (const id of Object.keys(M.entries)) {
   ok(dfVals.length > 0, 'BM25 索引不应为空');
   console.log(`  BM25 索引: N=${idx.N}, 词项=${dfVals.length}, df=1 占比=${(ratio * 100).toFixed(1)}%`
     + (ratio >= 1 ? ' ← 仍为 100%，IDF 依然失效，引擎对照仍无区分度' : ' ← IDF 已部分恢复区分度'));
+}
+
+/* ---------- 11.7 LLM 路由映射（v1.0 新增，全部离线可测） ----------
+   routeByVerdict 是纯函数，不碰网络，所以能在这里穷举断言。
+   真实的模型调用由 tools/eval/run_eval.mjs --engine=llm 覆盖。 */
+{
+  const L = sandbox.window.LLM;
+  ok(!!L, 'llm.js 应导出 window.LLM');
+  ok(typeof L.routeByVerdict === 'function', 'routeByVerdict 必须是函数');
+  ok(!('apiKey' in L) && !('key' in L), 'llm.js 不得持有任何密钥字段');
+
+  const E = M.entries;
+  const noDanger = () => null;
+
+  // ① 失败/空判定 → 返回 null（交回 l3），不是「拒答」
+  for (const bad of [null, {}, { ok: false }, undefined]) {
+    ok(L.routeByVerdict(bad, E, noDanger, '任意') === null,
+      `判定为 ${JSON.stringify(bad)} 时应返回 null 让调用方回落 l3，而不是直接拒答`);
+  }
+
+  // ② ongoing + 已发布场景 → steps
+  ok(L.routeByVerdict({ ok: true, intent: 'ongoing', scene: 'gas_leak' }, E, noDanger, 'x').action === 'steps',
+    'ongoing + 已发布场景 应给 steps');
+
+  // ③ ongoing + 未发布场景 → dialonly（S1：不给步骤）
+  {
+    const r = L.routeByVerdict({ ok: true, intent: 'ongoing', scene: 'drowning' }, E, noDanger, 'x');
+    ok(r.action === 'dialonly', 'ongoing + 未发布场景 应给 dialonly，不得给步骤（S1）');
+  }
+
+  // ④ ongoing 但无场景 → refuse
+  ok(L.routeByVerdict({ ok: true, intent: 'ongoing', scene: null }, E, noDanger, 'x').action === 'refuse',
+    'ongoing 但判不出场景 应 refuse');
+
+  // ⑤ prevention + 已发布 → daily
+  ok(L.routeByVerdict({ ok: true, intent: 'prevention', scene: 'fire_home' }, E, noDanger, 'x').action === 'daily',
+    'prevention + 已发布场景 应给日常解释');
+
+  // ⑥ off_scope → refuse，即使模型误带了场景
+  {
+    const r = L.routeByVerdict({ ok: true, intent: 'off_scope', scene: 'gas_leak' }, E, noDanger, 'x');
+    ok(r.action === 'refuse', 'off_scope 必须 refuse，模型误带场景也不得给内容');
+  }
+
+  /* ⑦ 关键词兜底：只在「LLM 认为是紧急、但归不出场景」时启用
+     （2026-11-18 修 bug 后收紧；off_scope 时不得兜底，见下面 ⑩） */
+  {
+    const dangerFn = () => ({ id: 'gas_leak', number: '119' });
+    const r = L.routeByVerdict({ ok: true, intent: 'ongoing', scene: null, confidence: 0.9 }, E, dangerFn, '有股怪味');
+    ok(r.action === 'steps' && r.entryId === 'gas_leak',
+      'ongoing 但归不出场景时，应由关键词兜底给出步骤',
+    );
+    ok(r.reason === 'danger-override', `该分支 reason 应为 danger-override，实际 ${r.reason}`);
+  }
+
+  // ⑧ 未知 intent 一律 refuse（不猜）
+  ok(L.routeByVerdict({ ok: true, intent: 'whatever', scene: 'gas_leak' }, E, noDanger, 'x').action === 'refuse',
+    '未知 intent 必须 refuse');
+
+  /* ⑨ 置信度门槛（docs/03 §2.2「低于阈值不猜」）
+     这是让 ④ 库外误纳率归零的机制，掉了就说明安全项会破。 */
+  {
+    const dangerFn = () => ({ id: 'gas_leak', number: '119' });
+    const low = L.routeByVerdict(
+      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.55 }, E, dangerFn, '燃气灶打不着火');
+    ok(low.action === 'refuse', `置信度 0.55 < 0.60 时必须 refuse，实际 ${low.action}`);
+    ok(low.reason === 'low-confidence', `低置信度分支 reason 应为 low-confidence，实际 ${low.reason}`);
+    ok(low.entryId === null, '低置信度不得给出任何条目');
+
+    // 边界：恰好 0.60 应当放行（用 < 比较，不是 <=）
+    const edge = L.routeByVerdict(
+      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.60 }, E, noDanger, '煤气漏了');
+    ok(edge.action === 'steps', `置信度恰好 0.60 应放行，实际 ${edge.action}`);
+
+    // 高置信度正常走
+    const high = L.routeByVerdict(
+      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.95 }, E, noDanger, '煤气漏了');
+    ok(high.action === 'steps', '高置信度应正常给步骤');
+
+    // confidence 缺失时不得误伤（不能把 undefined 当 0）
+    const noConf = L.routeByVerdict(
+      { ok: true, intent: 'ongoing', scene: 'gas_leak' }, E, noDanger, '煤气漏了');
+    ok(noConf.action === 'steps', 'confidence 缺失时不应触发降级（undefined 不等于 0）');
+  }
+
+  /* ⑩ 回归：这条曾经把「电梯广告怎么投诉」渲染成电梯困人步骤卡 */
+  {
+    const dangerFn = () => ({ id: 'elevator_trapped', number: '119' });
+    // LLM 正确判 off_scope，但关键词命中「电梯」——不得因此给步骤
+    const r = L.routeByVerdict(
+      { ok: true, intent: 'off_scope', scene: null, confidence: 0.95 }, E, dangerFn, '电梯广告怎么投诉');
+    ok(r.action === 'refuse', `off_scope 时即使关键词命中危险信号也必须 refuse，实际 ${r.action}`);
+    ok(r.entryId === null, 'off_scope 不得给出条目');
+  }
 }
 
 /* ---------- 12. 投毒自检：故意改坏输入，确认断言会红 ---------- */

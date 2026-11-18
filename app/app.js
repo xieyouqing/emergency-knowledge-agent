@@ -31,6 +31,11 @@
   }
   var detectDanger = R.detectDanger;
 
+  /* LLM 意图判定客户端（app/llm.js）。可选依赖：
+     没加载或代理没起时，LLM 会是 undefined，全部逻辑回落 l3——
+     接入 LLM 不得让应用变得「必须联网才能用」（docs/03 §5 三层兜底）。 */
+  var LLM = window.LLM || null;
+
   /* ---------- 固定话术（S4：不含任何操作步骤） ---------- */
   var REFUSE_TEXT = '这个问题我答不了。我只会说应急和安全的常识，比如燃气泄漏、老人跌倒、电梯困人。';
 
@@ -233,31 +238,94 @@
     return { danger: danger, targetId: targetId, entry: entry || null };
   }
 
-  function handleQuery(rawText) {
+  /* 把 LLM 路由决策翻译成渲染动作。
+     只处理「LLM 给出结论」的情况；返回 null 表示「LLM 没参与」，
+     由调用方回落 routeOf（l3），行为与接入前完全一致。 */
+  function applyLlmRoute(lr) {
+    if (!lr) return null;
+    if (lr.action === 'steps') {
+      return { kind: 'steps', entry: ENTRIES[lr.entryId] || null };
+    }
+    if (lr.action === 'daily') {
+      return { kind: 'daily', entry: ENTRIES[lr.entryId] || null };
+    }
+    if (lr.action === 'dialonly') {
+      // 场景判出来了但没条目 → 只给号码，绝不给步骤（S1）
+      var rule = null;
+      for (var i = 0; i < R.DANGER_RULES.length; i++) {
+        if (R.DANGER_RULES[i].id === lr.sceneId) { rule = R.DANGER_RULES[i]; break; }
+      }
+      return { kind: 'dialonly', number: (rule && rule.number) || '120' };
+    }
+    return { kind: 'refuse' };
+  }
+
+  function renderByAction(a, container) {
+    if (a.kind === 'steps' && a.entry) renderStepsCard(a.entry, container);
+    else if (a.kind === 'daily' && a.entry) renderDaily(a.entry, container);
+    else if (a.kind === 'dialonly') renderDialOnly(a.number, container);
+    else renderRefuse(container);
+  }
+
+  function scrollToAnswer(container) {
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* 同步路径：l3 字符检索（接入 LLM 前的主路径，现在是降级路径） */
+  function handleQuerySync(rawText) {
     var text = String(rawText || '').trim();
     if (!text) return;
-
     var r = routeOf(text);
-
-    // S8：日常模式命中危险信号 → 强制切紧急，且不可回
     if (r.danger && state.mode === 'daily') enterEmergency();
-
     if (state.mode === 'emergency') {
-      if (r.entry) {
-        renderStepsCard(r.entry, el.emgAnswer);
-      } else if (r.targetId) {
-        // 命中了危险信号，但该场景还没有已发布条目
-        renderDialOnly(r.danger.number || '120', el.emgAnswer);
-      } else {
-        renderRefuse(el.emgAnswer);
-      }
-      el.emgAnswer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (r.entry) renderStepsCard(r.entry, el.emgAnswer);
+      else if (r.targetId) renderDialOnly(r.danger.number || '120', el.emgAnswer);
+      else renderRefuse(el.emgAnswer);
+      scrollToAnswer(el.emgAnswer);
       return;
     }
-
     if (r.entry) renderDaily(r.entry, el.dailyAnswer);
     else renderRefuse(el.dailyAnswer);
-    el.dailyAnswer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToAnswer(el.dailyAnswer);
+  }
+
+  /* 主路径：先问 LLM 意图判定，失败则同步回落 l3。
+     为什么不在等待期间先出 l3 结果再替换：会让答案闪一下再变，
+     对老人来说是「界面在乱跳」。宁可等 1 秒给一个确定答案。
+
+     返回值：Promise，渲染完成后 resolve。浏览器里调用方可以忽略；
+     端到端测试（tools/e2e_llm.mjs）必须能 await 到渲染结束，
+     否则测的是「有没有发起请求」而不是「有没有渲染出内容」。 */
+  function handleQuery(rawText) {
+    var text = String(rawText || '').trim();
+    if (!text) return Promise.resolve('empty');
+
+    if (!LLM || !LLM.judge) { handleQuerySync(text); return Promise.resolve('sync'); }
+
+    return LLM.judge(text).then(function (verdict) {
+      var lr = LLM.routeByVerdict(verdict, ENTRIES, detectDanger, text);
+
+      // LLM 未参与（不可用/超时/结构不合法）→ 完全走原 l3
+      if (!lr) { handleQuerySync(text); return 'fallback'; }
+
+      var a = applyLlmRoute(lr);
+      if (!a) { handleQuerySync(text); return 'fallback'; }
+
+      // S8：LLM 判定为 ongoing 或命中了步骤/拨号 → 强制切紧急，且不可回
+      var toEmergency = (verdict.intent === 'ongoing') || a.kind === 'steps' || a.kind === 'dialonly';
+      if (toEmergency && state.mode === 'daily') enterEmergency();
+
+      if (state.mode === 'emergency') {
+        renderByAction(a, el.emgAnswer);
+        scrollToAnswer(el.emgAnswer);
+      } else {
+        // 日常模式：只可能是 daily 或 refuse
+        if (a.kind === 'daily') renderDaily(a.entry, el.dailyAnswer);
+        else renderRefuse(el.dailyAnswer);
+        scrollToAnswer(el.dailyAnswer);
+      }
+      return 'llm';
+    });
   }
 
   function handleIconClick(id) {
@@ -327,6 +395,11 @@
     renderDialOnly: renderDialOnly,
     entries: ENTRIES,
     state: state,
+    // 供自测与评测脚本调用：LLM 路由映射是纯函数，可离线断言
+    applyLlmRoute: applyLlmRoute,
+    handleQuerySync: handleQuerySync,
+    handleQuery: handleQuery,        // 异步主路径，端到端验证用（含状态切换）
+    LLMAvailable: !!LLM,
     kbMeta: { slots: KB.slots.length, entries: Object.keys(ENTRIES).length, data_date: KB.data_date }
   };
 })();
