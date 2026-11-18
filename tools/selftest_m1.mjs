@@ -556,6 +556,113 @@ for (const id of Object.keys(M.entries)) {
     ok(!!stopFlex && Number(stopFlex[1]) >= 30,
       `停止按钮宽度应 ≥30%（老人要能一把按到），实际 ${stopFlex ? stopFlex[1] + '%' : '未找到'}`);
   }
+
+  /* ---------- 自动朗读（M2，用户裁决 B）----------
+     判据全部是「说了 / 没说」，靠 stub 的 spoken 数组直接验。 */
+  {
+    const M2 = M;
+    ok(!!M2.autoReadState, 'app.js 应导出 autoReadState 供断言');
+    ok(M2.autoReadState.muted === false, '初始不应静默');
+
+    function resetCards() {
+      M2.state.mode = 'daily';
+      M2.state.locked = false;
+      store.get('dailyAnswer').innerHTML = '';
+      store.get('emgAnswer').innerHTML = '';
+      M2.autoReadState.muted = false;
+    }
+
+    // ① 紧急模式下渲染步骤卡 → 自动发声
+    resetCards();
+    M2.state.mode = 'emergency';
+    M2.state.locked = true;
+    {
+      const before = spoken.length;
+      const box = makeEl('auto1');
+      M2.renderStepsCard(M2.entries.fire_home, box);
+      ok(spoken.length === before + 1, '紧急模式下出步骤卡应自动朗读一次');
+      ok(spoken[spoken.length - 1].text.includes(M2.entries.fire_home.steps.immediate[0].text),
+        '自动朗读内容应包含第一条步骤');
+    }
+
+    // ② 日常模式不自动读（问知识不该打扰）
+    resetCards();
+    {
+      const before = spoken.length;
+      const box = makeEl('auto2');
+      M2.renderStepsCard(M2.entries.fire_home, box);
+      ok(spoken.length === before, '日常模式下不应自动朗读');
+    }
+
+    // ③ 分诊卡阶段读「问题 + 选项」，不是读步骤
+    resetCards();
+    M2.state.mode = 'emergency';
+    M2.state.locked = true;
+    {
+      const e = M2.entries.gas_leak;
+      const before = spoken.length;
+      const box = makeEl('auto3');
+      // stub 的 querySelectorAll 返回 []，所以不会绑定 triage 点击；只验渲染时的自动读
+      M2.renderStepsCard(e, box);
+      ok(spoken.length === before + 1, '分诊卡应自动朗读一次');
+      const said = spoken[spoken.length - 1].text;
+      ok(said.includes(e.triage.question), '自动朗读应包含分诊问题');
+      e.triage.options.forEach(function (o) {
+        ok(said.includes(o.label), `自动朗读应包含分诊选项「${o.label}」`);
+      });
+      ok(!said.includes(e.steps.immediate[0].text),
+        '分诊阶段不应读出步骤（用户还没选，读默认步骤会误导）');
+    }
+
+    // ④ 按停止后本会话不再自动读
+    resetCards();
+    M2.state.mode = 'emergency';
+    M2.state.locked = true;
+    {
+      // 模拟「按了停止」：直接置位（按钮绑定的就是 muteAutoRead）
+      M2.autoReadState.muted = true;
+      const before = spoken.length;
+      const box = makeEl('auto4');
+      M2.renderStepsCard(M2.entries.fire_home, box);
+      ok(spoken.length === before, '按过停止后不应再自动朗读');
+    }
+
+    // ⑤ 手动点「朗读一遍」不受静默限制（用户可以单独要求读一次）
+    {
+      const before = spoken.length;
+      const box = makeEl('auto5');
+      M2.renderStepsCard(M2.entries.fire_home, box);
+      ok(spoken.length === before, '（前置）静默期间仍不自动读');
+      // 手动路径走 speakSteps(auto 未设)，直接调一次验证
+      M2.speakSteps(M2.entries.fire_home, null);
+      ok(spoken.length === before + 1, '静默期间手动朗读仍应发声');
+    }
+
+    // ⑥ 新一次提问解除静默
+    resetCards();
+    M2.state.mode = 'emergency';
+    M2.state.locked = true;
+    M2.autoReadState.muted = true;
+    {
+      // handleQuery 会 unmute；这里用同步路径避免联网
+      M2.handleQuerySync('怎么预防煤气泄漏');
+      ok(M2.autoReadState.muted === false, '新一次提问应解除静默（否则老人永远听不到声音且不知原因）');
+    }
+
+    // ⑦ 组合朗读稿同样受 S1 约束：分诊稿剥掉字段后只剩标点
+    {
+      const e = M2.entries.earthquake;
+      const script = sandbox.window.TTS.composeTriageScript(e);
+      let stripped = script.replace(e.name + '。', '').replace(e.triage.question, '');
+      e.triage.options.forEach(function (o, i) {
+        stripped = stripped.split('第' + (i + 1) + '个，' + o.label + '。').join('');
+      });
+      ok(stripped.replace(/[。，、！？：；\s]/g, '') === '',
+        `分诊朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
+    }
+
+    resetCards();
+  }
 }
 
 /* ---------- 13. 投毒自检：故意改坏输入，确认断言会红 ---------- */

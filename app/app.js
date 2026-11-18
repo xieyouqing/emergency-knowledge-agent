@@ -41,19 +41,65 @@
      绝不静默失败（docs/01 §6.2）。 */
   var V = window.TTS || null;
 
-  /* 朗读一张步骤卡。文本来源只有条目字段（S1：不许编）。 */
-  function speakSteps(entry, immediateSteps) {
-    if (!V) { showVoiceNotice('这台设备的浏览器不支持语音朗读'); return; }
+  /* 朗读一张步骤卡。文本来源只有条目字段（S1：不许编）。
+     opts.auto = true 时是「自动朗读」：失败要静默，不弹提示。 */
+  function speakSteps(entry, immediateSteps, opts) {
+    var isAuto = !!(opts && opts.auto);
+    if (!V) { if (!isAuto) showVoiceNotice('这台设备的浏览器不支持语音朗读'); return; }
     if (!V.state.supported) {
-      showVoiceNotice(V.state.unavailableReason || '语音朗读暂不可用');
+      if (!isAuto) showVoiceNotice(V.state.unavailableReason || '语音朗读暂不可用');
       return;
     }
     var script = V.composeStepsScript(entry, immediateSteps);
     V.speak(script, { force: true }).then(function (r) {
-      if (r && !r.ok && r.reason !== 'cancelled') {
+      if (r && !r.ok && r.reason !== 'cancelled' && !isAuto) {
         showVoiceNotice(r.message || '朗读失败，请重试');
       }
     });
+  }
+
+  /* ---------- 自动朗读（M2，用户裁决 B） ----------
+     依据 docs/01 §2.1「语音播报是主输出通道，文字只是备份」——
+     既然是主通道，就不能要求老人先找到按钮再点。
+
+     只解决三件事，且每件都有明确的边界：
+
+     1. **只在紧急模式自动读。** 日常模式是在问知识，自动出声会打扰
+        （老人可能只是想看看，不想被念一长段解释）。
+
+     2. **自动读失败必须静默。** 浏览器自动播放策略可能拦截（无用户手势），
+        此时弹「朗读失败」只会让人困惑——因为用户根本没主动要求朗读。
+        手动按钮始终是可靠路径，这条路不走通不影响可用性。
+
+     3. **用户按过「停止」= 明确表示不想听。** 此时本会话内不再自动读，
+        直到下一次提问或点图标（那是一次新的意图表达）。
+        手动点「朗读一遍」不受此限制。 */
+  var autoRead = { muted: false };
+
+  function canAutoRead() {
+    if (!V || !V.state.supported || !V.state.enabled) return false;
+    if (state.mode !== 'emergency') return false;
+    if (autoRead.muted) return false;
+    return true;
+  }
+
+  function autoReadCard(entry, immediateSteps) {
+    if (!canAutoRead()) return;
+    speakSteps(entry, immediateSteps, { auto: true });
+  }
+
+  function autoReadTriage(entry) {
+    if (!canAutoRead()) return;
+    V.speak(V.composeTriageScript(entry), { force: true });
+  }
+
+  function muteAutoRead() {
+    autoRead.muted = true;
+    if (V) V.stop();
+  }
+
+  function unmuteAutoRead() {
+    autoRead.muted = false;
   }
 
   /* 语音不可用时的显性提示。不用 alert（打断且老人容易误关），
@@ -200,7 +246,9 @@
     }
     var stopBtn = container.querySelector('[data-act="stop"]');
     if (stopBtn) {
-      stopBtn.addEventListener('click', function () { if (V) V.stop(); });
+      /* 按停止不只是这次停下，还要**本会话内不再自动读**。
+         理由：自动朗读如果按了停还继续读，等于用户说「别念了」而系统不听。 */
+      stopBtn.addEventListener('click', function () { muteAutoRead(); });
     }
 
     // 打勾：点一下切换，再点取消
@@ -218,6 +266,7 @@
   function renderStepsCard(entry, container) {
     if (!entry.triage || !entry.triage.options || !entry.triage.options.length) {
       renderSteps(entry, null, container);
+      autoReadCard(entry, null);
       return;
     }
     var opts = entry.triage.options.map(function (o, i) {
@@ -229,11 +278,15 @@
         '<p class="triage-q">' + esc(entry.triage.question) + '</p>' +
         '<div class="triage-opts">' + opts + '</div>' +
       '</article>';
+    // 分诊阶段还没有步骤，只能读问题与选项
+    autoReadTriage(entry);
     container.querySelectorAll('.triage-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var o = entry.triage.options[Number(btn.getAttribute('data-i'))];
         var override = o && o.override && o.override.immediate ? o.override.immediate : null;
         renderSteps(entry, override, container);
+        // 选完就读对应的步骤（override），不能读默认步骤
+        autoReadCard(entry, override);
       });
     });
   }
@@ -330,6 +383,9 @@
   function handleQuerySync(rawText) {
     var text = String(rawText || '').trim();
     if (!text) return;
+    /* 新一次提问 = 新的意图表达，解除「按停止后的静默」。
+       否则老人按过一次停止，后面所有场景就再也听不到声音，而他并不知道原因。 */
+    unmuteAutoRead();
     var r = routeOf(text);
     if (r.danger && state.mode === 'daily') enterEmergency();
     if (state.mode === 'emergency') {
@@ -354,6 +410,10 @@
   function handleQuery(rawText) {
     var text = String(rawText || '').trim();
     if (!text) return Promise.resolve('empty');
+
+    /* 两条路径（同步 l3 / 异步 LLM）都从这里进，故在此解除静默。
+       handleQuerySync 里也有一处，重复调用是幂等的。 */
+    unmuteAutoRead();
 
     if (!LLM || !LLM.judge) { handleQuerySync(text); return Promise.resolve('sync'); }
 
@@ -386,6 +446,9 @@
   function handleIconClick(id) {
     var e = ENTRIES[id];
     if (!e) return;
+
+    // 点图标同样是一次新的意图表达，解除静默
+    unmuteAutoRead();
 
     // 点图标 = 显式要这个场景的步骤，直接进紧急形态（S3 兜底路径）
     if (state.mode === 'daily') enterEmergency();
@@ -471,6 +534,8 @@
     showVoiceNotice: showVoiceNotice,
     LLMAvailable: !!LLM,
     TTSAvailable: !!V,
+    // 自动朗读的内部状态，供自测断言（不允许界面直接改）
+    autoReadState: autoRead,
     kbMeta: { slots: KB.slots.length, entries: Object.keys(ENTRIES).length, data_date: KB.data_date }
   };
 })();

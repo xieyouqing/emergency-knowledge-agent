@@ -172,6 +172,21 @@
     return parts.join('');
   }
 
+  /* 分诊卡阶段还没有步骤，只能把问题和选项念出来。
+     为什么必须念选项：老人看不清屏幕时，「你现在在哪儿」之后如果听不到
+     「在室内 / 在室外 / 被埋或被困」，就无从选择，等于卡死在这里。 */
+  function composeTriageScript(entry) {
+    if (!entry || !entry.triage) return '';
+    var parts = [];
+    if (entry.name) parts.push(entry.name + '。');
+    if (entry.triage.question) parts.push(entry.triage.question);
+    (entry.triage.options || []).forEach(function (o, i) {
+      var label = String((o && o.label) || '').trim();
+      if (label) parts.push('第' + (i + 1) + '个，' + label + '。');
+    });
+    return parts.join('');
+  }
+
   /* 主入口：读一段文本 */
   function speak(text, opts) {
     var o = opts || {};
@@ -279,6 +294,7 @@
     setRate: setRate,
     composeStepsScript: composeStepsScript,
     composeDailyScript: composeDailyScript,
+    composeTriageScript: composeTriageScript,
     state: state,
     stats: stats,
     setTauriAdapter: function (speakFn, stopFn) {
