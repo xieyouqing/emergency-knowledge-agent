@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>应急助手</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 常驻免责（S6）：固定顶部，不弹窗、不遮挡任何按钮 -->
+<header class="disclaimer" role="note">
+  内容为公开科普整理，不能替代专业急救
+</header>
+
+<!-- 紧急模式色带：命中危险信号后出现，不可手动关闭（S8） -->
+<div class="mode-band" id="modeBand" hidden>
+  <span class="band-dot" aria-hidden="true"></span>
+  <strong>已切到紧急指引</strong>
+</div>
+
+<main id="main">
+
+  <!-- ============ 日常模式 ============ -->
+  <section id="dailyView" class="view">
+    <h1 class="ask-title">有什么想了解的？</h1>
+
+    <form class="ask-row" id="dailyForm" autocomplete="off">
+      <label class="sr-only" for="dailyInput">输入你的问题</label>
+      <input id="dailyInput" class="ask-input" type="text"
+             placeholder="比如：怎么预防燃气泄漏" enterkeyhint="search">
+      <button class="ask-btn" type="submit">提问</button>
+    </form>
+
+    <p class="section-label">或者直接点下面的场景</p>
+    <nav class="icons" id="dailyIcons" aria-label="常见场景"></nav>
+
+    <div id="dailyAnswer" class="answer-area" aria-live="polite"></div>
+  </section>
+
+  <!-- ============ 紧急模式 ============ -->
+  <section id="emergencyView" class="view" hidden>
+    <h1 class="sos-title">先做这些</h1>
+
+    <form class="ask-row" id="emgForm" autocomplete="off">
+      <label class="sr-only" for="emgInput">说出或输入发生了什么</label>
+      <input id="emgInput" class="ask-input" type="text"
+             placeholder="比如：煤气漏了" enterkeyhint="search">
+      <button class="ask-btn sos-btn" type="submit">确认</button>
+    </form>
+
+    <nav class="icons" id="emgIcons" aria-label="常见场景"></nav>
+
+    <div id="emgAnswer" class="answer-area" aria-live="assertive"></div>
+  </section>
+
+</main>
+
+<script src="knowledge.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
