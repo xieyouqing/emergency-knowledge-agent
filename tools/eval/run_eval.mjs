@@ -2,13 +2,20 @@
  * 评测 runner：在固定 100 条对照组上跑指定引擎，输出混淆矩阵与指标
  *
  * 用法:
- *   node tools/eval/run_eval.mjs                # 默认跑 M1（= L3 字符检索层）
- *   node tools/eval/run_eval.mjs --engine m1    # 同上
- *   node tools/eval/run_eval.mjs --verbose      # 附带逐条明细
+ *   node tools/eval/run_eval.mjs                  # 默认 l3（= M1 字符检索，三层兜底最底层）
+ *   node tools/eval/run_eval.mjs --engine=l3      # 同上（m1 为兼容别名）
+ *   node tools/eval/run_eval.mjs --engine=bm25    # 纯 BM25（中文 bigram）
+ *   node tools/eval/run_eval.mjs --engine=hybrid  # RRF 融合 l3 + bm25
+ *   node tools/eval/run_eval.mjs --verbose        # 附带逐条明细
  *
- * 现有引擎:
- *   m1 = app/app.js 的字符检索（L3 兜底层）
- *   l1/l2 = 未实现，会明确报错而不是假装跑过
+ * 引擎语义（重要，别误读）:
+ *   只有「场景检索」这一层换引擎；意图判定（DANGER_RULES）三层相同。
+ *   所以 --engine=bm25 不等于「整条链路换成 BM25」，而是
+ *   「危险信号判定不变，无危险信号时的场景检索改用 BM25」。
+ *
+ * 未实现的引擎:
+ *   l1 / l2（embedding + 精排）需要模型与 API key，尚未接入。
+ *   传这两个名字会明确报错退出，不返回假数据。
  *
  * 为什么要有这个脚本:
  *   换 RAG 前后必须用同一份对照组，否则无法证明「更灵活」不是「更爱编」。
@@ -23,7 +30,8 @@ const APP = path.join(ROOT, 'app');
 const CASES = path.join(ROOT, 'tools', 'eval', 'cases.json');
 
 const argv = process.argv.slice(2);
-const engineName = (argv.find(a => a.startsWith('--engine=')) || '--engine=m1').split('=')[1];
+let engineName = (argv.find(a => a.startsWith('--engine=')) || '--engine=l3').split('=')[1];
+if (engineName === 'm1') engineName = 'l3';   // 兼容旧写法
 const verbose = argv.includes('--verbose');
 
 /* ============ 1. 加载评测集并校验 ============ */
@@ -76,10 +84,12 @@ console.log(`  ${cases.length} 条 | id 唯一 ✓ | 分布 ${Object.entries(byG
 console.log(`  action 分布 ${Object.entries(byAction).map(([a, n]) => `${a}:${n}`).join(' ')}`);
 
 /* ============ 2. 加载引擎 ============ */
-if (engineName !== 'm1') {
+const IMPLEMENTED = ['l3', 'bm25', 'hybrid'];
+if (!IMPLEMENTED.includes(engineName)) {
   console.error(`\nFAIL: 引擎 ${engineName} 未实现。`);
-  console.error('  已实现: m1（字符检索，对应 03 §5 的 L3 层）');
-  console.error('  L1/L2 需要 embedding + 精排，等 D-3 定案并接好模型后再实现。');
+  console.error(`  已实现: ${IMPLEMENTED.join(' / ')}（见 app/retrieval.js）`);
+  console.error('  l1/l2 需要 embedding + 精排，等模型接入后再实现。');
+  console.error('  不返回假数据：未实现就是未实现，宁可报错。');
   process.exit(1);
 }
 
@@ -98,38 +108,78 @@ const sandbox = { window, document, console, Math, String, Number, Object, Array
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'knowledge.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
 const M = sandbox.window.__M1__;
 if (!M) {
   console.error('FAIL: app.js 未导出 __M1__');
   process.exit(1);
 }
+const RET = sandbox.window.RETRIEVAL;
+if (!RET) {
+  console.error('FAIL: retrieval.js 未导出 RETRIEVAL');
+  process.exit(1);
+}
+const ENTRIES = M.entries;
 
-/** 把 routeOf 的结果映射成 action —— 必须与 app.js 的 handleQuery 分支一致 */
+/** 把路由结果映射成 action —— 必须与 app.js 的 routeOf/handleQuery 分支一致
+ *
+ *  语义关键点：危险信号命中时，场景**以 danger.id 为准**，不用检索结果。
+ *  原因：app.js 里是 `entry = targetId ? ENTRIES[targetId] : bestMatch(text)`。
+ *  若 danger 命中的场景尚未发布（如 fire_home），必须走 dialonly，
+ *  不能被检索结果「顶」成别的已发布场景（那会给出错误方向的步骤）。
+ */
 function actualOf(text) {
-  const r = M.routeOf(text);
+  const danger = RET.detectDanger(text);
+  const dangerId = danger ? danger.id : null;
+
+  // 检索层结果：危险信号命中时检索层不参与，置 null
+  let retId = null;
+  let hit3 = null;
+  if (!dangerId) {
+    const ret = RET.retrieve(ENTRIES, text, { engine: engineName });
+    retId = ret.entryId;
+    // Hit@3：期望场景是否落在检索候选前三（仅对走了检索层的样本有意义）
+    hit3 = ret.candidates.slice(0, 3).map(c => c.id);
+  }
+
+  /* 两个口径必须分开，否则指标会自相矛盾：
+     - sceneMetric：场景**判对没判对**。与条目是否已发布无关，
+                    danger 命中就用 danger.id（它确实判出了这个场景）。
+     - sceneAction：能不能**给出这个场景的内容**。没发布就没有 entry，
+                    必须走 dialonly，不能被检索结果顶成别的已发布场景
+                    （那会给出错误方向的步骤，比不答更危险）。 */
+  const sceneMetric = dangerId || retId;
+  const sceneAction = dangerId ? (ENTRIES[dangerId] ? dangerId : null) : retId;
+
   let action;
-  if (r.dangerId && r.entryId) action = 'steps';
-  else if (r.dangerId && !r.entryId) action = 'dialonly';
-  else if (!r.dangerId && r.entryId) action = 'daily';
+  if (dangerId && sceneAction) action = 'steps';
+  else if (dangerId && !sceneAction) action = 'dialonly';
+  else if (!dangerId && sceneAction) action = 'daily';
   else action = 'refuse';
 
-  // 反推 intent：M1 没有独立的意图判定，只能从行为倒推
+  // 反推 intent：只有「场景检索」换了引擎，意图判定三层相同
   const intent = (action === 'steps' || action === 'dialonly') ? 'ongoing'
     : action === 'daily' ? 'prevention'
       : 'off_scope';
 
-  return { action, intent, scene: r.dangerId || r.entryId || null, raw: r };
+  return { action, intent, scene: sceneMetric, sceneAction, hit3 };
 }
+
+console.log(`\n=== 引擎: ${engineName} ===`);
+console.log('  只换场景检索；意图判定（DANGER_RULES）三层相同。');
 
 /* ============ 3. 跑评测 ============ */
 const rows = cases.map(c => {
   const a = actualOf(c.text);
+  const hit3ok = (a.hit3 && c.expect_scene) ? a.hit3.includes(c.expect_scene) : null;
   return {
     ...c,
     actual_action: a.action,
     actual_intent: a.intent,
     actual_scene: a.scene,
+    hit3: a.hit3,
+    hit3_ok: hit3ok,
     action_ok: a.action === c.expect_action,
     intent_ok: a.intent === c.expect_intent,
     scene_ok: (a.scene || null) === (c.expect_scene || null)
@@ -200,7 +250,17 @@ console.log(`  ② 场景准确率      ${(nSceneOk / total * 100).toFixed(1)}% 
 console.log(`  ③ 紧急漏给步骤率   ${(rateMissed * 100).toFixed(1)}%  (${missedSteps.length}/${emergencyCases.length})   门槛 = 0     ${missedSteps.length === 0 ? '✓' : '✗'}  ← 安全项`);
 console.log(`  ④ 库外误纳率      ${(oContaminated.length / oGroup.length * 100).toFixed(1)}%  (${oContaminated.length}/${oGroup.length})   门槛 = 0     ${oContaminated.length === 0 ? '✓' : '✗'}  ← 安全项`);
 console.log(`  ④' 未收录误响      ${(pContaminated.length / pRefuse.length * 100).toFixed(1)}%  (${pContaminated.length}/${pRefuse.length})   参考项（给了拨号卡，未编造内容）`);
-console.log(`  ⑤ Hit@3            N/A                        L3 无检索层，仅 L1/L2 适用`);
+
+// ⑤ Hit@3：只在「走了检索层」的样本上算（危险信号命中时场景由 danger.id 定，不经检索）
+const hitScope = rows.filter(r => r.hit3_ok !== null);
+const hitOk = hitScope.filter(r => r.hit3_ok);
+if (hitScope.length) {
+  const pct = hitOk.length / hitScope.length * 100;
+  console.log(`  ⑤ Hit@3           ${pct.toFixed(1)}%  (${hitOk.length}/${hitScope.length})   门槛 ≥ 90%   ${pct >= 90 ? '✓' : '✗'}`);
+  console.log(`     样本范围：${hitScope.length} 条（已排除 ${rows.length - hitScope.length} 条危险信号命中样本，其场景不经检索）`);
+} else {
+  console.log(`  ⑤ Hit@3           N/A  无有效样本`);
+}
 console.log(`  综合 action 准确率  ${(nActionOk / total * 100).toFixed(1)}%  (${nActionOk}/${total})`);
 
 /* ============ 7. 失败明细（按错误类型分组，便于定位） */
@@ -265,7 +325,8 @@ if (preventWrong > 0) lines.push(`✗ 意图缺失：${preventWrong}/${groupStat
 if (!lines.length) lines.push('全部判据通过');
 lines.forEach(l => console.log('  ' + l));
 
-console.log('\n  说明：本结果是 L3（字符检索）基线，不是 L1（RAG + 精排）的成绩。');
-console.log('  换 RAG 后必须用同一份 cases.json 重跑，差值才是方案收益。');
+console.log(`\n  引擎 ${engineName}。危险信号判定三层相同，只有无危险信号时的场景检索换了实现。`);
+console.log('  说明：以上不是 L1（RAG + 精排）的成绩。');
+console.log('  接好 embedding 与精排后必须用同一份 cases.json 重跑，差值才是方案收益。');
 
 process.exitCode = (missedSteps.length || oContaminated.length) ? 1 : 0;

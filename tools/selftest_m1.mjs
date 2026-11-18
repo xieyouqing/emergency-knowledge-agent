@@ -48,6 +48,7 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
 vm.runInContext(fs.readFileSync(path.join(APP, 'knowledge.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
 
 const M = sandbox.window.__M1__;
@@ -232,6 +233,53 @@ for (const id of Object.keys(M.entries)) {
   const box = makeEl('s5');
   M.renderSteps(gas, null, box);
   ok(box.innerHTML.includes('tel:119'), '场景卡内拨号按钮必须保留（S5 要求）');
+}
+
+/* ---------- 11.5 检索层：三引擎契约与行为一致性（v0.8 新增） ----------
+   目的：retrieval.js 抽出后，保证①默认引擎没被偷偷换掉
+        ②三个引擎返回结构同形（否则评测脚本会静默错位）
+        ③BM25 排序方向正确（分数高的排前面） */
+{
+  const R = sandbox.window.RETRIEVAL;
+  ok(!!R, 'retrieval.js 应导出 window.RETRIEVAL');
+  ok(R.defaultEngine() === 'l3',
+    `生产默认引擎必须仍是 l3（实际 ${R.defaultEngine()}）。改成别的须先提案（D-3）`);
+  ok(R.engines().join(',') === 'l3,bm25,hybrid', `引擎清单应为 l3,bm25,hybrid（实际 ${R.engines().join(',')}）`);
+
+  const ENT = M.entries;
+  const probe = '被困电梯和摔倒';
+  for (const eng of R.engines()) {
+    const r = R.retrieve(ENT, probe, { engine: eng });
+    ok(r && typeof r === 'object', `${eng} 应返回对象`);
+    ok('entryId' in r && 'score' in r && 'layer' in r && 'matchedBy' in r && Array.isArray(r.candidates),
+      `${eng} 返回结构须含 entryId/score/layer/matchedBy/candidates（五个字段缺一不可，评测脚本依赖同形）`);
+    ok(r.layer === eng, `${eng} 返回的 layer 应等于请求的引擎名（实际 ${r.layer}）`);
+  }
+
+  // 排序方向：候选分数必须单调不增
+  for (const eng of R.engines()) {
+    const c = R.retrieve(ENT, probe, { engine: eng }).candidates;
+    let mono = true;
+    for (let i = 1; i < c.length; i++) if (c[i].score > c[i - 1].score + 1e-9) mono = false;
+    ok(mono, `${eng} 候选须按分数降序排列（高→低）`);
+  }
+
+  // 空输入不得返回候选（防止空字符串匹配到一切）
+  for (const eng of R.engines()) {
+    const r = R.retrieve(ENT, '   ', { engine: eng });
+    ok(r.entryId === null && r.candidates.length === 0, `${eng} 空白输入应返回零候选`);
+  }
+
+  // BM25 分词：中文 bigram + ASCII 整段
+  const tk = R._internals.tokenize('煤气泄漏 120');
+  ok(tk.includes('煤气') && tk.includes('气泄') && tk.includes('泄漏'), `BM25 应对中文做 bigram（实际 ${tk.join('/')}）`);
+  ok(tk.includes('120'), `BM25 应把连续 ASCII 当整词（实际 ${tk.join('/')}）`);
+
+  // 索引规模断言：3 条条目下 df=1 占比 100%（这是 §6.6 结论的数据基础，变了要重新审视）
+  const idx = R._internals.buildIndex(Object.values(ENT));
+  const dfVals = Object.values(idx.df);
+  const allOne = dfVals.every(d => d === 1);
+  ok(allOne, `N=3 时所有词项 df 应为 1（IDF 失效，见 docs/03 §6.6）。若此断言失败说明条目数已变，须重跑引擎对照`);
 }
 
 /* ---------- 12. 投毒自检：故意改坏输入，确认断言会红 ---------- */

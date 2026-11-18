@@ -1,0 +1,348 @@
+/* =========================================================
+   应急助手 · 检索层（三层引擎统一入口）
+   依据：docs/03-技术方案.md §3 / §5
+
+   为什么单独成文件（docs/03 §7.1 D-3 的连带改动）:
+     三层引擎必须能被同一份 100 条评测集无差别调用，
+     否则「测的」和「用的」是两套实现，数据没有决策价值。
+     故检索逻辑全部收在此处，app.js 只负责 UI 与路由。
+
+   三个引擎（全部同步、全部离线可用）:
+     l3     字符规则分（离散：alias 10 / name 9 / keyword 4+k）
+            ★ 生产默认。三层兜底的最底层，自带绝对判据
+     bm25   中文 bigram 的 BM25（无界分，不能做绝对阈值）
+     hybrid RRF 融合 l3 + bm25（相对排序，用于对照实验）
+
+   ⚠️ 切生产默认引擎属「取舍」类决定，须先提案，不许在这里偷偷改。
+      当前 RETRIEVAL_ENGINE = 'l3'，与 M1 基线逐条一致。
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  /* ---------- 危险信号关键词表（L3 的意图判定，非场景检索） ----------
+     覆盖 index.json 全部 10 个场景的典型口语说法。
+     number 取 docs/02-数据契约 §4.1 候选池表的「默认主推号码」，
+     未发布场景没有条目可读，故在此写死。
+
+     已知代价（不藏）：纯词命中即切紧急，所以「怎么预防燃气泄漏」
+     这类日常提问也会切紧急。这是 docs/01 §3.0「策略 C：宁可多切，
+     不做降级」的直接后果，不是实现缺陷。 */
+
+  /* 命中顺序 = 优先级。数组靠前先命中即返回，所以顺序本身就是规则。
+     2026-11-18 修复 B2：co_poisoning 必须在 gas_leak 之前。
+       原因：「好像煤气中毒了」含「煤气」，gas_leak 在前会被误判成泄漏。
+       但两者处置相反——泄漏是关阀+撤离(119)，中毒是搬离+通风(120)，
+       判错方向比不答更危险。
+       已验证「煤气漏了」「闻到煤气味」不含 co_poisoning 任何词，前移不会误伤。 */
+  var DANGER_RULES = [
+    { id: 'fire_home', number: '119', words: ['着火', '起火', '冒烟', '火灾', '火警', '烧起来', '着了', '烟很大', '有烟', '烧了', '扑火', '火势'] },
+    { id: 'co_poisoning', number: '120', words: ['一氧化碳', '煤气中毒', '炭火', '烧炭', '炭盆', '煤炉', '头晕恶心', '头痛恶心', '中毒'] },
+    { id: 'gas_leak', number: '119', words: ['燃气', '煤气', '天然气', '液化气', '漏气', '煤气味', '臭鸡蛋', '怪味', '异味', '气罐', '气瓶'] },
+    { id: 'fall_elderly', number: '120', words: ['摔倒', '跌倒', '摔了', '起不来', '爬不起来', '摔伤', '跌了'] },
+    /* 2026-11-18 修复 B1：补「烫起泡」类口语说法。
+       原来只有「烫伤/开水烫/油烫/烫到/烫了」，「孩子被热水烫起泡了」一个都不含，
+       导致孩子烫伤时系统回「我答不了」——该答不答是最糟的失败方式。
+       不加单字「烫」：会让「麻辣烫怎么做」「烫头发」误命中急救，
+       宁可漏几个怪说法，不可让无关问题触发急救卡。 */
+    { id: 'scald_burn', number: '120', words: ['烫伤', '烧伤', '烧烫伤', '开水烫', '热水烫', '油烫', '烫到', '烫了', '烫起泡', '烫出泡', '被烫', '烫红'] },
+    { id: 'electric_shock', number: '120', words: ['触电', '电到', '电击', '漏电', '被电', '电伤'] },
+    { id: 'airway_obstruction', number: '120', words: ['噎住', '噎着', '卡住喉咙', '卡喉', '呼吸困难', '喘不上', '呛到', '窒息', '异物'] },
+    { id: 'drowning', number: '120', words: ['溺水', '落水', '掉水里', '淹了', '淹死', '水里捞'] },
+    { id: 'earthquake', number: '119', words: ['地震', '余震', '房子塌', '楼塌', '震了', '晃动'] },
+    { id: 'elevator_trapped', number: '119', words: ['电梯', '困在', '关在里面', '电梯停', '被困'] }
+  ];
+
+  /* ---------- 生产默认引擎 ----------
+     'l3' = 现状，与 M1 基线逐条一致。
+     改成 'hybrid' 前必须先证明它在 100 条集上更好，且通过提案。 */
+  var RETRIEVAL_ENGINE = 'l3';
+
+  /* ---------- 工具 ---------- */
+  function norm(s) {
+    return String(s || '').replace(/\s+/g, '').toLowerCase();
+  }
+
+  /* 中文没有词边界：「打不着火」含子串「着火」，会把汽车电瓶亏电误判成火灾。
+     治法是对命中位置做否定前缀检查，而不是给每个词写特例。
+     目前覆盖：不 / 没 / 别 / 未，「打不」单独处理（打不着火、打不燃）。 */
+  var NEG_PREFIX = ['不', '没', '别', '未'];
+
+  function hitNoNegation(text, word) {
+    var w = norm(word);
+    if (!w) return false;
+    var idx = text.indexOf(w);
+    while (idx !== -1) {
+      var prev1 = idx > 0 ? text.charAt(idx - 1) : '';
+      var prev2 = idx > 1 ? text.substr(idx - 2, 2) : '';
+      var negated = NEG_PREFIX.indexOf(prev1) !== -1 || prev2 === '打不';
+      if (!negated) return true;
+      idx = text.indexOf(w, idx + 1);
+    }
+    return false;
+  }
+
+  /* ---------- 危险信号判定（意图层，与场景检索正交） ---------- */
+  function detectDanger(text) {
+    var t = norm(text);
+    for (var i = 0; i < DANGER_RULES.length; i++) {
+      var r = DANGER_RULES[i];
+      for (var j = 0; j < r.words.length; j++) {
+        if (hitNoNegation(t, r.words[j])) return r;
+      }
+    }
+    return null;
+  }
+
+  /* =========================================================
+     引擎 A：L3 字符规则分
+     离散分数自带绝对判据：top > 0 = 规则命中，top == 0 = 未命中。
+     这是三层里唯一不需要分布假设的绝对判据（docs/03 §5.2）。
+     ========================================================= */
+
+  /* alias 命中 10 分（口语说法最可信）
+     name  命中  9 分
+     keyword 命中 4 + 命中个数（随个数增长，但低于 name）
+     alias 反向包含 6 分（用户输入是别名的一部分，如输入「电梯」对上「电梯困住」） */
+  function scoreEntryByRules(entry, text) {
+    var t = norm(text);
+    var best = 0;
+    var why = '';
+    var aliases = entry.aliases || [];
+    for (var i = 0; i < aliases.length; i++) {
+      var a = norm(aliases[i]);
+      if (!a) continue;
+      if (t.indexOf(a) !== -1) {
+        if (best < 10) { best = 10; why = 'alias:' + aliases[i]; }
+      } else if (a.indexOf(t) !== -1 && t.length >= 2) {
+        if (best < 6) { best = 6; why = 'alias-rev:' + aliases[i]; }
+      }
+    }
+    if (entry.name && t.indexOf(norm(entry.name)) !== -1 && best < 9) {
+      best = 9; why = 'name';
+    }
+    var kw = 0;
+    (entry.keywords || []).forEach(function (k) {
+      if (k && t.indexOf(norm(k)) !== -1) kw++;
+    });
+    if (kw > 0) {
+      var s = 4 + Math.min(kw, 4);
+      if (s > best) { best = s; why = 'keyword*' + kw; }
+    }
+    return { score: best, why: best > 0 ? why : '' };
+  }
+
+  function rankByRules(entries, text) {
+    var out = [];
+    entries.forEach(function (e) {
+      var r = scoreEntryByRules(e, text);
+      if (r.score > 0) out.push({ id: e.id, score: r.score, by: 'l3', why: r.why });
+    });
+    out.sort(function (x, y) { return y.score - x.score; });
+    return out;
+  }
+
+  /* =========================================================
+     引擎 B：BM25（中文 bigram）
+
+     分词：不用词典，中文按二元组切（「煤气泄漏」→ 煤气/气泄/泄漏），
+           ASCII 连续段整体成词（"120" → "120"）。
+           选 bigram 而非单字：单字区分度太低（「电梯」与「电梯广告」
+           共享「电」「梯」，反而放大误命中）。
+           不引词典：3 条条目规模下，词典维护成本 > 收益（docs/03 §3.3）。
+
+     检索单元：一条 entry = 一个单元（D1 整条），不切块。
+           依据 docs/03 §3.1：切块触发条件是单场景字段 > 8KB 或挂载文档 ≥ 3，
+           当前 3 条 entry 各 1–2KB，远未触发。
+
+     检索文本字段：name + aliases + keywords（场景标识）。
+           刻意不含 steps / daily —— 这一层的任务是「定位场景」，
+           不是「找答案段落」。把 steps 拼进来会让「拨打」这类
+           通用动词参与打分，反而稀释场景词权重。
+     ========================================================= */
+  var BM25_K1 = 1.2;
+  var BM25_B = 0.75;
+  var RRF_K = 60;
+
+  function tokenize(text) {
+    var s = String(text || '').toLowerCase();
+    var out = [];
+    var re = /[\u4e00-\u9fff]+|[a-z0-9]+/g;
+    var m;
+    while ((m = re.exec(s)) !== null) {
+      var seg = m[0];
+      if (/^[a-z0-9]+$/.test(seg)) { out.push(seg); continue; }
+      if (seg.length === 1) { out.push(seg); continue; }
+      for (var i = 0; i + 1 < seg.length; i++) out.push(seg.substr(i, 2));
+    }
+    return out;
+  }
+
+  function searchableText(entry) {
+    var parts = [];
+    if (entry.name) parts.push(entry.name);
+    (entry.aliases || []).forEach(function (a) { parts.push(a); });
+    (entry.keywords || []).forEach(function (k) { parts.push(k); });
+    return parts.join(' ');
+  }
+
+  var _idxCache = { key: '', idx: null };
+
+  function buildIndex(entries) {
+    var key = entries.map(function (e) { return e.id; }).join(',');
+    if (_idxCache.key === key && _idxCache.idx) return _idxCache.idx;
+
+    var docs = [];
+    var df = {};
+    var totalLen = 0;
+    entries.forEach(function (e) {
+      var tokens = tokenize(searchableText(e));
+      var tf = {};
+      tokens.forEach(function (t) { tf[t] = (tf[t] || 0) + 1; });
+      docs.push({ id: e.id, tf: tf, len: tokens.length });
+      Object.keys(tf).forEach(function (t) { df[t] = (df[t] || 0) + 1; });
+      totalLen += tokens.length;
+    });
+
+    var idx = {
+      docs: docs,
+      df: df,
+      N: docs.length,
+      avgdl: docs.length ? totalLen / docs.length : 0
+    };
+    _idxCache = { key: key, idx: idx };
+    return idx;
+  }
+
+  function rankByBM25(entries, text) {
+    var idx = buildIndex(entries);
+    var qTokens = tokenize(text);
+    if (!qTokens.length || !idx.N) return [];
+
+    // query 去重，避免同一 bigram 重复计分
+    var seen = {};
+    var q = qTokens.filter(function (t) {
+      if (seen[t]) return false;
+      seen[t] = true;
+      return true;
+    });
+
+    var out = [];
+    idx.docs.forEach(function (d) {
+      var score = 0;
+      var hits = [];
+      q.forEach(function (t) {
+        var f = d.tf[t] || 0;
+        if (!f) return;
+        var n = idx.df[t] || 0;
+        // IDF：加 1 保证非负（Lucene 写法），3 条文档时也不会出现负权重
+        var idf = Math.log(1 + (idx.N - n + 0.5) / (n + 0.5));
+        var denom = f + BM25_K1 * (1 - BM25_B + BM25_B * (d.len / (idx.avgdl || 1)));
+        score += idf * (f * (BM25_K1 + 1)) / (denom || 1);
+        hits.push(t);
+      });
+      if (score > 0) out.push({ id: d.id, score: score, by: 'bm25', why: 'terms:' + hits.join('|') });
+    });
+    out.sort(function (x, y) { return y.score - x.score; });
+    return out;
+  }
+
+  /* =========================================================
+     RRF 融合（Reciprocal Rank Fusion）
+
+     为什么不用加权求和：BM25 分无界、L3 规则分是 10 分制，
+     直接相加必须先归一化，而归一化系数会随候选集分布漂移
+     （docs/03 §3.3.2）。RRF 只用排名，无此问题。
+
+     ⚠️ RRF 分数只可用于排序，不可做绝对阈值：
+        只召回一路时 top1 恒为 1/61，两路都第一恒为 2/61，
+        与内容相关度无关（docs/03 §3.5.2）。
+     ========================================================= */
+  function rrfFuse(lists) {
+    var agg = {};
+    lists.forEach(function (list) {
+      list.forEach(function (item, i) {
+        var a = agg[item.id] || (agg[item.id] = { id: item.id, score: 0, by: [], ruleScore: 0, why: '' });
+        a.score += 1 / (RRF_K + i + 1);
+        if (a.by.indexOf(item.by) === -1) a.by.push(item.by);
+        if (item.by === 'l3' && item.score > a.ruleScore) {
+          a.ruleScore = item.score;
+          a.why = item.why;
+        }
+      });
+    });
+    var out = Object.keys(agg).map(function (k) { return agg[k]; });
+    out.sort(function (x, y) { return y.score - x.score; });
+    out.forEach(function (a) {
+      a.by = a.by.join('+');
+      a.why = a.why || a.by;
+    });
+    return out;
+  }
+
+  /* =========================================================
+     统一入口
+
+     返回结构固定为 { entryId, score, layer, matchedBy, candidates }，
+     三个引擎同一形状 —— 这是评测脚本能无差别换引擎的前提。
+     ========================================================= */
+  function retrieve(entries, text, opts) {
+    var list = entries;
+    if (!Array.isArray(list)) {
+      list = Object.keys(entries || {}).map(function (k) { return entries[k]; });
+    }
+    var engine = (opts && opts.engine) || RETRIEVAL_ENGINE;
+    var t = String(text || '').trim();
+    var empty = { entryId: null, score: 0, layer: engine, matchedBy: '', candidates: [] };
+    if (!t || !list.length) return empty;
+
+    var candidates;
+    if (engine === 'bm25') {
+      candidates = rankByBM25(list, t).map(function (c) {
+        return { id: c.id, score: c.score, by: 'bm25', why: c.why };
+      });
+    } else if (engine === 'hybrid') {
+      candidates = rrfFuse([rankByRules(list, t), rankByBM25(list, t)]);
+    } else {
+      candidates = rankByRules(list, t);
+    }
+
+    if (!candidates.length) return empty;
+    var top = candidates[0];
+    return {
+      entryId: top.id,
+      score: top.score,
+      layer: engine,
+      matchedBy: top.by || engine,
+      why: top.why || '',
+      candidates: candidates
+    };
+  }
+
+  function listEngines() {
+    return ['l3', 'bm25', 'hybrid'];
+  }
+
+  global.RETRIEVAL = {
+    // 检索
+    retrieve: retrieve,
+    engines: listEngines,
+    defaultEngine: function () { return RETRIEVAL_ENGINE; },
+    // 意图层（危险信号判定，独立于检索引擎）
+    detectDanger: detectDanger,
+    DANGER_RULES: DANGER_RULES,
+    // 单引擎直调（评测与调试用）
+    rankByRules: rankByRules,
+    rankByBM25: rankByBM25,
+    rrfFuse: rrfFuse,
+    // 暴露内部件供自测
+    _internals: {
+      norm: norm,
+      hitNoNegation: hitNoNegation,
+      scoreEntryByRules: scoreEntryByRules,
+      tokenize: tokenize,
+      searchableText: searchableText,
+      buildIndex: buildIndex,
+      constants: { BM25_K1: BM25_K1, BM25_B: BM25_B, RRF_K: RRF_K, NEG_PREFIX: NEG_PREFIX }
+    }
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

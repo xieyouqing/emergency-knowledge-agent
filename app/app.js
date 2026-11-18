@@ -6,8 +6,11 @@
    本文件实现的五条已定方案（docs/08-M1-范围与延后项.md）：
      决定1 = 预编译 JS，双击即开
      决定2 = 纯字符串三级匹配（alias > name > keyword 计数），不引入 embedding
+             ★ 2026-11-18 起实现迁至 app/retrieval.js（三层引擎统一入口），
+               本文件只保留 UI 与路由。默认引擎仍为 l3，行为与 M1 基线一致。
      决定3 = 危险信号用独立关键词常量表，不读条目 keywords
              （未发布场景没有可读的 keywords，靠条目取词会漏判「着火了」）
+             ★ 同上，已迁至 retrieval.js
      决定4 = 紧急模式命中但无条目 → 拨号专用卡，不给步骤（不违反 S1）
      决定5 = 日常模式只用 daily 四字段静态拼装，不调 LLM
    ========================================================= */
@@ -17,35 +20,16 @@
   var KB = window.KNOWLEDGE || { slots: [], entries: {}, data_date: '' };
   var ENTRIES = KB.entries || {};
 
-  /* ---------- 决定3：危险信号关键词表 ----------
-     覆盖 index.json 全部 10 个场景的典型口语说法。
-     number 取 docs/02-数据契约 §4.1 候选池表的「默认主推号码」，
-     未发布场景没有条目可读，故在此写死。
-     已知代价（写进交付说明，不藏）：纯词命中即切紧急，
-     所以「怎么预防燃气泄漏」这类日常提问也会切到紧急模式。
-     这是 docs/01 §3.0「策略 C：宁可多切，不做降级」的直接后果。 */
-  /* 命中顺序 = 优先级。数组靠前先命中即返回，所以顺序本身就是规则。
-     2026-11-18 修复 B2：co_poisoning 必须在 gas_leak 之前。
-       原因：「好像煤气中毒了」含「煤气」，gas_leak 在前会被误判成泄漏。
-       但两者处置相反——泄漏是关阀+撤离(119)，中毒是搬离+通风(120)，判错方向比不答更危险。
-       已验证「煤气漏了」「闻到煤气味」不含 co_poisoning 任何词，前移不会误伤。 */
-  var DANGER_RULES = [
-    { id: 'fire_home', number: '119', words: ['着火', '起火', '冒烟', '火灾', '火警', '烧起来', '着了', '烟很大', '有烟', '烧了', '扑火', '火势'] },
-    { id: 'co_poisoning', number: '120', words: ['一氧化碳', '煤气中毒', '炭火', '烧炭', '炭盆', '煤炉', '头晕恶心', '头痛恶心', '中毒'] },
-    { id: 'gas_leak', number: '119', words: ['燃气', '煤气', '天然气', '液化气', '漏气', '煤气味', '臭鸡蛋', '怪味', '异味', '气罐', '气瓶'] },
-    { id: 'fall_elderly', number: '120', words: ['摔倒', '跌倒', '摔了', '起不来', '爬不起来', '摔伤', '跌了'] },
-    /* 2026-11-18 修复 B1：补「烫起泡」类口语说法。
-       原来只有「烫伤/开水烫/油烫/烫到/烫了」，「孩子被热水烫起泡了」一个都不含，
-       导致孩子烫伤时系统回「我答不了」——该答不答是最糟的失败方式。
-       不加单字「烫」：会让「麻辣烫怎么做」「烫头发」误命中急救，
-       宁可漏几个怪说法，不可让无关问题触发急救卡。 */
-    { id: 'scald_burn', number: '120', words: ['烫伤', '烧伤', '烧烫伤', '开水烫', '热水烫', '油烫', '烫到', '烫了', '烫起泡', '烫出泡', '被烫', '烫红'] },
-    { id: 'electric_shock', number: '120', words: ['触电', '电到', '电击', '漏电', '被电', '电伤'] },
-    { id: 'airway_obstruction', number: '120', words: ['噎住', '噎着', '卡住喉咙', '卡喉', '呼吸困难', '喘不上', '呛到', '窒息', '异物'] },
-    { id: 'drowning', number: '120', words: ['溺水', '落水', '掉水里', '淹了', '淹死', '水里捞'] },
-    { id: 'earthquake', number: '119', words: ['地震', '余震', '房子塌', '楼塌', '震了', '晃动'] },
-    { id: 'elevator_trapped', number: '119', words: ['电梯', '困在', '关在里面', '电梯停', '被困'] }
-  ];
+  /* ---------- 检索与意图判定：已迁至 app/retrieval.js ----------
+     迁移依据（docs/03 §7.1 D-3）：三层引擎必须能被同一份 100 条评测集
+     无差别调用，否则「测的」与「用的」是两套实现，数据没有决策价值。
+     危险信号表、L3 规则分、BM25、RRF、以及 B1/B2 的修复记录，
+     全部见 retrieval.js 内注释，此处不再重复。 */
+  var R = window.RETRIEVAL;
+  if (!R) {
+    throw new Error('retrieval.js 未加载：index.html 中须在 app.js 之前引入');
+  }
+  var detectDanger = R.detectDanger;
 
   /* ---------- 固定话术（S4：不含任何操作步骤） ---------- */
   var REFUSE_TEXT = '这个问题我答不了。我只会说应急和安全的常识，比如燃气泄漏、老人跌倒、电梯困人。';
@@ -86,72 +70,12 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function norm(s) {
-    return String(s || '').replace(/\s+/g, '').toLowerCase();
-  }
-
-  /* ---------- 决定2：三级匹配 ----------
-     alias 命中 10 分（口语说法最可信）
-     name  命中  9 分
-     keyword 命中 4 + 命中个数（分数随命中数增长，但低于 name） */
-  function scoreEntry(entry, text) {
-    var t = norm(text);
-    var best = 0;
-    var aliases = entry.aliases || [];
-    for (var i = 0; i < aliases.length; i++) {
-      var a = norm(aliases[i]);
-      if (!a) continue;
-      if (t.indexOf(a) !== -1) { best = Math.max(best, 10); }
-      else if (a.indexOf(t) !== -1 && t.length >= 2) { best = Math.max(best, 6); }
-    }
-    if (entry.name && t.indexOf(norm(entry.name)) !== -1) best = Math.max(best, 9);
-    var kw = 0;
-    (entry.keywords || []).forEach(function (k) {
-      if (k && t.indexOf(norm(k)) !== -1) kw++;
-    });
-    if (kw > 0) best = Math.max(best, 4 + Math.min(kw, 4));
-    return best;
-  }
-
+  /* ---------- 决定2：场景检索（实现已迁至 retrieval.js） ----------
+     production 默认引擎 = l3（字符规则分），与 M1 基线逐条一致；
+     bm25 / hybrid 仅供评测切换，改默认值须提案（docs/03 §7.1 D-3）。 */
   function bestMatch(text) {
-    var winner = null, top = 0;
-    KB.slots.forEach(function (slot) {
-      var e = ENTRIES[slot.id];
-      if (!e) return;
-      var s = scoreEntry(e, text);
-      if (s > top) { top = s; winner = e; }
-    });
-    return top > 0 ? winner : null;
-  }
-
-  /* 中文没有词边界：「打不着火」含子串「着火」，会把汽车电瓶亏电误判成火灾。
-     治法是对命中位置做否定前缀检查，而不是给每个词写特例。
-     目前覆盖：不 / 没 / 别 / 未，「打不」单独处理（打不着火、打不燃）。 */
-  var NEG_PREFIX = ['不', '没', '别', '未'];
-
-  function hitNoNegation(text, word) {
-    var w = norm(word);
-    if (!w) return false;
-    var idx = text.indexOf(w);
-    while (idx !== -1) {
-      var prev1 = idx > 0 ? text.charAt(idx - 1) : '';
-      var prev2 = idx > 1 ? text.substr(idx - 2, 2) : '';
-      var negated = NEG_PREFIX.indexOf(prev1) !== -1 || prev2 === '打不';
-      if (!negated) return true;
-      idx = text.indexOf(w, idx + 1);
-    }
-    return false;
-  }
-
-  function detectDanger(text) {
-    var t = norm(text);
-    for (var i = 0; i < DANGER_RULES.length; i++) {
-      var r = DANGER_RULES[i];
-      for (var j = 0; j < r.words.length; j++) {
-        if (hitNoNegation(t, r.words[j])) return r;
-      }
-    }
-    return null;
+    var r = R.retrieve(ENTRIES, text);
+    return r.entryId ? (ENTRIES[r.entryId] || null) : null;
   }
 
   /* ---------- 模式切换（S8） ---------- */
