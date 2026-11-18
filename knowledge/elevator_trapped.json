@@ -2,15 +2,59 @@
   "schema_version": "1.0",
   "id": "elevator_trapped",
   "name": "电梯困人",
-  "aliases": ["电梯困住", "被困电梯", "电梯不动了"],
+  "aliases": [
+    "电梯困住",
+    "被困电梯",
+    "电梯不动了"
+  ],
   "category": "elevator_trapped",
-  "keywords": ["电梯", "困住", "关在里面", "电梯停了"],
+  "keywords": [
+    "电梯",
+    "困住",
+    "关在里面",
+    "电梯停了"
+  ],
   "life_threatening": false,
   "triage": null,
   "steps": {
-    "immediate": ["按黄色警铃或通话键", "拨打电梯内张贴的救援电话", "说清楼栋、单元和被困人数"],
-    "next": ["拍门呼救，等待救援", "报出电梯编号和楼层"],
-    "never": ["不要强行扒门", "不要爬出轿厢顶", "不要跳跃晃动"]
+    "immediate": [
+      {
+        "text": "按黄色警铃或通话键",
+        "tool": null
+      },
+      {
+        "text": "拨打电梯内张贴的救援电话",
+        "tool": null
+      },
+      {
+        "text": "说清楼栋、单元和被困人数",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "拍门呼救，等待救援",
+        "tool": null
+      },
+      {
+        "text": "报出电梯编号和楼层",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "不要强行扒门",
+        "tool": null
+      },
+      {
+        "text": "不要爬出轿厢顶",
+        "tool": null
+      },
+      {
+        "text": "不要跳跃晃动",
+        "tool": null
+      }
+    ]
   },
   "emergency_number": "119",
   "source": {
@@ -22,11 +66,14 @@
   "daily": {
     "summary": "电梯困人是设备保护动作，轿厢内有通风，通常不会窒息。",
     "why": "电梯检测到异常会自动停运并锁门，这是保护机制，不是故障失控。轿厢不是密闭空间，有通风口，短时间不会缺氧。贸然扒门或爬出才是真正的危险来源。",
-    "prevention": ["进电梯前看清是否超载", "不乘坐无年检标志的电梯"],
+    "prevention": [
+      "进电梯前看清是否超载",
+      "不乘坐无年检标志的电梯"
+    ],
     "misconception": "被困后会缺氧窒息——通常不会，轿厢不是密闭空间。"
   },
   "offline": true,
-  "version": "0.1",
+  "version": "0.2",
   "status": "draft",
   "review": {
     "author": "待定",
@@ -36,6 +83,11 @@
       "step_order_ok": false,
       "never_non_empty": true,
       "source_quote_verbatim": false
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-18",
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
     },
     "reject_reason": null
   },

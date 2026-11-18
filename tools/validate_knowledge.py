@@ -22,6 +22,8 @@ KNOWLEDGE = ROOT / "knowledge"
 INDEX = KNOWLEDGE / "index.json"
 
 NUMBERS = {"119", "120", "110"}
+TOOL_NAMES = {"dial", "timer", "repeat"}
+AGENT_CHECK_RESULTS = {"pass", "fail", "unverified"}
 STATUSES = {"draft", "pending_review", "approved", "published", "rejected", "archived"}
 SLOT_STATES = {"slot", "ready"}
 
@@ -96,6 +98,35 @@ def load_index(errors):
     return set(slots_by_id.keys()), slots_by_id
 
 
+def check_tool(tool, seg, tag, errors):
+    """校验步骤级工具声明（契约 §4.5）"""
+    if tool is None:
+        return
+    if not isinstance(tool, dict):
+        errors.append(f"{tag} tool 必须是对象或 null，实际是 {type(tool).__name__}")
+        return
+    name = tool.get("name")
+    if name not in TOOL_NAMES:
+        errors.append(f"{tag} tool.name={name!r} 不在 {sorted(TOOL_NAMES)} 内")
+        return
+    if seg == "never":
+        errors.append(f"{tag} never 段落不得挂 tool（禁忌项不是动作）")
+    if name == "timer":
+        sec = tool.get("seconds")
+        if not isinstance(sec, int) or isinstance(sec, bool) or sec <= 0:
+            errors.append(f"{tag} tool=timer 但 seconds 不是正整数: {sec!r}")
+        if not str(tool.get("label", "")).strip():
+            errors.append(f"{tag} tool=timer 但缺 label")
+    elif name == "dial":
+        num = tool.get("number")
+        if num not in NUMBERS:
+            errors.append(f"{tag} tool=dial 但 number={num!r} 不是 119/120/110")
+    elif name == "repeat":
+        t = tool.get("times")
+        if not isinstance(t, int) or isinstance(t, bool) or t <= 0:
+            errors.append(f"{tag} tool=repeat 但 times 不是正整数: {t!r}")
+
+
 def check_file(path, errors, allowed):
     rel = path.name
     try:
@@ -149,8 +180,25 @@ def check_file(path, errors, allowed):
             if not (lo <= len(arr) <= hi):
                 errors.append(f"[{rel}] steps.{seg} 条数 {len(arr)} 不在 {lo}-{hi}")
         for i, s in enumerate(arr):
-            if len(s) > MAX_STEP_CHARS:
-                errors.append(f"[{rel}] steps.{seg}[{i}] {len(s)} 字超过 {MAX_STEP_CHARS}: {s}")
+            tag = f"[{rel}] steps.{seg}[{i}]"
+            # v0.4: 元素必须是 {text, tool}
+            if isinstance(s, str):
+                errors.append(
+                    f"{tag} 仍是字符串旧格式，须迁移为 {{\"text\": ..., \"tool\": null}}（契约 §4.4）"
+                )
+                continue
+            if not isinstance(s, dict):
+                errors.append(f"{tag} 必须是对象，实际是 {type(s).__name__}")
+                continue
+            if "text" not in s or not str(s.get("text", "")).strip():
+                errors.append(f"{tag} 缺 text 或 text 为空")
+                continue
+            if "tool" not in s:
+                errors.append(f"{tag} 缺 tool 字段（无工具时写 null）")
+            text = str(s["text"])
+            if len(text) > MAX_STEP_CHARS:
+                errors.append(f"{tag} {len(text)} 字超过 {MAX_STEP_CHARS}: {text}")
+            check_tool(s.get("tool"), seg, tag, errors)
 
     src = d["source"]
     for k in REQUIRED_SOURCE:
@@ -182,6 +230,19 @@ def check_file(path, errors, allowed):
     for k in CHECKLIST_KEYS:
         if k not in rv.get("checklist", {}):
             errors.append(f"[{rel}] review.checklist.{k} 缺失")
+
+    # v0.4: agent_check 结构校验（非 published 也要求字段存在）
+    ac = rv.get("agent_check")
+    if ac is None:
+        errors.append(f"[{rel}] review.agent_check 缺失（须由 check_source_quote.py 生成）")
+    else:
+        res = ac.get("source_quote")
+        if res not in AGENT_CHECK_RESULTS:
+            errors.append(
+                f"[{rel}] review.agent_check.source_quote={res!r} 非法"
+                f"（只能是 pass / fail / unverified）"
+            )
+
     if d["status"] == "published":
         approved = rv.get("approved_by") or []
         if len(approved) < 1:
@@ -189,6 +250,16 @@ def check_file(path, errors, allowed):
         cl = rv.get("checklist", {})
         if not all(cl.get(k) is True for k in CHECKLIST_KEYS):
             errors.append(f"[{rel}] published 但 checklist 未全部为 true")
+        # v0.4 核心：机器比对未 pass 一律不许发布
+        ac = ac or {}
+        res = ac.get("source_quote")
+        if res != "pass":
+            errors.append(
+                f"[{rel}] published 但 agent_check.source_quote={res!r}"
+                f"（必须为 pass；unverified 需人工核对后再发布）"
+            )
+        if not str(ac.get("checked_at") or "").strip():
+            errors.append(f"[{rel}] published 但 agent_check.checked_at 为空")
 
     return d
 
