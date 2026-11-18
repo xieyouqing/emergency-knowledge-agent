@@ -102,7 +102,15 @@
   /* alias 命中 10 分（口语说法最可信）
      name  命中  9 分
      keyword 命中 4 + 命中个数（随个数增长，但低于 name）
-     alias 反向包含 6 分（用户输入是别名的一部分，如输入「电梯」对上「电梯困住」） */
+     alias 反向包含 6 分（用户输入是别名的一部分，如输入「电梯」对上「电梯困住」）
+
+     ⚠️ 正向匹配全部走 hitNoNegation，不用裸 indexOf。
+        2026-11-18 回归修复：「汽车打不着火」含子串「着火」，
+        fire_home 还没有条目时这条不会暴露（bestMatch 无从命中）；
+        条目发布后立刻变成误判——detectDanger 有否定检查、这里没有，
+        同一个词表两条路径检查不一致就是 bug。
+        否定前缀只用于正向匹配；反向包含（a.indexOf(t)）是「用户输入更短」，
+        不存在否定语义，故不检查。 */
   function scoreEntryByRules(entry, text) {
     var t = norm(text);
     var best = 0;
@@ -111,18 +119,18 @@
     for (var i = 0; i < aliases.length; i++) {
       var a = norm(aliases[i]);
       if (!a) continue;
-      if (t.indexOf(a) !== -1) {
+      if (hitNoNegation(t, a)) {
         if (best < 10) { best = 10; why = 'alias:' + aliases[i]; }
       } else if (a.indexOf(t) !== -1 && t.length >= 2) {
         if (best < 6) { best = 6; why = 'alias-rev:' + aliases[i]; }
       }
     }
-    if (entry.name && t.indexOf(norm(entry.name)) !== -1 && best < 9) {
+    if (entry.name && best < 9 && hitNoNegation(t, entry.name)) {
       best = 9; why = 'name';
     }
     var kw = 0;
     (entry.keywords || []).forEach(function (k) {
-      if (k && t.indexOf(norm(k)) !== -1) kw++;
+      if (k && hitNoNegation(t, k)) kw++;
     });
     if (kw > 0) {
       var s = 4 + Math.min(kw, 4);

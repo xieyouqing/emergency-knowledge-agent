@@ -65,19 +65,32 @@ function ok(cond, msg) {
   else { fail++; failures.push(msg); }
 }
 
-/* ---------- 1. 构建产物只含 published 条目 ---------- */
+/* ---------- 1. 构建产物只含 published 条目 ----------
+   2026-11-18 起新增 6 条，total 9（drowning 因 §3.8 禁令不写，槽位仍为 slot） */
 const meta = M.kbMeta;
-ok(meta.slots === 3, `图标槽位应为 3 个（实际 ${meta.slots}）`);
-ok(meta.entries === 3, `条目应为 3 条（实际 ${meta.entries}）`);
-const allowed = ['elevator_trapped', 'fall_elderly', 'gas_leak'];
+const allowed = [
+  'airway_obstruction', 'co_poisoning', 'earthquake', 'electric_shock',
+  'elevator_trapped', 'fall_elderly', 'fire_home', 'gas_leak', 'scald_burn'
+];
+ok(meta.slots === 9, `图标槽位应为 9 个（实际 ${meta.slots}）`);
+ok(meta.entries === 9, `条目应为 9 条（实际 ${meta.entries}）`);
 ok(
   Object.keys(M.entries).sort().join(',') === allowed.join(','),
   `条目集合应为 ${allowed.join(',')}，实际 ${Object.keys(M.entries).sort().join(',')}`
 );
+// drowning 必须缺席：源未验证，禁止入库（docs/06 §3.8）
+ok(!M.entries.drowning, 'drowning 不得出现在产物中（源未通过验证）');
 for (const id of Object.keys(M.entries)) {
-  ok(M.entries[id].status === 'published', `${id} 的 status 应为 published`);
-  ok(M.entries[id].review.checklist.source_quote_verbatim === true, `${id} 的 source_quote_verbatim 应为 true`);
-  ok(M.entries[id].review.agent_check.source_quote === 'pass', `${id} 的 agent_check 应为 pass`);
+  const e = M.entries[id];
+  // 防御：产物里混入结构不全的条目时，报明确失败而不是让脚本崩掉。
+  // 崩溃会掩盖真正的失败原因，等于断言失效（v0.9 加固）。
+  if (!e || !e.review || !e.review.checklist || !e.review.agent_check) {
+    ok(false, `${id} 缺 review/checklist/agent_check，产物结构不完整`);
+    continue;
+  }
+  ok(e.status === 'published', `${id} 的 status 应为 published`);
+  ok(e.review.checklist.source_quote_verbatim === true, `${id} 的 source_quote_verbatim 应为 true`);
+  ok(e.review.agent_check.source_quote === 'pass', `${id} 的 agent_check 应为 pass`);
 }
 
 /* ---------- 2. 库内检索命中率（20 条，目标 ≥ 17） ---------- */
@@ -147,12 +160,29 @@ for (const [text, expect] of DANGER_CASES) {
   ok(r.dangerId === expect, `危险信号: 「${text}」期望 ${expect}，实际 ${r.dangerId}`);
 }
 
-/* ---------- 5. 未发布场景 → 拨号卡，不给步骤（决定4） ---------- */
-for (const [text, num] of [['着火了', '119'], ['有人落水了', '120'], ['孩子触电了', '120']]) {
+/* ---------- 5. 未发布场景 → 拨号卡，不给步骤（决定4） ----------
+   2026-11-18：fire_home / electric_shock / earthquake 已发布，走 steps。
+   现在只剩 drowning 未发布（源未验证），它是决定4 的唯一生产用例。 */
+{
+  const r = M.routeOf('有人落水了');
+  ok(r.entryId === null, '「有人落水了」不应命中任何已发布条目（drowning 未发布）');
+  ok(r.dialOnly === true, '「有人落水了」应走拨号卡');
+  ok(r.dangerNumber === '120', `「有人落水了」拨号码应为 120，实际 ${r.dangerNumber}`);
+}
+
+/* ---------- 5b. 新发布的场景必须给出步骤卡，不能退化成拨号卡 ---------- */
+for (const [text, expect] of [
+  ['着火了', 'fire_home'],
+  ['家里冒烟了', 'fire_home'],
+  ['孩子触电了', 'electric_shock'],
+  ['地震了', 'earthquake'],
+  ['老人噎住了', 'airway_obstruction'],
+  ['烫伤了怎么办', 'scald_burn'],
+  ['一氧化碳中毒', 'co_poisoning']
+]) {
   const r = M.routeOf(text);
-  ok(r.entryId === null, `「${text}」不应命中任何已发布条目`);
-  ok(r.dialOnly === true, `「${text}」应走拨号卡`);
-  ok(r.dangerNumber === num, `「${text}」拨号码应为 ${num}，实际 ${r.dangerNumber}`);
+  ok(r.entryId === expect, `「${text}」应给出 ${expect} 的步骤卡（实际 entryId=${r.entryId}, dialOnly=${r.dialOnly}）`);
+  ok(r.dialOnly === false, `「${text}」已发布场景不应走拨号卡`);
 }
 
 /* ---------- 6. 三段式渲染完整性（遍历全部已发布条目） ---------- */
@@ -275,11 +305,16 @@ for (const id of Object.keys(M.entries)) {
   ok(tk.includes('煤气') && tk.includes('气泄') && tk.includes('泄漏'), `BM25 应对中文做 bigram（实际 ${tk.join('/')}）`);
   ok(tk.includes('120'), `BM25 应把连续 ASCII 当整词（实际 ${tk.join('/')}）`);
 
-  // 索引规模断言：3 条条目下 df=1 占比 100%（这是 §6.6 结论的数据基础，变了要重新审视）
+  // 索引规模断言：只在 N=3 时成立（df 全为 1 → IDF 失效，见 docs/03 §6.6）
+  // 条目数变化后本断言自动变为「记录新规模」，不再断言具体值——
+  // 硬编码 N 会让每次加条目都误报，那不是判据，是噪音。
   const idx = R._internals.buildIndex(Object.values(ENT));
   const dfVals = Object.values(idx.df);
-  const allOne = dfVals.every(d => d === 1);
-  ok(allOne, `N=3 时所有词项 df 应为 1（IDF 失效，见 docs/03 §6.6）。若此断言失败说明条目数已变，须重跑引擎对照`);
+  const ratio = dfVals.filter(d => d === 1).length / dfVals.length;
+  ok(idx.N === Object.keys(ENT).length, `BM25 索引文档数应等于条目数（${idx.N} vs ${Object.keys(ENT).length}）`);
+  ok(dfVals.length > 0, 'BM25 索引不应为空');
+  console.log(`  BM25 索引: N=${idx.N}, 词项=${dfVals.length}, df=1 占比=${(ratio * 100).toFixed(1)}%`
+    + (ratio >= 1 ? ' ← 仍为 100%，IDF 依然失效，引擎对照仍无区分度' : ' ← IDF 已部分恢复区分度'));
 }
 
 /* ---------- 12. 投毒自检：故意改坏输入，确认断言会红 ---------- */
