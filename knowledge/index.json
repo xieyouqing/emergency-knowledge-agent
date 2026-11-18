@@ -18,7 +18,7 @@
       "name": "家庭火灾",
       "icon": "fire_home",
       "order": 20,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
       "note": "候选池。内容待查证，来源未核"
     },
@@ -27,7 +27,7 @@
       "name": "一氧化碳中毒",
       "icon": "co_poisoning",
       "order": 30,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
       "note": "候选池。与燃气泄漏是两件事，无味无形，处置不同。来源待查"
     },
@@ -45,7 +45,7 @@
       "name": "烧烫伤",
       "icon": "scald_burn",
       "order": 50,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
       "note": "候选池。内容待查证，来源未核"
     },
@@ -54,7 +54,7 @@
       "name": "触电",
       "icon": "electric_shock",
       "order": 60,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
       "note": "候选池。内容待查证，来源未核"
     },
@@ -63,7 +63,7 @@
       "name": "气道梗阻",
       "icon": "airway_obstruction",
       "order": 70,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
       "note": "候选池。原中暑槽位改立。老人进食噎食为主，年死亡量级高于火灾；一手源缺口最大，待补"
     },
@@ -81,7 +81,7 @@
       "name": "地震",
       "icon": "earthquake",
       "order": 90,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
       "note": "候选池。前 30 秒动作价值较低，优先级待定"
     },

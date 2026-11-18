@@ -89,7 +89,7 @@
     "agent_check": {
       "source_quote": "pass",
       "checked_at": "2026-11-18",
-      "detail": "原文中逐字定位成功"
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
     },
     "reject_reason": null
   },

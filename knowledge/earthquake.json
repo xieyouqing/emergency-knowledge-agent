@@ -1,0 +1,194 @@
+{
+  "schema_version": "1.0",
+  "id": "earthquake",
+  "name": "地震",
+  "aliases": [
+    "地震了",
+    "地震",
+    "余震",
+    "楼在晃",
+    "房子在晃"
+  ],
+  "category": "earthquake",
+  "keywords": [
+    "地震",
+    "余震",
+    "晃动",
+    "房子塌",
+    "楼塌",
+    "避难",
+    "被困",
+    "废墟"
+  ],
+  "life_threatening": true,
+  "triage": {
+    "question": "你现在在哪儿？",
+    "options": [
+      {
+        "value": "indoor",
+        "label": "在室内",
+        "override": {
+          "immediate": [
+            {
+              "text": "就地蹲下或跪下，别跑",
+              "tool": null
+            },
+            {
+              "text": "躲到桌子下或沙发旁",
+              "tool": null
+            },
+            {
+              "text": "一只手抓牢固定物，护住头",
+              "tool": null
+            },
+            {
+              "text": "远离玻璃窗和吊灯",
+              "tool": null
+            }
+          ]
+        }
+      },
+      {
+        "value": "outdoor",
+        "label": "在室外",
+        "override": {
+          "immediate": [
+            {
+              "text": "找开阔地就地蹲下",
+              "tool": null
+            },
+            {
+              "text": "远离高楼、电线杆、广告牌",
+              "tool": null
+            },
+            {
+              "text": "护住头，别站在围墙下",
+              "tool": null
+            }
+          ]
+        }
+      },
+      {
+        "value": "trapped",
+        "label": "被埋或被困",
+        "override": {
+          "immediate": [
+            {
+              "text": "别乱动，先护住口鼻",
+              "tool": null
+            },
+            {
+              "text": "有节奏地敲管道或墙壁",
+              "tool": null
+            },
+            {
+              "text": "节省体力，别长时间大喊",
+              "tool": null
+            },
+            {
+              "text": "能移动就先找水和出口",
+              "tool": null
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "steps": {
+    "immediate": [
+      {
+        "text": "伏地、遮挡、手抓牢",
+        "tool": null
+      },
+      {
+        "text": "蹲伏或跪伏，护住头部",
+        "tool": null
+      },
+      {
+        "text": "躲到桌下或沙发旁边",
+        "tool": null
+      },
+      {
+        "text": "避开玻璃和吊灯等悬挂物",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "晃动停止后有序撤到室外",
+        "tool": null
+      },
+      {
+        "text": "走楼梯，不要坐电梯",
+        "tool": null
+      },
+      {
+        "text": "被困时有节奏敲管道求救",
+        "tool": null
+      },
+      {
+        "text": "到开阔地，远离建筑物",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "不要跳楼",
+        "tool": null
+      },
+      {
+        "text": "不要乘坐电梯",
+        "tool": null
+      },
+      {
+        "text": "被困时不要长时间大声呼救",
+        "tool": null
+      },
+      {
+        "text": "晃动时不要往楼梯冲",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "119",
+  "source": {
+    "name": "应急管理部、中国地震局新闻发布会（中国政府网转载《人民日报》2025-05-13）",
+    "url": "https://www.gov.cn/lianbo/bumen/202505/content_7023490.htm",
+    "date": "2026-11-18",
+    "quote": "如果身处室内要根据\"伏地、遮挡、手抓牢\"的原则就近躲避，采取蹲伏或跪伏的姿势，寻求牢固的物体来遮挡或者是保护好头部，比如躲在桌子底下或者是沙发旁边，同时手要抓住身边的固定物以防止身体滑动或者被甩出去，也要避开玻璃和吊灯等悬挂物。"
+  },
+  "daily": {
+    "summary": "地震先就地躲避，别往楼下跑。护住头、抓牢固定物，晃动停了再撤。",
+    "why": "地震的强晃动通常只有几十秒，大部分伤害来自坠物和摔倒，而不是房子整体垮塌。所以就近躲避、护住头、抓住固定物，比冲向楼梯更安全。晃动时楼梯是最容易失稳和踩踏的地方，电梯可能断电困人。被困时长时间大喊会快速耗尽体力和氧气，有节奏敲击更省力也更容易被听到。",
+    "prevention": [
+      "高柜和书架用支架固定上墙",
+      "床头不要放重物和挂画",
+      "家里备手电、口哨、饮用水",
+      "提前约定家人集合地点"
+    ],
+    "misconception": "地震了要马上冲下楼——错，晃动时跑动更容易被坠物砸中，先就近躲避。"
+  },
+  "offline": true,
+  "version": "1.0",
+  "status": "published",
+  "review": {
+    "author": "xieyouqing",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-18",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-18",
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18"
+}

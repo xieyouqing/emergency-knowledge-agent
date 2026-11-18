@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0",
+  "id": "fire_home",
+  "name": "家庭火灾",
+  "aliases": [
+    "着火了",
+    "家里着火",
+    "起火了",
+    "冒烟了",
+    "厨房着火",
+    "火烧起来"
+  ],
+  "category": "fire_home",
+  "keywords": [
+    "着火",
+    "起火",
+    "火灾",
+    "冒烟",
+    "浓烟",
+    "火势",
+    "逃生",
+    "火警"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "大声喊人，马上离开屋子",
+        "tool": null
+      },
+      {
+        "text": "贴近地面爬行，别站着跑",
+        "tool": null
+      },
+      {
+        "text": "用湿毛巾捂住口鼻",
+        "tool": null
+      },
+      {
+        "text": "走安全出口，不要坐电梯",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "到室外安全处拨打 119",
+        "tool": {
+          "name": "dial",
+          "number": "119"
+        }
+      },
+      {
+        "text": "门已发烫就别开门，堵门缝",
+        "tool": null
+      },
+      {
+        "text": "退回室内泼水降温，等救援",
+        "tool": null
+      },
+      {
+        "text": "在窗口挥衣物、打手电求救",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "不要盲目跳楼",
+        "tool": null
+      },
+      {
+        "text": "不要乘坐电梯逃生",
+        "tool": null
+      },
+      {
+        "text": "门把手烫手时不要开门",
+        "tool": null
+      },
+      {
+        "text": "不要为拿东西返回火场",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "119",
+  "source": {
+    "name": "中华人民共和国应急管理部《社区消防安全知识常识》（火灾逃生自救常识第 4 条）",
+    "url": "https://www.mem.gov.cn/kp/shaq/201904/t20190401_366005.shtml",
+    "date": "2026-11-18",
+    "quote": "穿过浓烟逃生时，要尽量使身体贴近地面，并用湿毛巾捂住口鼻。"
+  },
+  "daily": {
+    "summary": "火灾中最致命的是浓烟，不是火。贴近地面、捂住口鼻、走安全出口，不要坐电梯。",
+    "why": "浓烟里有大量有毒气体，且热烟气聚集在上方，贴近地面空气相对干净，能见度也更好。电梯在火灾时会断电或成为烟囱通道，所以必须走安全出口。门已发烫说明门外火势很大，开门会让大火窜入室内。",
+    "prevention": [
+      "家里装独立式烟感报警器",
+      "楼道和阳台不要堆放杂物",
+      "提前认好两个方向的安全出口",
+      "备一条湿毛巾放在易取处"
+    ],
+    "misconception": "躲进卫生间最安全——不一定，卫生间常无窗无法求救，且门多为塑料，遇高温会熔化。"
+  },
+  "offline": true,
+  "version": "1.0",
+  "status": "published",
+  "review": {
+    "author": "xieyouqing",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-18",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-18",
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18"
+}

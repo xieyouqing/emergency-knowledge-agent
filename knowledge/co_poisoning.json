@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "id": "co_poisoning",
+  "name": "一氧化碳中毒",
+  "aliases": [
+    "煤气中毒",
+    "一氧化碳中毒",
+    "烧炭中毒",
+    "炭火中毒",
+    "煤炉中毒"
+  ],
+  "category": "co_poisoning",
+  "keywords": [
+    "一氧化碳",
+    "煤气中毒",
+    "烧炭",
+    "炭火",
+    "炭盆",
+    "煤炉",
+    "中毒",
+    "头晕恶心"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "马上打开门窗通风",
+        "tool": null
+      },
+      {
+        "text": "关掉煤气、熄灭炭火",
+        "tool": null
+      },
+      {
+        "text": "把人抬到室外通风处",
+        "tool": null
+      },
+      {
+        "text": "解开衣领、领带，注意保暖",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "昏迷或呼吸心跳停了立刻打 120",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      },
+      {
+        "text": "呼吸心跳停了做按压和人工呼吸",
+        "tool": null
+      },
+      {
+        "text": "自己进去救人要匍匐前进",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "现场严禁明火",
+        "tool": null
+      },
+      {
+        "text": "不要开关电灯、按门铃",
+        "tool": null
+      },
+      {
+        "text": "不要站着深呼吸，要匍匐进入",
+        "tool": null
+      },
+      {
+        "text": "不要留在屋里等人来",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "国家卫生健康委员会 2025-01-05 新闻发布会（中国疾控中心职业卫生与中毒控制所所长 孙新）",
+    "url": "https://www.ndcpa.gov.cn/jbkzzx/c100009/common/content/content_1876073112178118656.html",
+    "date": "2026-11-18",
+    "quote": "一氧化碳比空气比重稍微轻一点，所以救助人员进入一氧化碳中毒现场，匍匐行动比站立要更安全。进入一氧化碳中毒的现场，要严禁明火，室内一旦一氧化碳浓度比较高，开闭电灯造成的火花往往引起爆炸。"
+  },
+  "daily": {
+    "summary": "一氧化碳无色无味，中毒后先开窗、断源、把人搬到通风处，再打 120。",
+    "why": "一氧化碳与血红蛋白结合能力远强于氧气，会让人体组织缺氧，所以人会觉得头晕、恶心、乏力，重则昏迷。它比空气略轻，聚集在上方，站着呼吸吸入浓度更高，所以救助者要匍匐进入。达到一定浓度时，开灯、按门铃产生的微小电火花就能引爆。",
+    "prevention": [
+      "燃气热水器不要装在浴室里",
+      "用炭火取暖必须开窗通风",
+      "建议装一氧化碳报警器",
+      "不要在密闭车内开空调睡觉"
+    ],
+    "misconception": "屋里放盆水能防中毒——错，一氧化碳几乎不溶于水，放水没有任何作用。"
+  },
+  "offline": true,
+  "version": "1.0",
+  "status": "published",
+  "review": {
+    "author": "xieyouqing",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-18",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-18",
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18"
+}

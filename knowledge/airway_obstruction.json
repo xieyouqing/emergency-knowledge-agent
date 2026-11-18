@@ -1,0 +1,122 @@
+{
+  "schema_version": "1.0",
+  "id": "airway_obstruction",
+  "name": "气道梗阻",
+  "aliases": [
+    "噎住了",
+    "噎着",
+    "卡住喉咙",
+    "呛到气管",
+    "被东西噎到",
+    "异物卡喉"
+  ],
+  "category": "airway_obstruction",
+  "keywords": [
+    "噎住",
+    "噎着",
+    "卡住喉咙",
+    "卡喉",
+    "呛到",
+    "窒息",
+    "异物",
+    "喘不上"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "让他低头、身体前倾",
+        "tool": null
+      },
+      {
+        "text": "用力拍后背两肩胛骨之间 5 次",
+        "tool": null
+      },
+      {
+        "text": "再环抱腹部向内向上冲压 5 次",
+        "tool": null
+      },
+      {
+        "text": "拍背和冲压交替，直到东西出来",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "人没气了立刻打 120",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      },
+      {
+        "text": "没气了接着做按压和人工呼吸",
+        "tool": null
+      },
+      {
+        "text": "一岁以下婴儿改用胸部冲击",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "不要只拍背不冲压，要交替做",
+        "tool": null
+      },
+      {
+        "text": "不要给一岁以下婴儿做腹部冲击",
+        "tool": null
+      },
+      {
+        "text": "还能咳嗽时不要强行去抠",
+        "tool": null
+      },
+      {
+        "text": "不要把人倒过来提脚抖",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "中国红十字会《气道梗阻的急救方法》",
+    "url": "https://www.redcross.org.cn/autoweb/hlwmh/third/hlwmh_hlwmhsmjk_250544.html",
+    "date": "2026-11-18",
+    "quote": "如果患者是成人或儿童，我们应用力拍打患者后背肩胛骨之间的部位5次，以利于把卡在喉咙的东西排出来，然后再冲击按压患者腹部5次。拍打后背和腹部冲击交替进行，直到堵塞物排出。"
+  },
+  "daily": {
+    "summary": "有人噎住说不出话时，拍背 5 次加腹部冲击 5 次，交替做到异物排出。",
+    "why": "异物完全堵住气道时，人无法说话、咳嗽，几分钟内就会缺氧。拍背能产生震动和气流把异物松动，腹部冲击能把肺内残气挤压成向上的气流把异物顶出来，两种手法交替比单做一种更有效。婴儿肝脏大、位置低，腹部冲击容易造成损伤，所以改用胸部冲击。",
+    "prevention": [
+      "吃饭时不要大笑、说话、走动",
+      "老人吃肉、年糕要切小块",
+      "不要给三岁以下孩子整颗坚果",
+      "小孩不要边跑边吃"
+    ],
+    "misconception": "噎住先喂水冲下去——错，喂水会让异物卡得更紧或呛进气管，先排异物。"
+  },
+  "offline": true,
+  "version": "1.0",
+  "status": "published",
+  "review": {
+    "author": "xieyouqing",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-18",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-18",
+      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18"
+}
