@@ -207,11 +207,16 @@ def main():
             detail = r["reason"]
             if INSECURE:
                 detail += "（本次未校验证书，仅确认字面一致）"
-            d.setdefault("review", {})["agent_check"] = {
+            review = d.setdefault("review", {})
+            review["agent_check"] = {
                 "source_quote": r["result"],
                 "checked_at": today,
                 "detail": detail,
             }
+            # 契约 §7.2：source_quote_verbatim 由机器判，人不得手填。
+            # 因此这一项只能由本脚本回写，pass 才置 true，fail/unverified 一律置 false。
+            checklist = review.setdefault("checklist", {})
+            checklist["source_quote_verbatim"] = (r["result"] == "pass")
             f.write_text(
                 json.dumps(d, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",

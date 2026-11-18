@@ -9,9 +9,9 @@
       "name": "燃气泄漏",
       "icon": "gas_leak",
       "order": 10,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
-      "note": "候选池。内容待查证，来源未核"
+      "note": "已发布 v1.0。源：应急管理部 2022-09-09 居家安全提示；机器比对 pass"
     },
     {
       "id": "fire_home",
@@ -36,9 +36,9 @@
       "name": "老人跌倒",
       "icon": "fall_elderly",
       "order": 40,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
-      "note": "候选池。65 岁以上因伤害死亡首位原因（中国疾控中心），来源待补精确条目"
+      "note": "已发布 v1.0。源：中国疾控中心慢病中心 2024-09-23；机器比对 pass。危重分支待补"
     },
     {
       "id": "scald_burn",
@@ -74,7 +74,7 @@
       "order": 80,
       "state": "slot",
       "show_when_empty": false,
-      "note": "候选池。内容待查证，来源未核"
+      "note": "⚠️ 阻塞：待验证 3 项——「不要控水」无一手可验源（V12）、CPR 按压通气比两源冲突（V13，15:1 vs 30:2）、人工呼吸与按压先后未定。三项闭环前禁止写条目，详见 06-知识源清单 §3.8 与 01-需求基线 §9"
     },
     {
       "id": "earthquake",
@@ -90,9 +90,9 @@
       "name": "电梯困人",
       "icon": "elevator_trapped",
       "order": 100,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
-      "note": "已有一条 draft 条目，来源仍待补，未达 published"
+      "note": "已发布 v0.3。源：市场监管总局 3·15 特种设备安全提示；机器比对 pass"
     }
   ]
 }

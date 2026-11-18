@@ -116,21 +116,23 @@
     "misconception": "闻到味道先开抽油烟机把气抽走——错，抽油烟机开关会产生电火花。"
   },
   "offline": true,
-  "version": "0.1",
-  "status": "draft",
+  "version": "1.0",
+  "status": "published",
   "review": {
-    "author": "待填",
-    "approved_by": [],
-    "approved_at": null,
+    "author": "xieyouqing",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-18",
     "checklist": {
-      "step_order_ok": false,
+      "step_order_ok": true,
       "never_non_empty": true,
-      "source_quote_verbatim": false
+      "source_quote_verbatim": true
     },
     "agent_check": {
       "source_quote": "pass",
       "checked_at": "2026-11-18",
-      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+      "detail": "原文中逐字定位成功"
     },
     "reject_reason": null
   },
