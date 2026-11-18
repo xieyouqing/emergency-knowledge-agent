@@ -43,13 +43,39 @@ const document = {
   addEventListener() {}
 };
 const window = { document, scrollTo() {} };
-const sandbox = { window, document, console, Math, String, Number, Object, Array, JSON };
+/* ---------- speechSynthesis stub：让 voice.js 能跑，且能断言「说了什么」 ---------- */
+const spoken = [];
+function SpeechSynthesisUtteranceStub(text) { this.text = text; this.lang = ''; this.rate = 1; }
+const speechSynthesisStub = {
+  getVoices() {
+    return [
+      { name: 'Microsoft Huihui', lang: 'zh-CN' },
+      { name: 'Google 普通话', lang: 'zh-CN' },
+      { name: 'Alex', lang: 'en-US' }
+    ];
+  },
+  speak(u) { spoken.push({ text: u.text, lang: u.lang, rate: u.rate }); if (u.onend) u.onend(); },
+  cancel() {},
+  addEventListener() {}
+};
+
+const sandbox = {
+  window, document, console, Math, String, Number, Object, Array, JSON,
+  speechSynthesis: speechSynthesisStub,
+  SpeechSynthesisUtterance: SpeechSynthesisUtteranceStub,
+  localStorage: null
+};
+// voice.js 用 `typeof window !== 'undefined' ? window : globalThis` 取全局，
+// 所以 stub 的 window 上必须也有这两个 API，否则它会走到「不支持」分支。
+window.speechSynthesis = speechSynthesisStub;
+window.SpeechSynthesisUtterance = SpeechSynthesisUtteranceStub;
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
 vm.runInContext(fs.readFileSync(path.join(APP, 'knowledge.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'llm.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'voice.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
 
 const M = sandbox.window.__M1__;
@@ -412,7 +438,127 @@ for (const id of Object.keys(M.entries)) {
   }
 }
 
-/* ---------- 12. 投毒自检：故意改坏输入，确认断言会红 ---------- */
+/* ---------- 12. 语音输出（M2，全部离线可测） ----------
+   核心判据只有一条最重要：**朗读稿里的每个字都必须来自条目字段**（S1）。
+   所以断言方式不是「听起来对」，而是「逐条步骤的 text 都出现在稿子里，且稿子里
+   没有条目之外的句子」。 */
+{
+  const T = sandbox.window.TTS;
+  ok(!!T, 'voice.js 应导出 window.TTS');
+  ok(typeof T.composeStepsScript === 'function', 'composeStepsScript 必须是函数');
+
+  // ① 探测：web 引擎可用（stub 提供了 speechSynthesis + 中文音色）
+  await T.detect();
+  ok(T.state.engine === 'web', `有 speechSynthesis 时应选 web 引擎（实际 ${T.state.engine}）`);
+  ok(T.state.supported === true, '有中文音色时 supported 应为 true');
+  ok(T.state.voiceName && /Huihui|普通话/.test(T.state.voiceName),
+    `应优先选中文音色（实际 ${T.state.voiceName}）`);
+
+  // ② 朗读稿 = 条目字段的拼接，一个字都不许改（S1）
+  for (const id of Object.keys(M.entries)) {
+    const e = M.entries[id];
+    const script = T.composeStepsScript(e, null);
+    ok(script.length > 0, `${id} 朗读稿不应为空`);
+    ok(script.includes(e.name), `${id} 朗读稿应包含场景名`);
+    for (const seg of ['immediate', 'next', 'never']) {
+      for (const s of e.steps[seg]) {
+        ok(script.includes(s.text), `${id} 朗读稿缺 ${seg} 的「${s.text}」（S1：不许漏也不许改）`);
+      }
+    }
+    // 反向：稿子里不许出现条目字段以外的「操作句」。
+    // 判据是「稿子长度 ≈ 各字段长度之和 + 段落标题」，超出部分只能是标题与标点。
+    const titles = ['立刻做。', '接着做。', '绝对不要做。'];
+    let stripped = script.replace(e.name + '。', '');
+    for (const t of titles) stripped = stripped.split(t).join('');
+    for (const seg of ['immediate', 'next', 'never']) {
+      for (const s of e.steps[seg]) stripped = stripped.split(s.text + '。').join('');
+    }
+    ok(stripped.replace(/[。，、！？：；\s]/g, '') === '',
+      `${id} 朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
+  }
+
+  // ③ 分诊覆盖：选了「还有很浓的味」应读 override 的步骤，不是默认步骤
+  {
+    const e = M.entries.gas_leak;
+    const opt = e.triage.options.find(o => o.override && o.override.immediate);
+    ok(!!opt, 'gas_leak 应有带 override 的分诊选项');
+    const script = T.composeStepsScript(e, opt.override.immediate);
+    for (const s of opt.override.immediate) {
+      ok(script.includes(s.text), `分诊后朗读稿应包含 override 步骤「${s.text}」`);
+    }
+    ok(!script.includes(e.steps.immediate[0].text),
+      '分诊后朗读稿不应再包含默认 immediate 步骤（否则会读错指导）');
+  }
+
+  // ④ 不可用时必须给明确原因，且 speak 返回 reason 而不是假装成功
+  {
+    const savedReason = T.state.unavailableReason;
+    T.state.supported = false;
+    T.state.unavailableReason = '测试用不可用原因';
+    const r = await T.speak('测试');
+    ok(r.ok === false && r.reason === 'unsupported', '不支持时 speak 应返回 unsupported');
+    ok(r.message === '测试用不可用原因', '不支持时必须带回用户能看懂的原因（不许静默失败）');
+    T.state.supported = true;
+    T.state.unavailableReason = savedReason;
+  }
+
+  // ⑤ 空文本不发声
+  {
+    const before = spoken.length;
+    const r = await T.speak('   ');
+    ok(r.ok === false && r.reason === 'empty', '空文本应返回 empty');
+    ok(spoken.length === before, '空文本不应触发实际发声');
+  }
+
+  // ⑥ 关闭开关后不发声（除非 force）
+  {
+    T.setEnabled(false);
+    const before = spoken.length;
+    const r1 = await T.speak('煤气泄漏了');
+    ok(r1.reason === 'disabled', '关闭后应返回 disabled');
+    ok(spoken.length === before, '关闭后不应发声');
+    const r2 = await T.speak('煤气泄漏了', { force: true });
+    ok(r2.ok === true, 'force 时应无视开关发声');
+    T.setEnabled(true);
+  }
+
+  // ⑦ 实际发声内容与朗读稿一致（不是只调用不传文本）
+  {
+    const e = M.entries.fire_home;
+    const before = spoken.length;
+    await T.speak(T.composeStepsScript(e, null), { force: true });
+    ok(spoken.length === before + 1, '应触发一次发声');
+    const last = spoken[spoken.length - 1];
+    ok(last.text.includes(e.steps.immediate[0].text), '实际发声内容应包含第一条步骤');
+    ok(last.lang === 'zh-CN', `发声语言应为 zh-CN（实际 ${last.lang}）`);
+    ok(last.rate <= 1.0, `默认语速应偏慢（≤1.0，老人友好），实际 ${last.rate}`);
+  }
+
+  // ⑧ 卡片必须渲染朗读与停止两个按钮，且停止按钮不是小字链接
+  {
+    const e = M.entries.gas_leak;
+    const box = makeEl('voice');
+    M.renderSteps(e, null, box);
+    ok(box.innerHTML.includes('data-act="read"'), '步骤卡应有朗读按钮');
+    ok(box.innerHTML.includes('data-act="stop"'), '步骤卡应有停止按钮');
+    ok(box.innerHTML.includes('朗读一遍'), '朗读按钮文案应明确');
+    ok(box.innerHTML.includes('停止'), '停止按钮文案应明确');
+  }
+
+  // ⑨ 语音按钮的尺寸与字号必须达标（读 CSS 声明，与判据 4/10 同一口径）
+  {
+    const css = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
+    const btn = css.match(/\.voice-btn\{[^}]*min-height:\s*(\d+)px/s);
+    ok(!!btn && Number(btn[1]) >= 48, `语音按钮 min-height 应 ≥ 48px，实际 ${btn ? btn[1] + 'px' : '未找到'}`);
+    const fsMin = css.match(/\.voice-btn\{[^}]*font-size:\s*var\(--fs-min\)/s);
+    ok(!!fsMin, '语音按钮字号须用 var(--fs-min)，不得小于 24pt');
+    const stopFlex = css.match(/\.voice-btn\.is-stop\{[^}]*flex:\s*0 0 (\d+)%/s);
+    ok(!!stopFlex && Number(stopFlex[1]) >= 30,
+      `停止按钮宽度应 ≥30%（老人要能一把按到），实际 ${stopFlex ? stopFlex[1] + '%' : '未找到'}`);
+  }
+}
+
+/* ---------- 13. 投毒自检：故意改坏输入，确认断言会红 ---------- */
 {
   const before = fail;
   // 用一条明显库外的句子当库内期望，应当失败

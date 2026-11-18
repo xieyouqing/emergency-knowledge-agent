@@ -277,6 +277,63 @@ main{
 }
 .dial-btn:active{ background: var(--sos-dark); }
 
+/* ---------- 朗读（M2） ----------
+   两个按钮并排：大面积「朗读一遍」+ 窄的「停止」。
+   停止按钮必须显眼到位 —— 老人按了发现声音太大要能马上关掉，
+   藏在角落等于没有。 */
+.voice-row{
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+.voice-btn{
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 76px;
+  flex: 1;
+  font-size: var(--fs-min);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--bg-soft);
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  cursor: pointer;
+}
+.voice-btn:active{ background: var(--line); }
+.voice-btn.is-stop{
+  flex: 0 0 34%;
+  color: var(--sos);
+  border-color: var(--sos);
+  background: #FFFFFF;
+}
+.voice-ico{ font-size: 0.9em; }
+
+/* 语音不可用提示：常驻在卡片上方，可关闭。不用 alert（打断且易误关） */
+.voice-notice{
+  background: #FFF4E5;
+  border: 3px solid #B25E00;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.voice-notice p{
+  margin: 0 0 14px;
+  font-size: var(--fs-min);
+  font-weight: 700;
+  color: #6B3900;
+  line-height: 1.45;
+}
+.voice-notice-close{
+  min-height: 60px;
+  padding: 0 26px;
+  font-size: var(--fs-min);
+  font-weight: 700;
+  color: #6B3900;
+  background: #FFFFFF;
+  border: 3px solid #B25E00;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
 /* ---------- 分诊 ---------- */
 .triage-q{
   font-size: var(--fs-h2);

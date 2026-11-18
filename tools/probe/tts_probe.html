@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TTS 探测 · 应急助手</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Microsoft YaHei", sans-serif;
+         margin: 0; padding: 18px; background: #fff; color: #11151C;
+         font-size: 17px; line-height: 1.6; }
+  h1 { font-size: 21px; margin: 0 0 6px; }
+  .sub { color: #555; font-size: 14px; margin: 0 0 18px; }
+  button { display:block; width:100%; min-height:56px; margin:10px 0;
+           font-size:18px; font-weight:700; border-radius:12px;
+           border:2px solid #11151C; background:#F1F3F6; cursor:pointer; }
+  button:active { background:#C9CFD8; }
+  .card { border:1px solid #C9CFD8; border-radius:10px; padding:12px; margin:14px 0; }
+  .card h2 { font-size:16px; margin:0 0 8px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  td { padding:5px 4px; border-bottom:1px solid #E4E7EC; vertical-align:top; }
+  td:first-child { color:#555; width:42%; }
+  .ok { color:#1B7A3E; font-weight:700; }
+  .bad { color:#B3261E; font-weight:700; }
+  .warn { color:#B25E00; font-weight:700; }
+  .verdict { padding:14px; border-radius:10px; font-weight:700; margin:16px 0; }
+  .v-ok { background:#E8F5EC; border:2px solid #1B7A3E; color:#145C2E; }
+  .v-bad { background:#FDECEA; border:2px solid #B3261E; color:#8C1D18; }
+  .v-warn { background:#FFF4E5; border:2px solid #B25E00; color:#6B3900; }
+  code { background:#F1F3F6; padding:1px 4px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<h1>TTS 探测</h1>
+<p class="sub">目的：确认这台设备能不能读出中文。对应 docs/01 §9 的 V8。</p>
+
+<button id="run">开始检测</button>
+
+<div class="card">
+  <h2>一、能力</h2>
+  <table id="tCap"><tr><td>等待检测…</td><td></td></tr></table>
+</div>
+
+<div class="card">
+  <h2>二、中文音色（关键）</h2>
+  <table id="tVoice"><tr><td>等待检测…</td><td></td></tr></table>
+  <p class="sub" style="margin-top:10px">音色为空 = 没装中文语音包，朗读会读成外文或干脆没声音。</p>
+</div>
+
+<div class="card">
+  <h2>三、实际发声</h2>
+  <button id="speakZh">朗读中文（煤气泄漏了，请立刻关掉总阀门）</button>
+  <button id="speakEn">朗读英文对照（test one two three）</button>
+  <button id="stop">停止</button>
+  <table id="tSpeak"><tr><td>还没试过</td><td></td></tr></table>
+  <p class="sub" style="margin-top:10px">
+    <b>请把手机音量调到一半以上再点。</b>没听到声音不一定是设备不行，
+    可能是静音键、媒体音量为 0、或浏览器要求先有用户点击（本页按钮就是点击）。
+  </p>
+</div>
+
+<div id="verdictWrap"></div>
+
+<div class="card">
+  <h2>说明</h2>
+  <p class="sub" style="margin:0">
+    本页只测浏览器的 <code>speechSynthesis</code>。<b>Tauri APK 里走的是系统原生
+    TextToSpeech，是另一条路径</b>，要打包后才能测（docs/01 §9 V8 的 APK 部分）。
+    两者可能结论不同：浏览器能读，不代表 APK 能读，反之亦然。
+  </p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var env = {}, voices = [];
+  var hasSS = !!(window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function');
+  var UA = navigator.userAgent;
+
+  function row(hostId, k, v, cls) {
+    var host = document.getElementById(hostId);
+    if (host.querySelector('tr td:first-child') &&
+        /等待检测/.test(host.textContent)) host.innerHTML = '';
+    var tr = document.createElement('tr');
+    var td1 = document.createElement('td'); td1.textContent = k;
+    var td2 = document.createElement('td'); td2.textContent = v;
+    if (cls) td2.className = cls;
+    tr.appendChild(td1); tr.appendChild(td2);
+    host.appendChild(tr);
+  }
+
+  function zhVoices(list) {
+    return (list || []).filter(function (v) {
+      return /^zh(-|_)?/i.test(v.lang || '') || /Chinese|中文|普通话|Huihui|Yaoyao|Kangkang/i.test(v.name || '');
+    });
+  }
+
+  function collectVoices() {
+    voices = window.speechSynthesis.getVoices() || [];
+    return voices;
+  }
+
+  document.getElementById('run').addEventListener('click', function () {
+    document.getElementById('tCap').innerHTML = '';
+    document.getElementById('tVoice').innerHTML = '';
+
+    env['浏览器标识'] = UA.slice(0, 90);
+    env['speechSynthesis 存在'] = hasSS ? '有' : '无';
+    env['页面协议'] = location.protocol;
+    env['是否微信内'] = /MicroMessenger/i.test(UA) ? '是' : '否';
+
+    Object.keys(env).forEach(function (k) {
+      var v = env[k];
+      var cls = /^(无|否)$/.test(v) ? 'bad' : 'ok';
+      row('tCap', k, v, cls);
+    });
+
+    if (!hasSS) {
+      document.getElementById('tVoice').innerHTML =
+        '<tr><td colspan="2" class="bad">没有 speechSynthesis，无法朗读</td></tr>';
+      showVerdict('bad', '这台设备的浏览器不支持语音朗读',
+        '网页版只能靠文字。APK 仍可能可用（走系统原生 TTS），需打包后另测。');
+      return;
+    }
+
+    // Chrome 的音色列表可能异步填充，先取一次，再等 voiceschanged
+    var got = collectVoices();
+    if (!got.length) {
+      row('tVoice', '状态', '首次为空，等待 voiceschanged…', 'warn');
+      var tries = 0;
+      var timer = setInterval(function () {
+        tries++;
+        if (collectVoices().length || tries > 10) {
+          clearInterval(timer);
+          renderVoices();
+        }
+      }, 300);
+    } else {
+      renderVoices();
+    }
+  });
+
+  function renderVoices() {
+    var zs = zhVoices(voices);
+    document.getElementById('tVoice').innerHTML = '';
+    row('tVoice', '音色总数', String(voices.length), voices.length ? 'ok' : 'bad');
+    row('tVoice', '中文音色数', String(zs.length), zs.length ? 'ok' : 'bad');
+    zs.forEach(function (v, i) {
+      row('tVoice', '中文音色 ' + (i + 1), v.name + '（' + v.lang + '）', 'ok');
+    });
+    if (!zs.length) {
+      row('tVoice', '结论', '没有中文语音包，朗读会读成外文或无声', 'bad');
+      showVerdict('bad', '本机缺少中文语音包',
+        '网页版朗读不可用。请在系统设置里安装中文 TTS 语音数据（Android：设置 → 无障碍 → 文字转语音 → 安装语音数据），再回来重测。');
+    } else {
+      showVerdict('warn', '检测到 ' + zs.length + ' 个中文音色，请点下面的「朗读中文」确认真的出声',
+        '能列出音色不等于能发声。必须实际听一次。');
+    }
+  }
+
+  function speak(text, lang, tag) {
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
+    u.rate = 0.9;
+    u.pitch = 1;
+    u.volume = 1;
+    var zs = zhVoices(voices);
+    if (/^zh/i.test(lang) && zs.length) u.voice = zs[0];
+
+    var t0 = Date.now();
+    var settled = false;
+    function done(status, cls, extra) {
+      if (settled) return; settled = true;
+      var ms = Date.now() - t0;
+      document.getElementById('tSpeak').innerHTML = '';
+      row('tSpeak', tag + ' 状态', status, cls);
+      row('tSpeak', tag + ' 耗时', ms + ' ms', ms > 50 ? 'ok' : 'warn');
+      if (extra) row('tSpeak', tag + ' 说明', extra, cls);
+      if (cls === 'ok') {
+        showVerdict('ok', '出声成功',
+          '这台设备能读中文。APK 里走系统原生 TTS，结论可能不同，但网页版可用。');
+      } else {
+        showVerdict('bad', '没听到声音或报错',
+          '先确认：①媒体音量>0 ②没开静音 ③系统装了中文语音包。三项都排除后再判定设备不支持。');
+      }
+    }
+    u.onend = function () { done('正常结束', 'ok'); };
+    u.onerror = function (ev) {
+      var e = (ev && ev.error) || 'unknown';
+      var map = {
+        'not-allowed': '被浏览器策略拦住（需用户手势触发）',
+        'synthesis-failed': '合成失败，通常是缺语音数据',
+        'audio-busy': '音频通道被占用，先停止其他播放',
+        'language-unavailable': '该语言不可用（缺中文包）',
+        'voice-unavailable': '该音色不可用'
+      };
+      done('错误：' + e, 'bad', map[e] || '');
+    };
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+      // 兜底：10 秒还没回调，判定为「没反应」
+      setTimeout(function () {
+        if (!settled) done('10 秒无回调（很可能没出声）', 'bad', '音量为 0 或引擎无响应');
+      }, 10000);
+    } catch (e) {
+      done('抛异常：' + (e && e.message), 'bad');
+    }
+  }
+
+  document.getElementById('speakZh').addEventListener('click', function () {
+    if (!hasSS) { showVerdict('bad', '不支持语音朗读', '见上方能力检测'); return; }
+    collectVoices();
+    speak('煤气泄漏了，请立刻关掉总阀门。', 'zh-CN', '中文');
+  });
+
+  document.getElementById('speakEn').addEventListener('click', function () {
+    if (!hasSS) return;
+    collectVoices();
+    speak('test one two three', 'en-US', '英文');
+  });
+
+  document.getElementById('stop').addEventListener('click', function () {
+    if (hasSS) window.speechSynthesis.cancel();
+  });
+
+  function showVerdict(kind, big, detail) {
+    var cls = kind === 'ok' ? 'v-ok' : kind === 'bad' ? 'v-bad' : 'v-warn';
+    document.getElementById('verdictWrap').innerHTML =
+      '<div class="verdict ' + cls + '"><div style="font-size:18px;margin-bottom:6px">' +
+      big + '</div><div style="font-weight:400;font-size:14px">' + detail + '</div></div>';
+  }
+
+  if (window.speechSynthesis && window.speechSynthesis.addEventListener) {
+    window.speechSynthesis.addEventListener('voiceschanged', function () { collectVoices(); });
+  }
+})();
+</script>
+</body>
+</html>

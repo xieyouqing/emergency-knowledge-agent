@@ -36,6 +36,43 @@
      接入 LLM 不得让应用变得「必须联网才能用」（docs/03 §5 三层兜底）。 */
   var LLM = window.LLM || null;
 
+  /* 语音输出（app/voice.js）。同样是可选依赖：
+     未加载或设备不支持时，朗读按钮仍然渲染，但点击会给出明确提示，
+     绝不静默失败（docs/01 §6.2）。 */
+  var V = window.TTS || null;
+
+  /* 朗读一张步骤卡。文本来源只有条目字段（S1：不许编）。 */
+  function speakSteps(entry, immediateSteps) {
+    if (!V) { showVoiceNotice('这台设备的浏览器不支持语音朗读'); return; }
+    if (!V.state.supported) {
+      showVoiceNotice(V.state.unavailableReason || '语音朗读暂不可用');
+      return;
+    }
+    var script = V.composeStepsScript(entry, immediateSteps);
+    V.speak(script, { force: true }).then(function (r) {
+      if (r && !r.ok && r.reason !== 'cancelled') {
+        showVoiceNotice(r.message || '朗读失败，请重试');
+      }
+    });
+  }
+
+  /* 语音不可用时的显性提示。不用 alert（打断且老人容易误关），
+     在卡片上方插一条常驻提示，可点掉。 */
+  function showVoiceNotice(msg) {
+    var host = el.emgAnswer;
+    if (!host) return;
+    var old = host.querySelector('.voice-notice');
+    if (old) old.parentNode.removeChild(old);
+    var div = document.createElement('div');
+    div.className = 'voice-notice';
+    div.setAttribute('role', 'alert');
+    div.innerHTML = '<p>' + esc(msg) + '</p>' +
+      '<button type="button" class="voice-notice-close">知道了</button>';
+    var btn = div.querySelector('.voice-notice-close');
+    if (btn) btn.addEventListener('click', function () { div.parentNode.removeChild(div); });
+    host.insertBefore(div, host.firstChild);
+  }
+
   /* ---------- 固定话术（S4：不含任何操作步骤） ---------- */
   var REFUSE_TEXT = '这个问题我答不了。我只会说应急和安全的常识，比如燃气泄漏、老人跌倒、电梯困人。';
 
@@ -145,8 +182,26 @@
       '<article class="card">' +
         '<h2 class="card-title">' + esc(entry.name) + '</h2>' +
         body +
+        '<div class="voice-row">' +
+          '<button class="voice-btn" type="button" data-act="read" aria-label="朗读这张卡片">' +
+            '<span class="voice-ico" aria-hidden="true">▸</span>朗读一遍' +
+          '</button>' +
+          '<button class="voice-btn is-stop" type="button" data-act="stop" aria-label="停止朗读">停止</button>' +
+        '</div>' +
         '<div class="dial-row"><a class="dial-btn" href="tel:' + esc(num) + '">拨打 ' + esc(num) + '</a></div>' +
       '</article>';
+
+    // 朗读：文本由 voice.js 从条目字段拼接，**不改写一个字**（S1）
+    var readBtn = container.querySelector('[data-act="read"]');
+    if (readBtn) {
+      readBtn.addEventListener('click', function () {
+        speakSteps(entry, immediateSteps);
+      });
+    }
+    var stopBtn = container.querySelector('[data-act="stop"]');
+    if (stopBtn) {
+      stopBtn.addEventListener('click', function () { if (V) V.stop(); });
+    }
 
     // 打勾：点一下切换，再点取消
     container.querySelectorAll('.step[aria-pressed]').forEach(function (btn) {
@@ -369,6 +424,19 @@
 
   /* ---------- 启动 ---------- */
   renderIcons();
+
+  /* 语音引擎探测：异步，不阻塞首屏。
+     探测结果是「能力」判断，与「用户想不想听」是两件事：
+     不支持时按钮仍渲染，点了给明确提示（不许静默失败）。 */
+  if (V) {
+    V.detect().then(function () {
+      if (!V.state.supported && V.state.unavailableReason) {
+        // 只在用户已经进到紧急模式时才提示，避免日常首屏就被技术提示干扰
+        if (state.mode === 'emergency') showVoiceNotice(V.state.unavailableReason);
+      }
+    });
+  }
+
   if (!KB.slots.length) {
     el.dailyAnswer.innerHTML =
       '<article class="refuse"><p>内容正在准备中，暂时无法回答。</p>' +
@@ -399,7 +467,10 @@
     applyLlmRoute: applyLlmRoute,
     handleQuerySync: handleQuerySync,
     handleQuery: handleQuery,        // 异步主路径，端到端验证用（含状态切换）
+    speakSteps: speakSteps,          // 供语音自测调用
+    showVoiceNotice: showVoiceNotice,
     LLMAvailable: !!LLM,
+    TTSAvailable: !!V,
     kbMeta: { slots: KB.slots.length, entries: Object.keys(ENTRIES).length, data_date: KB.data_date }
   };
 })();
