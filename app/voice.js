@@ -8,9 +8,11 @@
 
      ① tauri  —— Tauri 打包后走 tauri-plugin-tts（Windows SAPI / Android 原生
                  TextToSpeech）。需要 npm install tauri-plugin-tts-api 且在 Tauri 内运行。
-     ② web    —— 浏览器 / Android WebView 的 window.speechSynthesis。
-                 实测确认：Android WebView **支持 speechSynthesis**（不支持的是
-                 SpeechRecognition，见 docs/03 §2.4）。所以网页版和 APK 都能用。
+     ② web    —— 桌面浏览器的 window.speechSynthesis。
+                 实测（2026-11-18，小米 Android 16）：Android 手机浏览器
+                 **没有 speechSynthesis**（docs/03 §2.4 事实 4）。所以 web 层只对
+                 桌面可靠；Android 的语音输出只剩 ① tauri 插件一条路（M3 打包后验），
+                 Android 浏览器上自动落到 ③ none（文字 + 明确提示）。
      ③ none   —— 都没有。此时 mustNotFailSilently()：界面必须显示提示，不能装作说了。
 
    三条设计约束：
@@ -20,6 +22,17 @@
    ========================================================= */
 (function (global) {
   'use strict';
+
+  /* 运行日志（M0 = app/log.js）。可选依赖：没加载就全部 no-op。
+     ⚠️ 语音层的日志不是「锦上添花」：朗读失败是**静默**的（自动读失败不提示），
+        所以「没听见」无法从界面区分「没触发」和「被浏览器拦了」。
+        只有日志能回答。这也是 2026-11-18 那次 bug 的教训。 */
+  var LOG = global.LOG || null;
+  function lg(level, msg, fields) {
+    if (!LOG) return;
+    var t = LOG.tag('voice');
+    if (t[level]) t[level](msg, fields);
+  }
 
   var STORAGE_KEY = 'emergency-tts-pref';
 
@@ -76,10 +89,15 @@
           state.engine = 'tauri';
           state.supported = true;
           state.unavailableReason = null;
+          if (LOG && LOG.always) LOG.always('voice', '探测成功：tauri 插件', { engine: 'tauri' });
           return state;
         }
+        lg('info', 'tauri 插件不可用，试浏览器层');
         return detectWeb();
-      }).catch(function () { return detectWeb(); });
+      }).catch(function (e) {
+        lg('warn', 'tauri 探测异常，试浏览器层', { error: String((e && e.message) || e) });
+        return detectWeb();
+      });
     }
     return Promise.resolve(detectWeb());
   }
@@ -97,6 +115,13 @@
       state.engine = 'none';
       state.supported = false;
       state.unavailableReason = '这台设备的浏览器不支持语音朗读';
+      /* 强制落盘：这是「设备没声音」的根因，必看 */
+      if (LOG && LOG.always) {
+        LOG.always('voice', '探测失败：环境无 speechSynthesis', {
+          hasSynth: !!ss, hasUtterance: typeof global.SpeechSynthesisUtterance === 'function',
+          tauri: isTauri()
+        });
+      }
       return state;
     }
     state.engine = 'web';
@@ -126,9 +151,21 @@
     if (!chosen) {
       state.supported = false;
       state.unavailableReason = '这台设备没有装中文语音包，朗读会读成外文';
+      if (LOG && LOG.always) {
+        LOG.always('voice', '探测失败：无中文音色', {
+          voiceCount: voices.length,
+          langs: voices.slice(0, 5).map(function (v) { return v.lang; })
+        });
+      }
       return;
     }
     state.voiceName = chosen.name;
+    state.unavailableReason = null;
+    if (LOG && LOG.always) {
+      LOG.always('voice', '探测成功', {
+        engine: state.engine, voice: chosen.name, lang: chosen.lang, rate: state.rate
+      });
+    }
   }
 
   /* ---------- 朗读 ---------- */
@@ -153,7 +190,7 @@
       var arr = seg.data || [];
       if (!arr.length) return;
       parts.push(seg.title + '。');
-      arr.forEach(function (s, i) {
+      arr.forEach(function (s) {
         var t = String((s && s.text) || '').trim();
         if (!t) return;
         parts.push(t + '。');
@@ -169,6 +206,19 @@
     if (entry.name) parts.push(entry.name + '。');
     if (d.summary) parts.push(d.summary);
     if (d.why) parts.push(d.why);
+    return parts.join('');
+  }
+
+  /* 「只读一句」的稿子：名称 + 摘要。
+     为什么不直接复用 composeDailyScript：那份含 why，念完约 20 秒。
+     老人问一句日常问题（"怎么预防煤气泄漏"）只想听结论，
+     念长了第一反应是按停止——那就等于没读。
+     全文仍留给手动「朗读一遍」。（2026-11-18 用户裁决：只自动读名称+摘要） */
+  function composeDailyBriefScript(entry) {
+    if (!entry || !entry.daily) return '';
+    var parts = [];
+    if (entry.name) parts.push(entry.name + '。');
+    if (entry.daily.summary) parts.push(entry.daily.summary);
     return parts.join('');
   }
 
@@ -191,16 +241,46 @@
   function speak(text, opts) {
     var o = opts || {};
     var t = String(text || '').trim();
-    if (!t) return Promise.resolve({ ok: false, reason: 'empty' });
+    if (!t) {
+      lg('debug', '朗读跳过：空文本');
+      return Promise.resolve({ ok: false, reason: 'empty' });
+    }
     if (!state.supported) {
+      lg('warn', '朗读未执行：设备不支持', { reason: state.unavailableReason });
       return Promise.resolve({ ok: false, reason: 'unsupported', message: state.unavailableReason });
     }
     if (!state.enabled && !o.force) {
+      lg('info', '朗读跳过：用户关掉了语音开关');
       return Promise.resolve({ ok: false, reason: 'disabled' });
     }
 
     stats.speaks++;
-    return state.engine === 'tauri' ? speakTauri(t, o) : speakWeb(t, o);
+    var t0 = (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0;
+    /* 摘要行 always：记「念了什么」的开头 20 字 + 长度。
+       为什么不全记：朗读稿最长 300+ 字，全文堆积没有排查价值；
+       但开头 20 字足够判断「读的是哪张卡的哪一段」。 */
+    if (LOG && LOG.always) {
+      LOG.always('voice', '开始朗读', {
+        engine: state.engine,
+        chars: t.length,
+        head: t.slice(0, 20),
+        force: !!o.force,
+        rate: o.rate || state.rate
+      });
+    }
+    var p = state.engine === 'tauri' ? speakTauri(t, o) : speakWeb(t, o);
+    return p.then(function (r) {
+      var ms = t0 ? (Date.now() - t0) : null;
+      if (r && r.ok) {
+        lg('debug', '朗读完成', { ms: ms, engine: r.engine });
+      } else if (r && r.reason === 'cancelled') {
+        lg('debug', '朗读被取消', { ms: ms });
+      } else {
+        // 真失败：必须 warn 落盘（自动读时界面上不提示，只有这里有痕迹）
+        lg('warn', '朗读失败', { ms: ms, reason: (r && r.reason) || 'unknown', message: (r && r.message) || null });
+      }
+      return r;
+    });
   }
 
   function speakTauri(text, o) {
@@ -271,12 +351,14 @@
     } catch (e) { /* 忽略 */ }
     state.speaking = false;
     stats.cancelled++;
+    lg('info', '用户停止朗读');
   }
 
   function setEnabled(v) {
     state.enabled = !!v;
     savePref();
     if (!state.enabled) stop();
+    lg('info', '语音开关变更', { enabled: state.enabled });
   }
 
   function setRate(r) {
@@ -294,6 +376,7 @@
     setRate: setRate,
     composeStepsScript: composeStepsScript,
     composeDailyScript: composeDailyScript,
+    composeDailyBriefScript: composeDailyBriefScript,
     composeTriageScript: composeTriageScript,
     state: state,
     stats: stats,

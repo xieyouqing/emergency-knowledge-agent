@@ -1,0 +1,17 @@
+{
+  "name": "emergency-assistant",
+  "version": "0.0.0",
+  "private": true,
+  "description": "应急助手 · 前端质量门槛（仅开发期依赖，不进产物）",
+  "scripts": {
+    "fmt": "prettier --write app/",
+    "fmt:check": "prettier --check app/",
+    "lint": "eslint app/",
+    "verify": "npm run fmt:check && npm run lint"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3"
+  }
+}

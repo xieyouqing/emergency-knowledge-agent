@@ -16,6 +16,14 @@
 (function (global) {
   'use strict';
 
+  /* 运行日志（M0 = app/log.js）。可选依赖：没加载就全部 no-op。 */
+  var LOG = global.LOG || null;
+  function lg(level, msg, fields) {
+    if (!LOG) return;
+    var t = LOG.tag('llm');
+    if (t[level]) t[level](msg, fields);
+  }
+
   var DEFAULT_ENDPOINT = 'http://127.0.0.1:8787/judge';
   var DEFAULT_TIMEOUT = 2500;
 
@@ -89,18 +97,22 @@
   function judge(text) {
     var t = String(text || '').trim();
     if (!cfg.enabled || !t) {
+      lg('debug', '判定跳过', { reason: cfg.enabled ? 'empty-text' : 'disabled' });
       return Promise.resolve({ ok: false, intent: null, scene: null, confidence: 0, source: 'fallback', error: 'disabled' });
     }
 
     stats.calls++;
-    return fetchWithTimeout(cfg.endpoint, { text: t }, cfg.timeout)
+    var t0 = (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0;
+    // trace 带进代理，这样代理侧那行日志能与前端对齐
+    var trace = LOG ? LOG.getTrace() : null;
+    return fetchWithTimeout(cfg.endpoint, { text: t, trace: trace }, cfg.timeout)
       .then(function (d) {
         if (!d || typeof d.intent !== 'string') {
           throw new Error('代理返回结构不合法');
         }
         stats.ok++;
         cfg.lastError = null;
-        return {
+        var v = {
           ok: true,
           intent: d.intent,
           scene: d.scene === undefined ? null : d.scene,
@@ -110,6 +122,21 @@
           cached: !!d.cached,
           source: 'llm'
         };
+        /* 摘要行 always：这是「为什么给/不给步骤」的源头，必须落盘。
+           belowThreshold 单独算出来，省得看日志的人自己比 0.60。 */
+        if (LOG && LOG.always) {
+          LOG.always('llm', '判定完成', {
+            intent: v.intent,
+            scene: v.scene,
+            confidence: v.confidence,
+            belowThreshold: v.confidence < MIN_CONFIDENCE,
+            sceneUnpublished: v.sceneUnpublished,
+            cached: v.cached,
+            modelMs: v.latency,
+            ms: t0 ? (Date.now() - t0) : null
+          });
+        }
+        return v;
       })
       .catch(function (e) {
         var isTimeout = e && (e.name === 'AbortError' || /abort/i.test(String(e.message)));
@@ -118,7 +145,13 @@
         cfg.lastError = isTimeout ? 'timeout' : String((e && e.message) || e);
         /* 关键：这里不抛错。返回 fallback 让调用方走 l3。
            模型不可用是常态（断网、代理没起、key 过期），
-           它不该表现为用户看到的一个错误弹窗。 */
+           它不该表现为用户看到的一个错误弹窗。
+           但**必须记 warn**：这是降级事件，不是正常路径。 */
+        lg('warn', isTimeout ? '判定超时，回落 l3' : '判定失败，回落 l3', {
+          timeoutMs: cfg.timeout,
+          ms: t0 ? (Date.now() - t0) : null,
+          error: cfg.lastError
+        });
         return { ok: false, intent: null, scene: null, confidence: 0, source: 'fallback', error: cfg.lastError };
       });
   }
@@ -141,8 +174,25 @@
    * @param dangerRules 危险信号判定函数（l3 的，作为安全兜底）
    */
   function routeByVerdict(verdict, entries, detectDanger, text) {
+    var decision = decideRoute(verdict, entries, detectDanger, text);
+    /* 路由结论必须落盘（always）：`reason` 字段是「为什么给这张卡」
+       的唯一解释，包括 danger-override / low-confidence 这些分支。
+       2026-11-18「电梯广告怎么投诉」误给步骤卡，就是靠这个字段定位的。 */
+    if (LOG && LOG.always) {
+      LOG.always('llm', decision ? '路由结论' : '路由未参与', {
+        action: decision ? decision.action : null,
+        entryId: decision ? decision.entryId : null,
+        sceneId: decision ? decision.sceneId : null,
+        reason: decision ? decision.reason : 'llm-unavailable'
+      });
+    }
+    return decision;
+  }
+
+  function decideRoute(verdict, entries, detectDanger, text) {
     // 兜底：LLM 不可用 → 完全走原 l3 逻辑，行为与接入前一致
     if (!verdict || !verdict.ok) {
+      lg('debug', '路由未参与（LLM 无结论），交回 l3');
       return null;
     }
 
@@ -152,6 +202,10 @@
        拒答卡本身带 tel:120 拨号按钮（S4），图标区也仍在，
        所以「拒答」不等于「用户无路可走」。 */
     if (typeof verdict.confidence === 'number' && verdict.confidence < MIN_CONFIDENCE) {
+      lg('info', '置信度低于门槛，降级为拒答', {
+        confidence: verdict.confidence, threshold: MIN_CONFIDENCE,
+        intent: verdict.intent, scene: verdict.scene
+      });
       return {
         action: 'refuse',
         entryId: null,

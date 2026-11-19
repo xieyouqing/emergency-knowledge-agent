@@ -17,20 +17,37 @@ const APP = path.join(ROOT, 'app');
 /* ---------- 最小 DOM stub：够跑 app.js 的取值与渲染字符串 ---------- */
 const store = new Map();
 function makeEl(id) {
+  // classList/parentNode/appendChild 是真实 DOM 必有的，stub 补齐它们
+  // 比在业务代码里到处 if (x && x.classList) 更接近真实环境。
+  const cls = new Set();
   const e = {
     id,
     innerHTML: '',
     hidden: false,
+    disabled: false,
     value: '',
     textContent: '',
+    className: '',
     handlers: {},
+    classList: {
+      add(c) { cls.add(c); },
+      remove(c) { cls.delete(c); },
+      contains(c) { return cls.has(c); },
+      toggle(c, on) { if (on === undefined) { cls.has(c) ? cls.delete(c) : cls.add(c); } else if (on) cls.add(c); else cls.delete(c); }
+    },
+    _classes: cls,
+    children: [],
     addEventListener(type, fn) { (this.handlers[type] ||= []).push(fn); },
     querySelectorAll() { return []; },
     querySelector() { return null; },
     scrollIntoView() {},
     getAttribute() { return null; },
     setAttribute() {},
-    closest() { return null; }
+    closest() { return null; },
+    appendChild(c) { this.children.push(c); c.parentNode = this; return c; },
+    removeChild(c) { this.children = this.children.filter(x => x !== c); return c; },
+    insertBefore(c) { this.children.unshift(c); c.parentNode = this; return c; },
+    parentNode: null
   };
   return e;
 }
@@ -42,7 +59,7 @@ const document = {
   querySelectorAll() { return []; },
   addEventListener() {}
 };
-const window = { document, scrollTo() {} };
+const window = { document, scrollTo() {}, addEventListener() {}, removeEventListener() {} };
 /* ---------- speechSynthesis stub：让 voice.js 能跑，且能断言「说了什么」 ---------- */
 const spoken = [];
 function SpeechSynthesisUtteranceStub(text) { this.text = text; this.lang = ''; this.rate = 1; }
@@ -72,11 +89,17 @@ window.SpeechSynthesisUtterance = SpeechSynthesisUtteranceStub;
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
+vm.runInContext(fs.readFileSync(path.join(APP, 'log.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'knowledge.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'llm.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'voice.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'asr.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
+
+/* 离线自测不该写盘：关掉远端，只验内存缓冲与格式。
+   落盘验证在 e2e_voice.mjs 里做（那里真有代理）。 */
+if (sandbox.window.LOG) sandbox.window.LOG.config.remote = false;
 
 const M = sandbox.window.__M1__;
 if (!M) {
@@ -585,13 +608,37 @@ for (const id of Object.keys(M.entries)) {
         '自动朗读内容应包含第一条步骤');
     }
 
-    // ② 日常模式不自动读（问知识不该打扰）
+    // ② 日常模式下**步骤卡**不自动读（老人可能只是想看看，不要求听）
+    //    注意与 ②-b 的区别：日常解释卡要自动读一句摘要，步骤卡不读。
     resetCards();
     {
       const before = spoken.length;
       const box = makeEl('auto2');
       M2.renderStepsCard(M2.entries.fire_home, box);
-      ok(spoken.length === before, '日常模式下不应自动朗读');
+      ok(spoken.length === before, '日常模式下渲染步骤卡不应自动朗读');
+    }
+
+    /* ②-b 日常解释卡（打字提问出的那张）：自动读「名称+摘要」一句，
+       不读原因与「平时怎么做」清单。（2026-11-18 用户裁决：只读名称+摘要）
+
+       这条断言存在的理由：上一版只有步骤卡接语音，导致「点图标会读、
+       打字不读」——而打字才是真实用法，点图标只是演示路径。 */
+    resetCards();
+    {
+      const e = M2.entries.gas_leak;
+      const before = spoken.length;
+      const box = makeEl('autoDaily');
+      M2.renderDaily(e, box);
+      ok(spoken.length === before + 1, '日常解释卡应自动朗读一次');
+      const said = spoken[spoken.length - 1].text;
+      ok(said.includes(e.name), '日常卡自动朗读应包含场景名');
+      ok(said.includes(e.daily.summary), '日常卡自动朗读应包含摘要');
+      if (e.daily.why) ok(!said.includes(e.daily.why), '日常卡自动朗读不应念「原因」全文（念长了会被按停止）');
+      const p0 = (e.daily.prevention || [])[0];
+      if (p0) ok(!said.includes(p0), '日常卡自动朗读不应念「平时怎么做」清单');
+      ok(box.innerHTML.includes('data-act="read"'), '日常卡应有朗读按钮');
+      ok(box.innerHTML.includes('data-act="stop"'), '日常卡应有停止按钮');
+      ok(box.innerHTML.includes('查看操作步骤'), '日常卡仍应有查看步骤入口');
     }
 
     // ③ 分诊卡阶段读「问题 + 选项」，不是读步骤
@@ -661,7 +708,381 @@ for (const id of Object.keys(M.entries)) {
         `分诊朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
     }
 
+    // ⑦-b 日常摘要稿同样受 S1 约束：剥掉名称与摘要后只剩标点
+    {
+      const e = M2.entries.co_poisoning;
+      const script = sandbox.window.TTS.composeDailyBriefScript(e);
+      let stripped = script.replace(e.name + '。', '').replace(e.daily.summary, '');
+      ok(stripped.replace(/[。，、！？：；\s]/g, '') === '',
+        `日常摘要稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
+    }
+
+    // ⑦-c 按停止后日常卡也不自动读（静默是全局的，不是只管紧急卡）
     resetCards();
+    M2.autoReadState.muted = true;
+    {
+      const before = spoken.length;
+      M2.renderDaily(M2.entries.fire_home, makeEl('autoDaily2'));
+      ok(spoken.length === before, '按过停止后日常卡不应再自动朗读');
+    }
+
+    // ⑦-d 静默期间手动点「朗读一遍」仍要发声（否则用户「说别念了」后想再听就没路）
+    {
+      const before = spoken.length;
+      M2.speakDaily(M2.entries.gas_leak);
+      ok(spoken.length === before + 1, '静默期间手动朗读日常卡仍应发声');
+      const said = spoken[spoken.length - 1].text;
+      ok(said.includes(M2.entries.gas_leak.daily.why || M2.entries.gas_leak.daily.summary),
+        '手动「朗读一遍」应读全文（含原因），不是只读摘要');
+    }
+
+    resetCards();
+  }
+}
+
+/* ---------- 12-b. 运行日志（M0 = app/log.js）----------
+   判据全部是「有没有这条记录 / 内容对不对」。日志不做视觉断言（看不了）。 */
+{
+  const L = sandbox.window.LOG;
+  ok(!!L, 'log.js 应已加载并导出 window.LOG');
+  ok(typeof L.always === 'function', 'LOG.always 应存在（每模块一条摘要靠它绕过级别筛选）');
+  ok(typeof L.newTrace === 'function', 'LOG.newTrace 应存在（traceId 串联全链路）');
+
+  // ① 默认级别下 info 被过滤、always 仍写入 —— 这是「各模块都有日志」的前提
+  {
+    const saved = L.config.level;
+    L.config.level = 'warn';
+    L.reset();
+    L.emit('info', 'selftest', '这条应被过滤');
+    ok(L.buffer.length === 0, '默认 warn 级别下 info 不应入缓冲');
+    L.always('selftest', '这条应强制写入');
+    ok(L.buffer.length === 1, 'always 应绕过级别筛选写入');
+    L.config.level = saved;
+    L.reset();
+  }
+
+  // ② 密钥脱敏（前端侧）。这是硬约束：key 不许进日志
+  {
+    const s1 = L.scrubString('key 是 sk-abcdefgh12345678 结尾');
+    ok(!/sk-abcdefgh/.test(s1), `日志脱敏失效，sk- 前缀仍可见：「${s1}」`);
+    ok(s1.includes('***'), '脱敏后应保留 *** 标记（否则看不出被处理过）');
+    const s2 = L.scrubString('{"api_key":"deepseek-raw-value"}');
+    ok(!/deepseek-raw-value/.test(s2), 'api_key 字段的值必须脱敏');
+    ok(L.scrubString('煤气漏了') === '煤气漏了', '普通文本不应被改写');
+    // 回归：无捕获组的正则会让 replace 回调收到偏移量数字，
+    // 上一版这里输出过 "92***"（把偏移量拼进了日志）
+    ok(!/\d+\*\*\*/.test(s1), `脱敏结果里不应出现「数字+***」（实测踩过）：「${s1}」`);
+  }
+
+  // ③ 对象字段里的密钥也要脱，包括藏在字段名里的
+  {
+    const r = L.scrub({ api_key: 'abcdef123456', nested: { token: 'xyz987654' }, text: 'sk-zzzzzzzz9999' });
+    ok(r.api_key === '***', '字段名是 api_key 时应整条替换');
+    ok(r.nested.token === '***', '嵌套对象里的 token 也应替换');
+    ok(!/zzzzzzzz/.test(String(r.text)), '字符串里的 sk- 也应脱敏');
+  }
+
+  // ④ 一次提问 = 一条 trace，且各模块日志都带上它
+  //    ⚠️ 选输入很关键（实测踩过两次）：
+  //       ① 命中 DANGER_RULES 的句子走 routeOf 的 danger 分支，**不经过场景检索**；
+  //       ② 9 条条目发布后，库内提问几乎全被危险信号接走，检索层只剩
+  //          「不带危险词的问法」这类输入（如「家里老人腿脚不好」）。
+  //       所以断言里必须区分这两种路径，否则测的是不存在的路径。
+  {
+    L.reset();
+    L.config.level = 'debug';   // 打开全量，才能看到各模块 debug 明细
+    M.state.mode = 'daily';
+    M.state.locked = false;
+    M.autoReadState.muted = false;
+    store.get('dailyAnswer').innerHTML = '';
+    store.get('emgAnswer').innerHTML = '';
+    const before = spoken.length;
+    M.handleQuerySync('家里老人腿脚不好');   // 无危险词、靠检索层命中 fall_elderly
+
+    const t = L.getTrace();
+    ok(!!t, '一次提问后应有 traceId');
+    ok(/^q-/.test(t), `提问的 trace 应以 q- 开头，实际 ${t}`);
+
+    const mods = {};
+    for (const rec of L.buffer) {
+      if (rec.trace === t) mods[rec.module] = (mods[rec.module] || 0) + 1;
+    }
+    ok(!!mods.retrieval, '检索模块应留下该 trace 的日志');
+    ok(!!mods.app, '主流程模块应留下该 trace 的日志');
+    ok(!!mods.voice, '语音模块应留下该 trace 的日志（日常卡会自动读）');
+    ok(spoken.length === before + 1, '（前置）该次提问应发声一次');
+
+    // 摘要行必须落到 buffer 里且带结果字段
+    const summary = L.buffer.find(r => r.module === 'app' && r.msg === '路由决策' && r.trace === t);
+    ok(!!summary, '缺少「路由决策」摘要行');
+    if (summary) {
+      ok(summary.kind === 'steps' || summary.kind === 'dialonly' || summary.kind === 'daily' || summary.kind === 'refuse',
+        `路由摘要的 kind 应是四种落点之一，实际 ${summary.kind}`);
+      ok(summary.path === 'l3', `同步路径应标 path=l3，实际 ${summary.path}`);
+      ok(summary.kind === 'daily', `「家里老人腿脚不好」应落 daily，实际 ${summary.kind}`);
+      ok(summary.entryId === 'fall_elderly', `应落 fall_elderly，实际 ${summary.entryId}`);
+    }
+    const rs = L.buffer.find(r => r.module === 'retrieval' && r.msg === '检索完成' && r.trace === t);
+    ok(!!rs, '缺少「检索完成」摘要行');
+    if (rs) {
+      ok(typeof rs.entryId === 'string', '检索摘要应带 entryId');
+      ok(typeof rs.candidateCount === 'number', '检索摘要应带候选数');
+      ok(typeof rs.score === 'number' && rs.score > 0, '检索摘要应带分数');
+      ok(typeof rs.why === 'string' && rs.why.length > 0, '检索摘要应带命中依据（why），否则无法解释为何命中');
+    }
+
+    // 危险信号命中时走 danger 分支，不经过检索层 —— 日志要能看出区别
+    L.reset();
+    M.handleQuerySync('煤气漏了');
+    const t2 = L.getTrace();
+    ok(t2 !== t, '第二次提问应换新 trace（否则多条提问混在一根线上）');
+    const rs2 = L.buffer.find(r => r.module === 'retrieval' && r.msg === '检索完成');
+    ok(!rs2, '命中危险信号的句子不经过场景检索，不应有「检索完成」日志');
+    const dg = L.buffer.find(r => r.module === 'retrieval' && String(r.msg).indexOf('危险信号命中') === 0);
+    ok(!!dg, '危险信号命中应留 debug 日志（含命中词）');
+    if (dg) ok(typeof dg.word === 'string', '危险信号日志应带命中词（否定前缀误判只能靠它定位）');
+
+    L.config.level = 'warn';
+    L.reset();
+  }
+
+  // ⑤ 输入截断：老人原话不许全文堆积
+  {
+    const long = '煤气漏了'.repeat(20); // 80 字
+    const clipped = L.clipText(long);
+    ok(clipped.length <= L.config.textMax + 12, `截断后长度应接近 ${L.config.textMax}，实际 ${clipped.length}`);
+    ok(clipped.includes('…'), '截断后应有省略标记');
+    ok(clipped.includes('字)'), '截断后应带原始字数（便于判断是不是长输入）');
+    ok(L.clipText('短句') === '短句', '短文本不应被截断');
+  }
+
+  // ⑥ 「不读的原因」必须能被记出来（2026-11-18 那个 bug 的形状）
+  {
+    L.reset();
+    L.config.level = 'info';
+    M.state.mode = 'daily';
+    M.state.locked = false;
+    M.autoReadState.muted = false;
+    const box = makeEl('whyread');
+    const before = spoken.length;
+    M.renderStepsCard(M.entries.fire_home, box); // 日常模式出步骤卡 → 按设计不读
+    ok(spoken.length === before, '（前置）日常模式步骤卡不应发声');
+    const rec = L.buffer.find(r => r.msg && r.msg.indexOf('自动朗读跳过') === 0);
+    ok(!!rec, '「没读」必须留下日志（否则无法区分没触发与被浏览器拦截）');
+    if (rec) ok(rec.reason === 'daily-mode-steps-card', `跳过原因应写明，实际 ${rec.reason}`);
+    L.config.level = 'warn';
+    L.reset();
+  }
+
+  // ⑦ 日志内部出错不能影响产品（约束 B）
+  {
+    const savedConsole = L.config.console;
+    L.config.console = true;
+    // 用一个会抛的 console 打一次，确认不抛到调用方
+    const badConsole = { log() { throw new Error('console 坏了'); }, info() { throw new Error('x'); }, warn() { throw new Error('x'); }, error() { throw new Error('x'); } };
+    const realConsole = sandbox.console;
+    sandbox.console = badConsole;
+    let threw = false;
+    try { L.emit('warn', 'selftest', 'console 抛错时不应冒泡'); } catch (e) { threw = true; }
+    sandbox.console = realConsole;
+    L.config.console = savedConsole;
+    ok(!threw, '日志内部异常不得抛给调用方（日志挂了不能白屏）');
+    L.reset();
+  }
+}
+
+/* ---------- 12-c. 语音输入（ASR，M2）----------
+   不开真麦克风：验的是「编码对不对、错误分不分类、状态有没有复位」。
+   真实链路（音频→文本）在 tools/e2e_asr.mjs 里跑。 */
+{
+  const A = sandbox.window.ASR;
+  ok(!!A, 'asr.js 应已加载并导出 window.ASR');
+  ok(!!A._internals, 'ASR 应暴露 _internals 供离线断言');
+
+  // ① 采样率常量与端点：16k 是实测可用的目标率，改了要重测识别质量
+  {
+    ok(A.config.TARGET_RATE === 16000, `目标采样率应为 16000（实测可用），实际 ${A.config.TARGET_RATE}`);
+    ok(/\/asr$/.test(A.config.ENDPOINT), `ASR 端点应指向代理 /asr，实际 ${A.config.ENDPOINT}`);
+    ok(A.config.MIN_MS >= 300, '应有最短录音阈值（防误触）');
+    ok(A.config.MAX_MS <= 20000, '应有最长录音上限（防按住不放）');
+  }
+
+  // ② 重采样：比例必须正确，否则 ASR 收到的音频时长会错
+  {
+    const { resampleTo16k } = A._internals;
+    const src48 = new Float32Array(48000);
+    for (let i = 0; i < src48.length; i++) src48[i] = Math.sin(i / 10);
+    const out = resampleTo16k(src48, 48000);
+    ok(out.length === 16000, `48k 1 秒应重采样为 16000 点，实际 ${out.length}`);
+    // 非整数倍：44.1k → 16k
+    const src441 = new Float32Array(44100);
+    const out2 = resampleTo16k(src441, 44100);
+    ok(Math.abs(out2.length - 16000) <= 1, `44.1k 1 秒应约 16000 点，实际 ${out2.length}`);
+    // 源已是 16k 时不应改动
+    const same = resampleTo16k(src48.subarray(0, 16000), 16000);
+    ok(same.length === 16000, '源已是 16k 时应原样返回');
+    // 长度守恒：重采样不应凭空变长（变长说明比例算反了）
+    ok(out.length < src48.length, '降采样后点数必须减少（比例反了就会变多）');
+  }
+
+  // ③ WAV 头必须合法：ASR 端点按头解析，头错就返回空文本
+  {
+    const { encodeWav } = A._internals;
+    const samples = new Float32Array(1600);
+    for (let i = 0; i < samples.length; i++) samples[i] = Math.sin(i / 8) * 0.5;
+    const buf = encodeWav(samples, 16000);
+    const dv = new DataView(buf);
+    const tag = (o) => String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3));
+    ok(tag(0) === 'RIFF', `WAV 头应为 RIFF，实际 ${tag(0)}`);
+    ok(tag(8) === 'WAVE', `格式应为 WAVE，实际 ${tag(8)}`);
+    ok(tag(12) === 'fmt ', `应有 fmt 块，实际 ${tag(12)}`);
+    ok(dv.getUint16(20, true) === 1, '编码格式应为 PCM(1)');
+    ok(dv.getUint16(22, true) === 1, '应为单声道');
+    ok(dv.getUint32(24, true) === 16000, '采样率字段应为 16000');
+    ok(dv.getUint16(34, true) === 16, '位深应为 16');
+    ok(dv.getUint32(4, true) === buf.byteLength - 8, 'RIFF 长度字段应等于文件长度-8');
+    ok(dv.getUint32(40, true) === samples.length * 2, 'data 块长度应等于样本数×2');
+    ok(buf.byteLength === 44 + samples.length * 2, '总长度应为 44 字节头 + 数据');
+    // 满幅信号不能溢出（>1 会被 clamp，但不能解成负值）
+    const loud = encodeWav(new Float32Array([1, -1, 2, -2]), 16000);
+    const lv = new DataView(loud);
+    ok(lv.getInt16(44, true) > 0, '正满幅应编码为正数');
+    ok(lv.getInt16(46, true) < 0, '负满幅应编码为负数');
+    ok(lv.getInt16(48, true) === 32767, `超过 1.0 应钳到 32767，实际 ${lv.getInt16(48, true)}`);
+    ok(lv.getInt16(50, true) === -32768, `低于 -1.0 应钳到 -32768，实际 ${lv.getInt16(50, true)}`);
+  }
+
+  // ④ 安全上下文判定：file:// 必须判为不安全（否则老人双击打开就「按钮没反应」）
+  {
+    const { isLocalHost } = A._internals;
+    ok(isLocalHost('127.0.0.1', 'http:') === true, '127.0.0.1 + http 应判为安全');
+    ok(isLocalHost('localhost', 'http:') === true, 'localhost + http 应判为安全');
+    ok(isLocalHost('example.com', 'https:') === true, 'https 任意域名应判为安全');
+    ok(isLocalHost('', 'file:') === false, 'file:// 必须判为不安全（拿不到麦克风）');
+    ok(isLocalHost('192.168.1.5', 'http:') === false, '局域网 IP + http 不是安全上下文');
+  }
+
+  // ⑤ 能力探测在沙箱里应给出明确原因，而不是 supported=true 假装可用
+  {
+    const st = A.detect();
+    ok(st.supported === false, '沙箱无 navigator.mediaDevices，应判为不支持');
+    ok(typeof st.reason === 'string' && st.reason.length > 0, '不支持时必须给出用户能看懂的原因');
+    ok(/localhost|https|服务/.test(st.reason), `原因应说明安全上下文要求，实际「${st.reason}」`);
+  }
+
+  // ⑥ 未开始录音时 stop 不应崩，也不应发请求
+  {
+    const r = await A.stop();
+    ok(r.ok === false && r.reason === 'not-recording', '未录音时 stop 应返回 not-recording');
+  }
+
+  // ⑦ app.js 必须把 ASR 状态导出，且按钮存在性可断言
+  {
+    ok(M.asrAvailable === true, 'app.js 应加载到 asr.js');
+    ok(!!M.asrState, 'app.js 应导出 asrState');
+    ok(M.asrState.recording === false, '初始不应处于录音态');
+  }
+
+  // ⑧ 两个模式都要有语音入口（只做一个等于另一半用户没法用）
+  {
+    const html = fs.readFileSync(path.join(APP, 'index.html'), 'utf8');
+    ok(html.includes('id="dailyTalk"'), '日常模式应有语音输入按钮');
+    ok(html.includes('id="emgTalk"'), '紧急模式应有语音输入按钮');
+    ok(html.indexOf('asr.js') > -1, 'index.html 应引入 asr.js');
+    ok(html.indexOf('asr.js') < html.indexOf('app.js'), 'asr.js 必须在 app.js 之前加载');
+  }
+
+  // ⑨ 语音按钮尺寸达标（与朗读按钮同口径，老人手指粗）
+  {
+    const css = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
+    const m = css.match(/\.talk-btn\{[^}]*min-height:\s*(\d+)px/s);
+    ok(!!m && Number(m[1]) >= 76, `.talk-btn 高度应 ≥76px，实际 ${m ? m[1] + 'px' : '未找到'}`);
+    const fsMin = css.match(/\.talk-btn\{[^}]*font-size:\s*var\(--fs-min\)/s);
+    ok(!!fsMin, '语音输入按钮字号须走 var(--fs-min)，不得小于 24pt');
+    const touch = css.match(/\.talk-btn\{[^}]*touch-action:\s*none/s);
+    ok(!!touch, '按住说话必须设 touch-action:none，否则按下时页面会滚动');
+  }
+
+  /* ⑩ 识别结果必须「填进输入框 + 立即出答案」（用户两次实测的合并结论）。
+     第一次：「你是不是没有连接文本框？问了也没用」→ 识别文本必须可见。
+     第二次：「做成输入后直接出答案，不需要再确认」→ 不要多一步点击。
+     所以两条同时断言：input.value 有值 **且** 答案区已出卡。
+
+     ⚠️ 这条断言踩过坑：初版只 grep 源码里有没有 `fillInput(input, r.text)`，
+        投毒改成 `if (false && fillInput(...))` 后**仍然全绿**——字符串还在。
+        文本匹配不是行为断言。现在真驱动流程。 */
+  {
+    const T = M._talk;
+    ok(!!T && typeof T.fill === 'function', 'app.js 应导出 _talk.fill 供行为断言');
+
+    // ① fillInput 真的写值
+    if (T) {
+      const fakeInput = makeEl('fakeInput');
+      const wrote = T.fill(fakeInput, '煤气漏了怎么办');
+      ok(wrote === true, 'fillInput 应返回 true');
+      ok(fakeInput.value === '煤气漏了怎么办', `fillInput 应写入 input.value，实际「${fakeInput.value}」`);
+      ok(T.fill(null, 'x') === false, '没有输入框时 fillInput 应返回 false（由调用方降级）');
+      ok(T.fill(fakeInput, '') === false, '空文本不应写入');
+    }
+
+    // ② 端到端：模拟「松手 → 识别成功」，看是否既填框又立即出答案
+    if (T) {
+      // 把 ASR.stop 换成返回固定文本，模拟识别成功
+      const A2 = sandbox.window.ASR;
+      const savedStop = A2.stop;
+      A2.stop = () => Promise.resolve({ ok: true, text: '煤气漏了怎么办', duration_ms: 1600, latency_ms: 900 });
+
+      /* 关掉 LLM：本断言只关心「文本去哪了 / 有没有出卡」，不该依赖网络。
+         若不关，会走到 fetch → 沙箱无网络 → 抛错崩溃，
+         崩溃会掩盖真正的失败原因（此项纪律见本文开头「设计原则」）。 */
+      const L2 = sandbox.window.LLM;
+      const savedEnabled = L2 ? L2.config.enabled : null;
+      if (L2) L2.configure({ enabled: false });
+
+      M.state.mode = 'daily';
+      M.state.locked = false;
+      store.get('dailyAnswer').innerHTML = '';
+      store.get('emgAnswer').innerHTML = '';
+      store.get('dailyInput').value = '';
+      store.get('emgInput').value = '';
+
+      // 伪造「正在录音」状态后再松手
+      T.ctl.active = true;
+      T.ctl.listening = true;
+      T.ctl.btn = makeEl('talkBtn');
+      T.ctl.hint = makeEl('talkHint');
+      T.ctl.input = store.get('dailyInput');
+      T.up();
+
+      // up() 内部走 Promise 链（stop → handleQuery），等两轮
+      await new Promise(r => setTimeout(r, 40));
+
+      ok(store.get('dailyInput').value === '煤气漏了怎么办',
+        `识别结果应写进日常输入框（老人要看得见自己说了什么），实际「${store.get('dailyInput').value}」`);
+      /* 两个答案区都要查：「煤气漏了怎么办」含危险词，会切紧急模式并渲染到
+         emgAnswer —— 只查 dailyAnswer 会漏过。 */
+      const dAns = store.get('dailyAnswer').innerHTML;
+      const eAns = store.get('emgAnswer').innerHTML;
+      ok(dAns.length > 0 || eAns.length > 0,
+        `识别后应立即出答案（用户裁决不需要再点确认），实际两区都为空`);
+      ok(M.state.locked === true && M.state.mode === 'emergency',
+        '「煤气漏了怎么办」含危险信号，出答案时应已切紧急模式并锁定');
+
+      A2.stop = savedStop;
+      if (L2) L2.configure({ enabled: savedEnabled });
+    }
+  }
+
+  /* ⑪ 松手监听只能挂一次：两个按钮各挂一次 → 一次松手触发两次 stop
+     （实测后果：第二次拿到 not-recording 被当成失败提示）。 */
+  {
+    const src = fs.readFileSync(path.join(APP, 'app.js'), 'utf8');
+    const ups = (src.match(/window\.addEventListener\('pointerup'/g) || []).length;
+    ok(ups === 1, `window 的 pointerup 监听应只挂 1 次，实际 ${ups} 次`);
+    const downs = (src.match(/window\.addEventListener\('pointerdown'/g) || []).length;
+    ok(downs === 0, 'window 上不应挂 pointerdown（会与按钮上的重复触发）');
+    ok(/downAt/.test(src), '应有 downAt 去重，防 pointerdown 与 keydown 同时触发');
+    ok(/onAutoStop/.test(src), '录音到上限时必须有界面接管（否则识别结果无人接收）');
   }
 }
 

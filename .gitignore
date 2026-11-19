@@ -9,6 +9,14 @@ src-tauri/target/
 *.apk
 *.aab
 
+# ---- 运行日志（本地排查用，不进仓库） ----
+# app/log.js → POST /log → logs/app-YYYY-MM-DD.log，保留 7 天
+logs/
+
+# ---- 测试音频样本（本地生成，不进仓库） ----
+# e2e_asr.mjs 在缺样本时会用代理 /tts 现生成，仓库里不必存 272KB 二进制
+tools/probe/audio/
+
 # ---- 临时与备份文件 ----
 # knowledge/ 下 _ 或 . 开头的文件为临时备份，校验脚本会跳过，不纳入版本控制
 knowledge/_*

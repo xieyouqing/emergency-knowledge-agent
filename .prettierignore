@@ -1,0 +1,27 @@
+# ---- 生成产物（不手改，格式由生成脚本负责） ----
+# 来源：tools/build_knowledge_js.py，文件头已标注「自动生成，请勿手改」
+app/knowledge.js
+
+# ---- 增量接管边界：本文件创建日（2026-11-19）之前已存在的 8 个手写文件 ----
+# 为什么不接管：这 8 个文件是刻意手排的 ——
+#   对齐尾注释：asr.js 16 处、style.css 6 处、log.js 4 处、app.js 2 处
+#   短函数体强制折行：llm.js、log.js 多处
+# Prettier 会压掉上述排版。实测全量重排将改动 1919 行（行尾归一后）。
+#
+# 迁移触发条件（满足即迁移，不许无限期挂着）：
+#   某文件因功能改动需要大面积重排时，单独一次 commit 只做格式化，
+#   删掉本段中对应的一行，commit message 写明「仅格式化」。
+app/app.js
+app/asr.js
+app/llm.js
+app/log.js
+app/retrieval.js
+app/voice.js
+app/index.html
+app/style.css
+
+# ---- 依赖与本地运行数据 ----
+node_modules/
+logs/
+tools/probe/audio/
+_审核/

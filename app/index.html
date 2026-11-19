@@ -32,6 +32,17 @@
       <button class="ask-btn" type="submit">提问</button>
     </form>
 
+    <!-- 按住说话（M2）：pointerdown 开始录、pointerup 发送。
+         放在输入框下方而不是替换输入框 —— 打字仍然是最可靠的路径，
+         语音是给不会打字的老人用的，两条路都要留着。 -->
+    <div class="voicein-row">
+      <button class="talk-btn" id="dailyTalk" type="button">
+        <span class="talk-ico" aria-hidden="true">🎤</span>
+        <span class="talk-label">按住说话</span>
+      </button>
+      <p class="talk-hint" id="dailyTalkHint" hidden></p>
+    </div>
+
     <p class="section-label">或者直接点下面的场景</p>
     <nav class="icons" id="dailyIcons" aria-label="常见场景"></nav>
 
@@ -49,6 +60,14 @@
       <button class="ask-btn sos-btn" type="submit">确认</button>
     </form>
 
+    <div class="voicein-row">
+      <button class="talk-btn sos-talk" id="emgTalk" type="button">
+        <span class="talk-ico" aria-hidden="true">🎤</span>
+        <span class="talk-label">按住说话</span>
+      </button>
+      <p class="talk-hint" id="emgTalkHint" hidden></p>
+    </div>
+
     <nav class="icons" id="emgIcons" aria-label="常见场景"></nav>
 
     <div id="emgAnswer" class="answer-area" aria-live="assertive"></div>
@@ -56,10 +75,12 @@
 
 </main>
 
+<script src="log.js"></script>
 <script src="knowledge.js"></script>
 <script src="retrieval.js"></script>
 <script src="llm.js"></script>
 <script src="voice.js"></script>
+<script src="asr.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

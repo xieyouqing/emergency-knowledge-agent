@@ -19,6 +19,15 @@
 (function (global) {
   'use strict';
 
+  /* 运行日志（M0 = app/log.js）。可选依赖：
+     日志没加载时全部退化为 no-op，检索行为一个字都不变。 */
+  var LOG = global.LOG || null;
+  function lg(level, msg, fields) {
+    if (!LOG) return;
+    var t = LOG.tag('retrieval');
+    if (t[level]) t[level](msg, fields);
+  }
+
   /* ---------- 危险信号关键词表（L3 的意图判定，非场景检索） ----------
      覆盖 index.json 全部 10 个场景的典型口语说法。
      number 取 docs/02-数据契约 §4.1 候选池表的「默认主推号码」，
@@ -87,9 +96,15 @@
     for (var i = 0; i < DANGER_RULES.length; i++) {
       var r = DANGER_RULES[i];
       for (var j = 0; j < r.words.length; j++) {
-        if (hitNoNegation(t, r.words[j])) return r;
+        if (hitNoNegation(t, r.words[j])) {
+          /* 记「命中哪个词」而不是只记「命中了」：
+             否定前缀误判（「打不着火」）只能靠命中词定位。 */
+          lg('debug', '危险信号命中', { rule: r.id, word: r.words[j], number: r.number });
+          return r;
+        }
       }
     }
+    lg('debug', '危险信号未命中');
     return null;
   }
 
@@ -141,11 +156,15 @@
 
   function rankByRules(entries, text) {
     var out = [];
+    var detail = [];
     entries.forEach(function (e) {
       var r = scoreEntryByRules(e, text);
+      // 逐条得分只在 debug 记：一次提问 9 条，落盘会淹没摘要
+      if (r.score > 0) detail.push({ id: e.id, score: r.score, why: r.why });
       if (r.score > 0) out.push({ id: e.id, score: r.score, by: 'l3', why: r.why });
     });
     out.sort(function (x, y) { return y.score - x.score; });
+    lg('debug', 'L3 规则打分', { hit: out.length, top: detail.slice(0, 3) });
     return out;
   }
 
@@ -301,8 +320,12 @@
     var engine = (opts && opts.engine) || RETRIEVAL_ENGINE;
     var t = String(text || '').trim();
     var empty = { entryId: null, score: 0, layer: engine, matchedBy: '', candidates: [] };
-    if (!t || !list.length) return empty;
+    if (!t || !list.length) {
+      lg('debug', '检索空输入', { engine: engine, entries: list.length });
+      return empty;
+    }
 
+    var t0 = (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0;
     var candidates;
     if (engine === 'bm25') {
       candidates = rankByBM25(list, t).map(function (c) {
@@ -314,9 +337,13 @@
       candidates = rankByRules(list, t);
     }
 
-    if (!candidates.length) return empty;
+    if (!candidates.length) {
+      // 未命中不是错误，但必须留痕：这是「为什么给了拒答」的唯一依据
+      lg('debug', '检索未命中任何条目', { engine: engine, entries: list.length });
+      return empty;
+    }
     var top = candidates[0];
-    return {
+    var result = {
       entryId: top.id,
       score: top.score,
       layer: engine,
@@ -324,6 +351,23 @@
       why: top.why || '',
       candidates: candidates
     };
+    /* 每个模块每次提问强制写 1 行摘要（always）：默认 WARN 级别下
+       「各模块都有日志」才不是空话。候选清单属细节，留 debug。 */
+    if (LOG && LOG.always) {
+      LOG.always('retrieval', '检索完成', {
+        engine: engine,
+        entryId: result.entryId,
+        score: result.score,
+        matchedBy: result.matchedBy,
+        why: result.why,
+        candidateCount: candidates.length,
+        top3: candidates.slice(0, 3).map(function (c) {
+          return (c.id || c.entryId) + ':' + c.score;
+        }),
+        ms: t0 ? (Date.now() - t0) : null
+      });
+    }
+    return result;
   }
 
   function listEngines() {

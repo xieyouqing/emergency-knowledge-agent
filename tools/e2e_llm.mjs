@@ -56,7 +56,7 @@ const document = {
   querySelectorAll() { return []; },
   addEventListener() {}
 };
-const window = { document, scrollTo() {} };
+const window = { document, scrollTo() {}, addEventListener() {}, removeEventListener() {} };
 const sandbox = {
   window, document, console, Math, String, Number, Object, Array, JSON,
   fetch, AbortController, setTimeout, clearTimeout, Promise, Error, Date, RegExp
@@ -64,7 +64,7 @@ const sandbox = {
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const f of ['knowledge.js', 'retrieval.js', 'llm.js', 'app.js']) {
+for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'app.js']) {
   vm.runInContext(fs.readFileSync(path.join(APP, f), 'utf8'), sandbox);
 }
 const M = sandbox.window.__M1__;
@@ -81,10 +81,17 @@ const CASES = [
   { text: '地震了',              expect: 'steps',    must: ['地震', 'triage'] },
   { text: '老人噎住了',          expect: 'steps',    must: ['气道梗阻', '拍'] },
   { text: '怎么预防煤气泄漏',    expect: 'daily',    must: ['查看操作步骤'] },
-  /* 下面这条是**置信度门槛的已知代价**，不是 bug：
-     LLM 判 prevention/elevator_trapped 但 confidence=0.55 < 0.60 → 按 §2.2「不猜」降级为拒答。
-     写进用例是为了让这个代价始终可见，避免哪天有人「修好」它反而破了 ④ 安全项。 */
-  { text: '电梯多久年检一次',    expect: 'refuse',   must: ['答不了'] },
+  /* 下面这条**曾经**是「置信度门槛的已知代价」的活证据：
+     2026-11-18 时 LLM 给 confidence=0.55 < 0.60，被门槛降级为拒答。
+     2026-11-19 复测同一句变成 0.72 → 越过门槛 → 给 daily 卡。
+
+     ⚠️ 这不是代码改动导致的（已用 git stash 隔离验证：撤掉当日全部改动后
+        仍然给 daily）。是**模型侧判定变自信了**。
+     处理方式：期望改为 daily，并在注释里保留这段历史——
+     因为「模型会漂移」本身是必须记住的事实。门槛机制本身的验证
+     在 selftest_m1.mjs 的置信度断言里（离线、给定 confidence，不受模型影响）。
+     相关风险评估见 docs/09 §2.8。 */
+  { text: '电梯多久年检一次',    expect: 'daily',    must: ['查看操作步骤'] },
   { text: '煤气费怎么交',        expect: 'refuse',   must: ['答不了'] },
   { text: '电梯广告怎么投诉',    expect: 'refuse',   must: ['答不了'] },   // 曾经误给电梯困人步骤卡
   { text: '有人落水了',          expect: 'dialonly', must: ['没有可靠的操作步骤', '120'] },
