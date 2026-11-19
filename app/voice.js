@@ -80,26 +80,99 @@
     return !!(global.__TAURI_INTERNALS__ || global.__TAURI__);
   }
 
+  /* ---------- 引擎注册表（2026-11-19 provider 化，docs/11 选项 A） ----------
+
+     改之前的样子：`detect()` 里一个 `if (isTauri())`，`speak()` 一个三元表达式，
+     `stop()` 一个 if/else —— 引擎判定散在三处，加第三个引擎（云 TTS）要同时改三个地方。
+
+     现在：**探测顺序、朗读、停止都由下面两张表驱动**。
+     加新引擎 = 在 PROBES 与 ENGINES 各加一行 + 写它的 probe/speak/stop，不改这三个函数。
+
+     两条刻意保留的约束（不要「优化」掉）：
+       ① **顺序必须是 tauri → web → none**。`01` §2.1 定的：原生引擎音质与稳定性最好。
+       ② **不跨文件拆目录**。M3 打包时 frontendDist 就是 app/，file:// 直开不能有构建步骤，
+          拆目录只会增加路径管理的失败面。所以注册表就放在本文件里。 */
+
+  /* 探测链：按顺序试，第一个成功的就是当前引擎 */
+  var PROBES = [
+    { id: 'tauri', label: 'Tauri 原生 TTS', probe: probeTauri },
+    { id: 'web', label: '浏览器 speechSynthesis', probe: probeWeb }
+  ];
+
+  /* 朗读与停止的实现表。key 与 PROBES 的 id 必须一致。 */
+  var ENGINES = {
+    tauri: { id: 'tauri', label: 'Tauri 原生 TTS', speak: speakTauri, stop: stopTauri },
+    web: { id: 'web', label: '浏览器 speechSynthesis', speak: speakWeb, stop: stopWeb }
+  };
+
+  function activeEngine() {
+    return ENGINES[state.engine] || null;
+  }
+
   /* 探测可用引擎。异步，因为 Tauri 插件需要动态 import。 */
   function detect() {
-    // ① Tauri 插件优先（原生引擎，音质与稳定性最好）
-    if (isTauri()) {
-      return detectTauriPlugin().then(function (ok) {
-        if (ok) {
-          state.engine = 'tauri';
-          state.supported = true;
-          state.unavailableReason = null;
-          if (LOG && LOG.always) LOG.always('voice', '探测成功：tauri 插件', { engine: 'tauri' });
-          return state;
-        }
-        lg('info', 'tauri 插件不可用，试浏览器层');
-        return detectWeb();
-      }).catch(function (e) {
-        lg('warn', 'tauri 探测异常，试浏览器层', { error: String((e && e.message) || e) });
-        return detectWeb();
-      });
+    var i = 0;
+
+    function tryNext() {
+      if (i >= PROBES.length) return Promise.resolve(detectNone());
+      var p = PROBES[i++];
+      return Promise.resolve()
+        .then(function () { return p.probe(); })
+        .then(function (ok) {
+          if (!ok) {
+            lg('info', p.label + ' 不可用，试下一个');
+            return tryNext();
+          }
+          return activate(p.id);
+        })
+        .catch(function (e) {
+          lg('warn', p.label + ' 探测异常，试下一个', { error: String((e && e.message) || e) });
+          return tryNext();
+        });
     }
-    return Promise.resolve(detectWeb());
+
+    return tryNext();
+  }
+
+  /* 把某个引擎设为当前引擎，并做它需要的初始化 */
+  function activate(id) {
+    if (id === 'web') return activateWeb();
+    state.engine = id;
+    state.supported = true;
+    state.unavailableReason = null;
+    if (LOG && LOG.always) LOG.always('voice', '探测成功：' + id, { engine: id });
+    return state;
+  }
+
+  /* 全都不行：这条分支以前藏在 detectWeb 里，现在单独一个函数，
+     因为「没有引擎」和「浏览器不支持」是两件事，日志要能区分。 */
+  function detectNone() {
+    state.engine = 'none';
+    state.supported = false;
+    state.unavailableReason = state.unavailableReason || '这台设备的浏览器不支持语音朗读';
+    return state;
+  }
+
+  /* 浏览器层探测：只回答「环境有没有这个 API」，不做副作用。
+     失败时**强制落盘**——这是「设备没声音」的根因，必看（`01` §6.2 不许静默失败）。 */
+  function probeWeb() {
+    var ss = global.speechSynthesis;
+    var hasUtt = typeof global.SpeechSynthesisUtterance === 'function';
+    if (!ss || !hasUtt) {
+      if (LOG && LOG.always) {
+        LOG.always('voice', '探测失败：环境无 speechSynthesis', {
+          hasSynth: !!ss, hasUtterance: hasUtt, tauri: isTauri()
+        });
+      }
+      return false;
+    }
+    return true;
+  }
+
+  /* Tauri 层探测：不在 Tauri 环境里直接 false，不打日志（否则普通浏览器会刷一条无意义的 info） */
+  function probeTauri() {
+    if (!isTauri()) return Promise.resolve(false);
+    return detectTauriPlugin();
   }
 
   function detectTauriPlugin() {
@@ -109,27 +182,15 @@
     return Promise.resolve(false);
   }
 
-  function detectWeb() {
+  /* 激活浏览器层：设状态 + 挑音色 + 监听音色异步填充 */
+  function activateWeb() {
     var ss = global.speechSynthesis;
-    if (!ss || typeof global.SpeechSynthesisUtterance !== 'function') {
-      state.engine = 'none';
-      state.supported = false;
-      state.unavailableReason = '这台设备的浏览器不支持语音朗读';
-      /* 强制落盘：这是「设备没声音」的根因，必看 */
-      if (LOG && LOG.always) {
-        LOG.always('voice', '探测失败：环境无 speechSynthesis', {
-          hasSynth: !!ss, hasUtterance: typeof global.SpeechSynthesisUtterance === 'function',
-          tauri: isTauri()
-        });
-      }
-      return state;
-    }
     state.engine = 'web';
     state.supported = true;
     state.unavailableReason = null;
     // 音色列表可能异步填充（Chrome 首次为空）
     pickVoice();
-    if (ss.addEventListener) ss.addEventListener('voiceschanged', pickVoice);
+    if (ss && ss.addEventListener) ss.addEventListener('voiceschanged', pickVoice);
     return state;
   }
 
@@ -170,11 +231,34 @@
 
   /* ---------- 朗读 ---------- */
 
+  /* S5 要求的固定安全句（2026-11-19 修复 K1）。
+     `01` §8 S5 原文：「生命危险场景：给关键步骤 + **播报含「同时拨打 120」** + 显式拨号按钮，
+     判据：命中 life_threatening: true 的条目，播报文本须含该句，**缺一即失败**」。
+
+     修复前实测：6 条 life_threatening 条目里 **0/6** 的朗读稿含任何「拨打」字样——
+     因为朗读稿只拼条目字段（S1 不许改写），而 9 条知识库没有任何一条的 steps 写了「拨打」。
+     后果：只听不看的老人，播报里不知道要同时打电话。这是安全问题，不是文案问题。
+
+     号码取条目的 emergency_number，**不是硬写 120**：
+       燃气/火灾/地震的正确号码是 119，中毒/触电/气道梗阻是 120。
+       统一念 120 会让消防场景拨错号。用户 2026-11-19 裁决取本条号码。
+
+     为什么加在播报层而不是改知识库：
+       这是「怎么说」不是「说什么」——念一句「同时拨打 119」不新增任何操作指导，
+       不违反 S1。改知识库则要重过源文逐字比对，且源站未必写了这句。 */
+  function composeEmergencyCallSentence(entry) {
+    if (!entry || !entry.life_threatening) return '';
+    var num = String(entry.emergency_number || '').trim();
+    if (!num) return '';
+    return '同时拨打' + num + '。';
+  }
+
   /* 把步骤卡拼成朗读稿。**只做拼接，不改写任何文字**（S1）。
-     读法上做三件事，都属于「怎么读」而非「读什么」：
+     读法上做四件事，都属于「怎么读」而非「读什么」：
        - 段落标题念出来（"立刻做"），让听的人知道换段了
        - 步骤之间加停顿（用句号），避免连成一串听不清
-       - 禁忌段前缀「绝对不要」，因为只念"不要开灯"容易漏掉"不要" */
+       - 禁忌段前缀「绝对不要」，因为只念"不要开灯"容易漏掉"不要"
+       - 生命危险条目末尾加「同时拨打 N」（S5，见上） */
   function composeStepsScript(entry, immediateOverride) {
     if (!entry || !entry.steps) return '';
     var parts = [];
@@ -196,6 +280,13 @@
         parts.push(t + '。');
       });
     });
+
+    /* S5：放在「绝对不要做」之后。
+       为什么不在开头：老人最先要听的是「立刻做什么」，先念号码会把最急的动作往后推。
+       为什么不在中间：会打断步骤的连贯性。 */
+    var call = composeEmergencyCallSentence(entry);
+    if (call) parts.push(call);
+
     return parts.join('');
   }
 
@@ -234,6 +325,12 @@
       var label = String((o && o.label) || '').trim();
       if (label) parts.push('第' + (i + 1) + '个，' + label + '。');
     });
+    /* S5 同样适用：分诊卡是 gas_leak / earthquake / fall_elderly 的**首屏**，
+       此时老人还没听到任何步骤，更需要在最后听到「同时拨打 N」。
+       位置放在选项之后：先听清「你在哪儿」（选项），再听「要打电话」——
+       顺序反了会让人以为不用回答分诊问题、直接打电话。 */
+    var call = composeEmergencyCallSentence(entry);
+    if (call) parts.push(call);
     return parts.join('');
   }
 
@@ -268,7 +365,12 @@
         rate: o.rate || state.rate
       });
     }
-    var p = state.engine === 'tauri' ? speakTauri(t, o) : speakWeb(t, o);
+    /* 查表分发。以前是 `engine === 'tauri' ? speakTauri : speakWeb` 的三元表达式，
+       加第三个引擎就要改这一行；现在只在 ENGINES 里加一行。 */
+    var eng = activeEngine();
+    var p = eng
+      ? eng.speak(t, o)
+      : Promise.resolve({ ok: false, reason: 'no-engine', message: state.unavailableReason });
     return p.then(function (r) {
       var ms = t0 ? (Date.now() - t0) : null;
       if (r && r.ok) {
@@ -284,8 +386,12 @@
   }
 
   function speakTauri(text, o) {
-    /* 真实实现由宿主注入（见 index.html 末尾的适配片段）。
-       本函数只做「有就用、没有就报告」的包装，不假装成功。 */
+    /* 真实实现由宿主通过 setTauriAdapter(speakFn, stopFn) 注入到 global.__TTsSpeak。
+       本函数只做「有就用、没有就报告」的包装，不假装成功。
+
+       ⚠️ 2026-11-19 修正：原文写「见 index.html 末尾的适配片段」——那个片段不存在
+       （`grep -n "__TTs\|tauri" app/index.html` 零匹配）。注释指向不存在的代码，
+       下一个人会白找一遍。真实注入点只有 setTauriAdapter，M3 打包时由宿主调用。 */
     var fn = global.__TTsSpeak;
     if (typeof fn !== 'function') {
       stats.errors++;
@@ -345,13 +451,28 @@
   }
 
   function stop() {
+    var eng = activeEngine();
     try {
-      if (state.engine === 'tauri' && typeof global.__TTsStop === 'function') global.__TTsStop();
-      else if (global.speechSynthesis) global.speechSynthesis.cancel();
+      if (eng && eng.stop) {
+        eng.stop();
+      } else if (global.speechSynthesis) {
+        /* 兜底：没有当前引擎时（engine='none'）也可能有一个残留的合成器，
+           取消一次不会有害——比「按了停止却还在念」好。 */
+        global.speechSynthesis.cancel();
+      }
     } catch (e) { /* 忽略 */ }
     state.speaking = false;
     stats.cancelled++;
     lg('info', '用户停止朗读');
+  }
+
+  /* 两个引擎各自的停止实现（以前它们内联在 stop() 里） */
+  function stopTauri() {
+    if (typeof global.__TTsStop === 'function') global.__TTsStop();
+  }
+
+  function stopWeb() {
+    if (global.speechSynthesis) global.speechSynthesis.cancel();
   }
 
   function setEnabled(v) {
@@ -378,11 +499,41 @@
     composeDailyScript: composeDailyScript,
     composeDailyBriefScript: composeDailyBriefScript,
     composeTriageScript: composeTriageScript,
+    composeEmergencyCallSentence: composeEmergencyCallSentence,
     state: state,
     stats: stats,
+    /* 宿主注入原生 TTS 实现的唯一入口（M3 由打包层调用）。
+       接口表，供断言与排查用 —— 改引擎不该只能靠读源码。 */
+    engines: function () {
+      return PROBES.map(function (p) { return p.id; });
+    },
+    activeEngine: function () { return state.engine; },
     setTauriAdapter: function (speakFn, stopFn) {
-      if (typeof speakFn === 'function') global.__TTsSpeak = speakFn;
+      if (typeof speakFn !== 'function') return;
+      global.__TTsSpeak = speakFn;
       if (typeof stopFn === 'function') global.__TTsStop = stopFn;
+
+      /* ⚠️ 2026-11-19 修的真 bug（docs/11 §2.3 缺陷 1）：
+         detect() 判 tauri 可用性时读的是 __TTsProbe，而本函数以前只写 __TTsSpeak。
+         全仓 grep：__TTsProbe 有 1 处读、0 处写。
+         后果：宿主注入成功，detect() 仍判不出 tauri → engine 停在 'web'
+         → speakTauri 永远不会被调用。而 Android 浏览器没有 speechSynthesis
+         → 最终落地 engine='none'，老人没有声音。
+
+         为什么「导出一个探针函数」而不是改成读 __TTsSpeak：
+           保持 detectTauriPlugin 的语义（问「引擎可用吗」），不改调用方签名；
+           宿主若自带更精细的 __TTsProbe（比如真的去查语言包），不覆盖它。 */
+      if (typeof global.__TTsProbe !== 'function') {
+        global.__TTsProbe = function () { return true; };
+      }
+
+      /* 注入可能在 detect() 之后发生（页面加载顺序不定）。
+         此时 engine 已被定成 web/none，只写探针也不够——要重新探测一次。
+         只在「当前不是 tauri」时重探，避免已有正确状态被推翻。 */
+      if (state.engine !== 'tauri') {
+        lg('info', '注入 Tauri 适配器，重新探测引擎', { before: state.engine });
+        detect();
+      }
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

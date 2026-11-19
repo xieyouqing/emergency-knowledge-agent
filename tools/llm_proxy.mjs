@@ -28,6 +28,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pickProvider, listProviders, DEFAULT_PROVIDER } from './asr/index.mjs';
 
 /* 用 fileURLToPath 而不是手拼 URL 路径：
    路径含中文时，`new URL().pathname` 返回的是百分号编码串
@@ -201,38 +202,58 @@ ${SCENE_IDS.join(', ')}
 const ASR_MAX_BYTES = 12 * 1024 * 1024;   // 12MB ≈ 6 分钟 16k 单声道 WAV
 const ASR_TIMEOUT_MS = 15000;
 
-async function transcribe(buf, filename) {
-  const t0 = Date.now();
-  const fd = new FormData();
-  // Blob 的 MIME 用 audio/wav：端点按扩展名/MIME 解析，两者给一致
-  fd.append('file', new Blob([buf], { type: 'audio/wav' }), filename || 'audio.wav');
+/* ASR 调用统一走 tools/asr/ 里的 provider（2026-11-19 抽出）。
+   为什么抽：对比脚本原来复制了一份讯飞实现，于是「两家比出的差异」可能是
+   「两份代码写得不同」而不是「两家模型不同」。抽出之后对比与产品走同一份代码。
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ASR_TIMEOUT_MS);
-  let res;
-  try {
-    res = await fetch(`${BASE_URL}/v1/tools/asr`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${API_KEY}` },
-      body: fd,
-      signal: ctrl.signal
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-  const latency = Date.now() - t0;
+   **默认仍是 deepseek**：ASR_PROVIDER 不配时，行为与抽取前逐字节一致。
+   配错名字会报错而不是静默回落——否则你以为测了讯飞，实际测的是 DeepSeek。 */
+function resolveAsrProvider() {
+  /* ⚠️ 这里必须传 providerEnv() 而不是只传讯飞那几个键。
+     踩过：早期版本只传 XFYUN_*，导致 deepseek 的 available() 查 env.API_KEY
+     拿不到值，/health 显示「deepseek 不可用：缺 DEEPSEEK_API_KEY」而
+     key_present 明明是 true —— 两处用的 env 不是同一个视图。 */
+  const pe = providerEnv();
+  return pickProvider({ ...pe, ASR_PROVIDER: env.ASR_PROVIDER });
+}
 
-  if (!res.ok) {
-    const t = await res.text().catch(() => '');
-    throw new Error(`ASR 上游 ${res.status}: ${String(t).slice(0, 200)}`);
-  }
-  const data = await res.json();
+/* provider 需要的最小 env 子集：key 只传需要的，不把整个 env 递下去 */
+function providerEnv() {
   return {
-    text: String(data.text || '').trim(),
-    duration_ms: typeof data.duration_ms === 'number' ? data.duration_ms : null,
-    latency_ms: latency,
-    request_id: data.request_id || null
+    // deepseek 用
+    API_KEY,
+    BASE_URL,
+    // xfyun 用
+    XFYUN_APPID: env.XFYUN_APPID,
+    XFYUN_APIKEY: env.XFYUN_APIKEY,
+    XFYUN_APISECRET: env.XFYUN_APISECRET,
+    XFYUN_ASR_HOST: env.XFYUN_ASR_HOST,
+    XFYUN_ASR_PATH: env.XFYUN_ASR_PATH,
+    XFYUN_ASR_DOMAIN: env.XFYUN_ASR_DOMAIN
   };
+}
+
+/**
+ * @returns {{ok:boolean, text?, provider?, error?, latency_ms?, duration_ms?, request_id?}}
+ *          永不抛异常 —— 上层要结构化错误。
+ */
+async function transcribe(wavBuffer, opts = {}) {
+  const picked = resolveAsrProvider();
+  if (!picked.ok) {
+    return { ok: false, provider: 'none', error: picked.reason };
+  }
+  try {
+    const r = await picked.provider.transcribe(wavBuffer, {
+      timeoutMs: opts.timeoutMs || ASR_TIMEOUT_MS,
+      trace: opts.trace
+    }, providerEnv());
+    // provider 已保证不抛；这里再兜一层，防实现方未来改动
+    return r && typeof r === 'object'
+      ? r
+      : { ok: false, provider: picked.id, error: 'provider 返回结构异常' };
+  } catch (e) {
+    return { ok: false, provider: picked.id, error: String((e && e.message) || e) };
+  }
 }
 
 /* ---------- 云 TTS（只用于生成测试样本）----------
@@ -263,8 +284,9 @@ const cache = new Map();
 const CACHE_MAX = 2000;
 
 /* ---------- 调用模型 ---------- */
-async function judge(text) {
-  const hit = cache.get(text);
+async function judge(text, opts) {
+  const noCache = !!(opts && opts.noCache);
+  const hit = noCache ? null : cache.get(text);
   if (hit) return { ...hit, cached: true, latency_ms: 0 };
 
   const t0 = Date.now();
@@ -403,17 +425,36 @@ const server = http.createServer(async (req, res) => {
       ready: READY_IDS.length,
       cache: cache.size,
       log_dir: path.relative(ROOT, LOG_DIR).replace(/\\/g, '/'),
-      log_keep_days: LOG_KEEP_DAYS
+      log_keep_days: LOG_KEEP_DAYS,
+      asr_provider: (() => {
+        const p = resolveAsrProvider();
+        return p.ok ? p.id : 'unavailable:' + p.reason;
+      })(),
+      asr_default: DEFAULT_PROVIDER,
+      asr_providers: listProviders(providerEnv())
     });
+  }
+
+  /* 清缓存：`03` v1.7 写明「复跑评测前须清代理缓存」，但一直没提供方法。
+     没有它，评测跑第二次就是拿缓存自欺（latency_ms 恒为 0）。
+     仅测试/评测用，不影响产品路径。 */
+  if (req.method === 'POST' && url.pathname === '/cache/clear') {
+    const n = cache.size;
+    cache.clear();
+    proxyLog('info', '清空判定缓存', { cleared: n });
+    return json(res, 200, { ok: true, cleared: n });
   }
 
   if (req.method === 'POST' && url.pathname === '/judge') {
     let text = '';
     let trace = null;
+    let noCache = false;
     try {
       const body = JSON.parse(await readBody(req));
       text = String(body.text || '').trim();
       trace = typeof body.trace === 'string' ? body.trace.slice(0, 64) : null;
+      // nocache: 测真实时延用（缓存命中的 latency 恒为 0，测不出东西）
+      noCache = body.nocache === true;
     } catch (e) {
       return json(res, 400, { error: 'body 不是合法 JSON' });
     }
@@ -422,7 +463,7 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const t0 = Date.now();
-      const r = await judge(text);
+      const r = await judge(text, { noCache });
       proxyLog('info', 'judge 完成', {
         trace,
         intent: r.intent,
@@ -474,29 +515,47 @@ const server = http.createServer(async (req, res) => {
       return json(res, 400, { error: '音频为空' });
     }
 
-    try {
-      const t0 = Date.now();
-      const r = await transcribe(buf, 'speech.wav');
-      /* 摘要必落盘：识别文本是「用户到底说了什么」的唯一记录，
-         出错时第一个要看的就是它（截断同前端规则）。 */
-      proxyLog('info', 'ASR 完成', {
+    const t0 = Date.now();
+    /* provider 返回结构化结果、不抛异常（见 tools/asr/README.mjs 的接口约定），
+       所以这里不用 try/catch，改为判断 r.ok。 */
+    const r = await transcribe(buf, { trace });
+
+    if (!r.ok) {
+      const msg = String(r.error || '识别失败');
+      const isTimeout = /超时|timeout/i.test(msg);
+      proxyLog('error', isTimeout ? 'ASR 超时' : 'ASR 失败', {
         trace,
+        provider: r.provider,
         bytes: buf.length,
-        text: r.text.slice(0, 40),
-        text_len: r.text.length,
-        audio_ms: r.duration_ms,
-        upstream_ms: r.latency_ms,
-        total_ms: Date.now() - t0
+        code: r.code || null,
+        error: scrubText(msg)
       });
-      return json(res, 200, r);
-    } catch (e) {
-      const msg = String(e.message || e);
-      const isAbort = /abort/i.test(msg);
-      proxyLog('error', isAbort ? 'ASR 超时' : 'ASR 失败', {
-        trace, bytes: buf.length, error: scrubText(msg)
+      return json(res, isTimeout ? 504 : 502, {
+        error: scrubText(msg),
+        provider: r.provider
       });
-      return json(res, isAbort ? 504 : 502, { error: scrubText(msg) });
     }
+
+    /* 摘要必落盘：识别文本是「用户到底说了什么」的唯一记录，
+       出错时第一个要看的就是它（截断同前端规则）。
+       provider 也记：同一个音频换供应商后结果变了，日志能看出来。 */
+    proxyLog('info', 'ASR 完成', {
+      trace,
+      provider: r.provider,
+      bytes: buf.length,
+      text: String(r.text || '').slice(0, 40),
+      text_len: String(r.text || '').length,
+      audio_ms: r.duration_ms,
+      upstream_ms: r.latency_ms,
+      total_ms: Date.now() - t0
+    });
+    return json(res, 200, {
+      text: String(r.text || '').trim(),
+      duration_ms: r.duration_ms,
+      latency_ms: r.latency_ms,
+      provider: r.provider,
+      request_id: r.request_id || null
+    });
   }
 
   /* 仅用于生成 e2e_asr 的测试样本，不参与产品链路 */

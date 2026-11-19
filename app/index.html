@@ -73,6 +73,20 @@
     <div id="emgAnswer" class="answer-area" aria-live="assertive"></div>
   </section>
 
+  <!-- 朗读语速（K3，2026-11-19 补）
+       为什么放在页面底部而不是顶部：老人不需要每次调它，设一次就一直生效
+       （已落盘 localStorage）。放在显眼位置反而会占掉紧急场景的注意力。
+       为什么只有两档：三档以上老人记不住哪档是自己上次选的；
+       「慢」= 0.75（比默认 0.9 更慢，给听不清的人），「正常」= 1.0。
+       注意：默认仍是 0.9（偏慢），用户不碰这个控件也满足「默认偏慢」。 -->
+  <section class="rate-row" id="rateRow" aria-label="朗读语速">
+    <span class="rate-label">朗读速度</span>
+    <div class="rate-opts" role="group">
+      <button class="rate-btn" type="button" data-rate="0.75" aria-pressed="false">慢一点</button>
+      <button class="rate-btn" type="button" data-rate="1" aria-pressed="false">正常</button>
+    </div>
+  </section>
+
 </main>
 
 <script src="log.js"></script>

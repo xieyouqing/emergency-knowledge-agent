@@ -488,16 +488,66 @@ for (const id of Object.keys(M.entries)) {
         ok(script.includes(s.text), `${id} 朗读稿缺 ${seg} 的「${s.text}」（S1：不许漏也不许改）`);
       }
     }
-    // 反向：稿子里不许出现条目字段以外的「操作句」。
-    // 判据是「稿子长度 ≈ 各字段长度之和 + 段落标题」，超出部分只能是标题与标点。
+    /* 反向：稿子里不许出现条目字段以外的「操作句」。
+       判据是「稿子长度 ≈ 各字段长度之和 + 段落标题」，超出部分只能是标题与标点。
+
+       ⚠️ 2026-11-19 K1 修复后，S5 的固定安全句「同时拨打 N」是**唯一允许的例外**：
+          它是「怎么说」不是「说什么」，不新增任何操作指导。所以这里要先把它剔除，
+          否则 S1 的反向断言会因为合规的安全句而误报。
+          与此同时 S5 的正向断言在下一段（③-b）单独检查它必须存在。 */
     const titles = ['立刻做。', '接着做。', '绝对不要做。'];
     let stripped = script.replace(e.name + '。', '');
     for (const t of titles) stripped = stripped.split(t).join('');
     for (const seg of ['immediate', 'next', 'never']) {
       for (const s of e.steps[seg]) stripped = stripped.split(s.text + '。').join('');
     }
-    ok(stripped.replace(/[。，、！？：；\s]/g, '') === '',
+    const callSentence = T.composeEmergencyCallSentence(e);
+    if (callSentence) stripped = stripped.split(callSentence).join('');
+    ok(stripped.replace(/[。，！？：；\s]/g, '') === '',
       `${id} 朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
+  }
+
+  /* ②-b S5：生命危险场景的播报必须含「同时拨打 N」，缺一即失败。
+
+     `01` §8 S5 判据原文：「命中 life_threatening: true 的条目，播报文本须含该句，缺一即失败」。
+     2026-11-19 修复前实测 **0/6** 满足 —— 朗读稿只拼条目字段，而知识库没有任何一条写了「拨打」。
+     后果：只听不看的老人，播报里不知道要同时打电话。
+
+     号码必须是**条目自己的 emergency_number**，不是硬写的 120：
+       燃气/火灾/地震是 119，中毒/触电/气道梗阻是 120。统一念 120 会让消防场景拨错号。
+     所以这条断言不能用 includes('同时拨打120')，必须逐条比对号码。 */
+  {
+    const withCall = [];
+    for (const id of Object.keys(M.entries)) {
+      const e = M.entries[id];
+      const stepScript = T.composeStepsScript(e, null);
+      const call = T.composeEmergencyCallSentence(e);
+
+      if (e.life_threatening) {
+        ok(call.length > 0, `${id} 是生命危险条目，必须生成安全句（S5）`);
+        ok(call.includes(String(e.emergency_number)),
+          `${id} 安全句应含本条号码 ${e.emergency_number}，实际「${call}」`);
+        ok(stepScript.includes(call), `${id} 步骤朗读稿必须含安全句（S5：播报须含该句）`);
+
+        // 分诊卡是这类场景的首屏，同样要有
+        if (e.triage) {
+          const triScript = T.composeTriageScript(e);
+          ok(triScript.includes(call), `${id} 分诊朗读稿必须含安全句（分诊是首屏）`);
+          // 位置：必须在选项之后，否则老人会以为不用回答分诊问题
+          const optIdx = triScript.lastIndexOf('第');
+          ok(triScript.indexOf(call) > optIdx, `${id} 安全句应在分诊选项之后，不能在之前`);
+        }
+        withCall.push(id + ':' + e.emergency_number);
+      } else {
+        // 反向：非生命危险条目不得出现安全句（否则等于谎报危险）
+        ok(call === '', `${id} 不是生命危险条目，不应生成安全句（实际「${call}」）`);
+        ok(!stepScript.includes('同时拨打'), `${id} 非生命危险条目不应念「同时拨打」`);
+      }
+    }
+    ok(withCall.length === 6, `应有 6 条生命危险条目带安全句，实际 ${withCall.length}（${withCall.join(',')}）`);
+    // 号码必须真实区分：不能全是同一个号（那就是硬写 120 的症状）
+    const nums = new Set(withCall.map((x) => x.split(':')[1]));
+    ok(nums.size >= 2, `生命危险条目的号码应至少有两种（119/120），实际 ${[...nums].join('/')}`);
   }
 
   // ③ 分诊覆盖：选了「还有很浓的味」应读 override 的步骤，不是默认步骤
@@ -659,6 +709,27 @@ for (const id of Object.keys(M.entries)) {
       });
       ok(!said.includes(e.steps.immediate[0].text),
         '分诊阶段不应读出步骤（用户还没选，读默认步骤会误导）');
+      // S5：分诊是这三条场景的首屏，必须听到「同时拨打 N」
+      ok(said.includes('同时拨打' + e.emergency_number),
+        `分诊朗读应含 S5 安全句（同时拨打${e.emergency_number}），实际「${said.slice(-30)}」`);
+
+      /* K2：分诊卡必须有「再听一遍 / 停止」两个按钮。
+         分诊卡是 gas_leak / earthquake / fall_elderly 的首屏，没有按钮就
+         不能重播、不能按停 —— M2 必做项 2 在这三条场景上不成立。
+         判据用「渲染出来的 HTML 里有没有 data-act」，不用模糊文案匹配。 */
+      ok(box.innerHTML.includes('data-act="read"'), '分诊卡应有重播按钮（K2）');
+      ok(box.innerHTML.includes('data-act="stop"'), '分诊卡应有停止按钮（K2）');
+      ok(box.innerHTML.includes('再听一遍'), '分诊卡重播按钮文案应明确');
+
+      // 三条走分诊的条目都要有（不能只给一条）
+      ['gas_leak', 'earthquake', 'fall_elderly'].forEach(function (id) {
+        const en = M2.entries[id];
+        if (!en || !en.triage) return;
+        const b2 = makeEl('triage-' + id);
+        M2.renderStepsCard(en, b2);
+        ok(b2.innerHTML.includes('data-act="read"') && b2.innerHTML.includes('data-act="stop"'),
+          `${id} 的分诊卡应同时有重播与停止按钮`);
+      });
     }
 
     // ④ 按停止后本会话不再自动读
@@ -704,7 +775,10 @@ for (const id of Object.keys(M.entries)) {
       e.triage.options.forEach(function (o, i) {
         stripped = stripped.split('第' + (i + 1) + '个，' + o.label + '。').join('');
       });
-      ok(stripped.replace(/[。，、！？：；\s]/g, '') === '',
+      // S5 安全句是唯一允许的例外（同 ② 的理由），先剔除
+      const call7 = sandbox.window.TTS.composeEmergencyCallSentence(e);
+      if (call7) stripped = stripped.split(call7).join('');
+      ok(stripped.replace(/[。，！？：；\s]/g, '') === '',
         `分诊朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
     }
 
@@ -992,6 +1066,48 @@ for (const id of Object.keys(M.entries)) {
     ok(html.indexOf('asr.js') < html.indexOf('app.js'), 'asr.js 必须在 app.js 之前加载');
   }
 
+  /* ⑨-b K3：语速必须可调，且真的改变 state.rate。
+     M2 必做项 2 要求「语速可调慢」。修复前只有 TTS.setRate() 函数、
+     界面上没有任何控件 —— 只满足「默认偏慢」，不满足「可调」。 */
+  {
+    const html = fs.readFileSync(path.join(APP, 'index.html'), 'utf8');
+    ok(html.includes('id="rateRow"'), '应有语速控件容器（K3）');
+    ok(html.includes('data-rate="0.75"'), '应有「慢一点」档（0.75）');
+    ok(html.includes('data-rate="1"') || html.includes('data-rate="1.0"'), '应有「正常」档（1.0）');
+    ok(html.indexOf('rateRow') < html.indexOf('app.js'), '语速控件须在 app.js 之前存在（启动时初始化）');
+
+    // 行为：setRate 真的改 state.rate，且越界值被拒
+    const T2 = sandbox.window.TTS;
+    const saved = T2.state.rate;
+    T2.setRate(0.75);
+    ok(T2.state.rate === 0.75, `setRate(0.75) 后 rate 应为 0.75，实际 ${T2.state.rate}`);
+    T2.setRate(1);
+    ok(T2.state.rate === 1, `setRate(1) 后 rate 应为 1，实际 ${T2.state.rate}`);
+    T2.setRate(0.1);
+    ok(T2.state.rate === 1, `setRate(0.1) 应被拒（范围 0.5-2），实际 ${T2.state.rate}`);
+    T2.setRate(9);
+    ok(T2.state.rate === 1, `setRate(9) 应被拒，实际 ${T2.state.rate}`);
+
+    // 默认仍须偏慢（老人友好），不能因为加了控件就把默认改成 1.0
+    ok(saved <= 0.9, `默认语速应偏慢（≤0.9），实际 ${saved}`);
+
+    // 改档后发声要真的用新速率（不是只改 state）
+    T2.setRate(0.75);
+    const before = spoken.length;
+    await T2.speak('语速测试', { force: true });
+    ok(spoken.length === before + 1, '应触发发声');
+    ok(spoken[spoken.length - 1].rate === 0.75,
+      `发声应使用新语速 0.75，实际 ${spoken[spoken.length - 1].rate}`);
+    T2.setRate(saved);
+
+    // CSS：按钮高度与字号达标
+    const css2 = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
+    const m2 = css2.match(/\.rate-btn\{[^}]*min-height:\s*(\d+)px/s);
+    ok(!!m2 && Number(m2[1]) >= 48, `.rate-btn 高度应 >=48px，实际 ${m2 ? m2[1] + 'px' : '未找到'}`);
+    const m3 = css2.match(/\.rate-btn\{[^}]*font-size:\s*var\(--fs-min\)/s);
+    ok(!!m3, '语速按钮字号须走 var(--fs-min)');
+  }
+
   // ⑨ 语音按钮尺寸达标（与朗读按钮同口径，老人手指粗）
   {
     const css = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
@@ -1052,10 +1168,8 @@ for (const id of Object.keys(M.entries)) {
       T.ctl.btn = makeEl('talkBtn');
       T.ctl.hint = makeEl('talkHint');
       T.ctl.input = store.get('dailyInput');
-      T.up();
-
-      // up() 内部走 Promise 链（stop → handleQuery），等两轮
-      await new Promise(r => setTimeout(r, 40));
+      // up() 返回 Promise，直接 await 到「整条链走完」
+      await T.up();
 
       ok(store.get('dailyInput').value === '煤气漏了怎么办',
         `识别结果应写进日常输入框（老人要看得见自己说了什么），实际「${store.get('dailyInput').value}」`);
@@ -1073,6 +1187,147 @@ for (const id of Object.keys(M.entries)) {
     }
   }
 
+  /* ⑬ ASR provider 选择器：默认不许变、配错不许静默回落。
+
+     为什么这两条必须锁住：
+       2026-11-19 把 ASR 抽成 provider 时，最大的风险不是「讯飞不能用」，
+       而是「抽取悄悄改了默认」——那样 04 里所有基于 DeepSeek 的结论都要重跑，
+       而且没人会记得为什么。所以「不配 = deepseek」要当契约断言。
+
+       第二条同理：配错名字（xunfei 拼错）若静默回落到 deepseek，
+       你会以为测了讯飞，实际测的是 DeepSeek —— 结论对不上且查不出来。
+       这是最坏的一类错误，必须让它报错。
+  */
+  {
+    /* 选择器是 ESM 模块，selftest 是 vm 沙箱跑 CJS 风格代码，
+       所以这里用动态 import 单独加载，不影响沙箱里的 app 代码。 */
+    /* Windows 路径不能直接给 import()（ERR_UNSUPPORTED_ESM_URL_SCHEME），
+       必须转成 file:// URL。这是 ESM 在 Windows 上的固定坑。 */
+    const { pathToFileURL } = await import('node:url');
+    const sel = await import(pathToFileURL(path.join(APP, '..', 'tools', 'asr', 'index.mjs')).href);
+    ok(typeof sel.pickProvider === 'function', 'tools/asr/index.mjs 应导出 pickProvider');
+    ok(sel.DEFAULT_PROVIDER === 'deepseek',
+      `默认 provider 必须是 deepseek（改它等于改产品行为），实际 ${sel.DEFAULT_PROVIDER}`);
+
+    const envFull = {
+      API_KEY: 'sk-test-not-real', BASE_URL: 'https://api.deepseek.com',
+      XFYUN_APPID: 'a', XFYUN_APIKEY: 'b', XFYUN_APISECRET: 'c'
+    };
+
+    // ① 不配 ASR_PROVIDER → 必须选 deepseek
+    const p1 = sel.pickProvider({ ...envFull });
+    ok(p1.ok === true, `不配 ASR_PROVIDER 时应可用，实际 ${p1.reason || ''}`);
+    ok(p1.id === 'deepseek', `不配 ASR_PROVIDER 时应选 deepseek，实际 ${p1.id}`);
+
+    // ② 配 xfyun → 必须选讯飞
+    const p2 = sel.pickProvider({ ...envFull, ASR_PROVIDER: 'xfyun' });
+    ok(p2.ok === true, `配 xfyun 时应可用，实际 ${p2.reason || ''}`);
+    ok(p2.id === 'xfyun', `配 xfyun 时应选 xfyun，实际 ${p2.id}`);
+
+    // ③ 大小写与空格容错（人写 .env 时经常随手写）
+    const p3 = sel.pickProvider({ ...envFull, ASR_PROVIDER: '  XFYUN  ' });
+    ok(p3.ok === true && p3.id === 'xfyun', `应容忍大小写与空格，实际 ${p3.ok ? p3.id : p3.reason}`);
+
+    // ④ 配错名字 → 必须报错，不许静默回落
+    const p4 = sel.pickProvider({ ...envFull, ASR_PROVIDER: 'xunfei' });
+    ok(p4.ok === false, '拼错 provider 名字时必须报错，不能静默回落（否则会误以为测了另一家）');
+    ok(typeof p4.reason === 'string' && p4.reason.includes('xunfei'),
+      `错误信息应回显写错的名称，实际「${p4.reason}」`);
+    ok(typeof p4.reason === 'string' && p4.reason.includes('deepseek'),
+      '错误信息应列出可选 provider');
+
+    // ⑤ 缺凭证时明确说缺什么
+    const p5 = sel.pickProvider({ ASR_PROVIDER: 'xfyun' });
+    ok(p5.ok === false, '缺讯飞凭证时应不可用');
+    ok(String(p5.reason).includes('XFYUN_APPID'), `应指出缺哪个键，实际「${p5.reason}」`);
+    const p6 = sel.pickProvider({});
+    ok(p6.ok === false, '全空 env 时 deepseek 也应不可用（缺 key）');
+
+    // ⑥ listProviders 要给前端/health 用的完整信息
+    const list = sel.listProviders({ ...envFull });
+    ok(Array.isArray(list) && list.length === 2, `应列出 2 个 provider，实际 ${list.length}`);
+    const ds = list.find((x) => x.id === 'deepseek');
+    const xf = list.find((x) => x.id === 'xfyun');
+    ok(ds && ds.isDefault === true, 'deepseek 应标记为默认');
+    ok(xf && xf.isDefault === false, 'xfyun 不应标记为默认');
+    ok(ds && xf && typeof ds.label === 'string' && typeof xf.label === 'string', '两个 provider 都应有 label');
+
+    // ⑦ 接口约定：provider 暴露 id / label / available / transcribe
+    for (const name of ['deepseek', 'xfyun']) {
+      const m = sel.getProvider(name);
+      ok(!!m, `getProvider('${name}') 应返回模块`);
+      ok(m && m.id === name, `${name}.id 应等于 '${name}'`);
+      ok(m && typeof m.transcribe === 'function', `${name}.transcribe 必须是函数`);
+      ok(m && typeof m.available === 'function', `${name}.available 必须是函数`);
+    }
+
+    // ⑧ 讯飞 provider 对非 16k 音频必须拒绝，而不是静默转换
+    //    （重采样是前端 asr.js 的职责；两处各转一次会让排查极难）
+    const xfMod = sel.getProvider('xfyun');
+    const badWav = Buffer.alloc(100);
+    badWav.write('RIFF', 0); badWav.write('WAVE', 8);
+    const dvw = new DataView(badWav.buffer, badWav.byteOffset, badWav.byteLength);
+    dvw.setUint32(24, 24000, true);   // 24k
+    dvw.setUint16(22, 1, true);       // 单声道
+    dvw.setUint16(34, 16, true);      // 16bit
+    const badRes = await xfMod.transcribe(badWav, {}, { XFYUN_APPID: 'a', XFYUN_APIKEY: 'b', XFYUN_APISECRET: 'c' });
+    ok(badRes.ok === false, '讯飞 provider 收到 24k 音频应返回失败');
+    ok(/16k/.test(String(badRes.error)), `错误信息应说明要求 16k，实际「${badRes.error}」`);
+  }
+
+
+  /* ⑫ onTalkUp 必须返回 Promise，否则测试只能等固定毫秒数。
+
+     实测踩过：e2e_asr 原来写 `setTimeout(r, 120)`。LLM 缓存命中时判定只要 3ms，
+     120ms 够用、测试全绿；一旦清缓存，判定要 800–1800ms，测试立刻变成假失败
+     ——而产品是好的，红的是测试。这类「测试依赖时序」的脆弱点必须锁住。
+
+     判据：onTalkUp 被调用后returns 一个 thenable，且 await 它之后答案区已出内容。 */
+  {
+    const T = M._talk;
+    ok(!!T && typeof T.up === 'function', 'app.js 应导出 _talk.up');
+
+    // 未在录音状态时也应返回 Promise（不能返回 undefined，否则 await 无意义）
+    const idleRet = T.up();
+    ok(idleRet && typeof idleRet.then === 'function', '未录音时 onTalkUp 也应返回 Promise');
+
+    // 真实驱动一次：await 之后必须已经出卡（不靠 sleep）
+    const A3 = sandbox.window.ASR;
+    const savedStop = A3.stop;
+    A3.stop = () => Promise.resolve({ ok: true, text: '着火了', duration_ms: 1500, latency_ms: 800 });
+
+    const L3 = sandbox.window.LLM;
+    const savedEnabled3 = L3 ? L3.config.enabled : null;
+    if (L3) L3.configure({ enabled: false });   // 离线断言，不依赖网络
+
+    M.state.mode = 'daily';
+    M.state.locked = false;
+    M.autoReadState.muted = false;
+    store.get('dailyAnswer').innerHTML = '';
+    store.get('emgAnswer').innerHTML = '';
+    store.get('emgInput').value = '';
+
+    T.ctl.active = true;
+    T.ctl.listening = true;
+    T.ctl.btn = makeEl('talkBtn12');
+    T.ctl.hint = makeEl('talkHint12');
+    T.ctl.input = store.get('emgInput');
+
+    const ret = T.up();
+    ok(ret && typeof ret.then === 'function', 'onTalkUp 必须返回 Promise（测试才能 await 到出卡）');
+    const result = await ret;
+    ok(result === 'done', `完成时应 resolve('done')，实际 ${result}`);
+    // await 结束后答案区必须已经有内容 —— 这才叫「等到了完成信号」
+    const html = store.get('dailyAnswer').innerHTML || store.get('emgAnswer').innerHTML;
+    ok(html.length > 0, 'await onTalkUp() 之后答案区应已出卡（若为空说明 Promise 提前 resolve）');
+
+    A3.stop = savedStop;
+    if (L3) L3.configure({ enabled: savedEnabled3 });
+    M.state.mode = 'daily';
+    M.state.locked = false;
+  }
+
+
   /* ⑪ 松手监听只能挂一次：两个按钮各挂一次 → 一次松手触发两次 stop
      （实测后果：第二次拿到 not-recording 被当成失败提示）。 */
   {
@@ -1083,6 +1338,145 @@ for (const id of Object.keys(M.entries)) {
     ok(downs === 0, 'window 上不应挂 pointerdown（会与按钮上的重复触发）');
     ok(/downAt/.test(src), '应有 downAt 去重，防 pointerdown 与 keydown 同时触发');
     ok(/onAutoStop/.test(src), '录音到上限时必须有界面接管（否则识别结果无人接收）');
+  }
+}
+
+/* ---------- 12-d. TTS 引擎注册表与宿主注入（docs/11 选项 A，2026-11-19） ----------
+
+   为什么这节必须存在：
+     修复前 `detect()` 判 tauri 可用性读的是 `global.__TTsProbe`，
+     而唯一的注入入口 `setTauriAdapter()` 只写 `__TTsSpeak` / `__TTsStop`。
+     全仓 grep：`__TTsProbe` **有 1 处读、0 处写**。
+
+     后果链条（M3 打包后才暴露，所以 M2 一切正常）：
+       宿主注入实现 → detect() 探针拿不到 → engine 停在 'web'
+       → speakTauri 永不调用 → Android 浏览器无 speechSynthesis
+       → 最终 engine='none'，老人没有语音。
+
+     这类 bug 的特征是「注入成功但静默不用」，界面完全看不出来。
+     所以断言必须验「注入之后引擎真的变了」，不能只验「注入了」。 */
+
+{
+  const T = sandbox.window.TTS;
+  /* ⚠️ 必须是 sandbox.window，不是 sandbox：
+     voice.js 的 IIFE 参数是 `typeof window !== 'undefined' ? window : globalThis`，
+     在本沙箱里拿到的是 window 对象。写到 sandbox 顶层，voice.js 读不到。 */
+  const W = sandbox.window;
+
+  // ① 注册表存在且顺序正确（01 §2.1：原生优先）
+  ok(typeof T.engines === 'function', 'TTS 应导出 engines()：引擎清单可查，不必读源码');
+  if (typeof T.engines === 'function') {
+    const list = T.engines();
+    ok(Array.isArray(list) && list.length >= 2,
+      `引擎清单应至少含 tauri 与 web，实际 ${JSON.stringify(list)}`);
+    ok(list[0] === 'tauri', `顺序必须是 tauri 优先（01 §2.1），实际第一位 ${list[0]}`);
+    ok(list.indexOf('web') > 0, 'web 应排在 tauri 之后');
+  }
+
+  // ② 当前引擎在非 Tauri 环境应为 web
+  ok(T.activeEngine() === 'web',
+    `普通浏览器环境当前引擎应为 web，实际 ${T.activeEngine()}`);
+
+  // ③ 核心：注入适配器后，探针必须被写上，且引擎切到 tauri
+  {
+    const savedEngine = T.state.engine;
+    const savedSpeak = W.__TTsSpeak;
+    const savedStop = W.__TTsStop;
+    const savedProbe = W.__TTsProbe;
+
+    // 模拟宿主：注入真实实现
+    W.__TAURI_INTERNALS__ = {};          // 让 isTauri() 为真
+    let spoke = 0;
+    T.setTauriAdapter(
+      function () { spoke++; return Promise.resolve(); },
+      function () { /* stop */ }
+    );
+
+    ok(typeof W.__TTsProbe === 'function',
+      'setTauriAdapter 必须写 __TTsProbe —— 否则 detect() 判不出 tauri（本次修的 bug）');
+    if (typeof W.__TTsProbe === 'function') {
+      ok(W.__TTsProbe() === true, '__TTsProbe() 应返回 true（表示引擎可用）');
+    }
+
+    // detect() 是异步的；setTauriAdapter 内部会重探
+    await new Promise((r) => setTimeout(r, 30));
+
+    ok(T.state.engine === 'tauri',
+      `注入适配器后引擎应切到 tauri，实际 ${T.state.engine}（若为 web 说明注入被静默忽略）`);
+    ok(T.state.supported === true, '注入后 supported 应为 true');
+
+    // ④ 切到 tauri 后，speak 必须走宿主注入的实现（不是走浏览器层）
+    if (T.state.engine === 'tauri') {
+      const before = spoke;
+      const r = await T.speak('测试注入', { force: true });
+      ok(spoke === before + 1, 'engine=tauri 时 speak 必须调用宿主注入的实现');
+      ok(r && r.ok === true, `注入实现成功时应返回 ok:true，实际 ${JSON.stringify(r)}`);
+      ok(r && r.engine === 'tauri', `返回值应标 engine=tauri，实际 ${r && r.engine}`);
+    }
+
+    // ⑤ 宿主自带探针时不许被覆盖（更精细的探测结果要尊重）
+    {
+      const savedProbe2 = W.__TTsProbe;
+      let customCalled = 0;
+      W.__TTsProbe = function () { customCalled++; return true; };
+      T.setTauriAdapter(function () { return Promise.resolve(); }, function () {});
+      ok(typeof W.__TTsProbe === 'function' && W.__TTsProbe() === true,
+        '宿主自带的 __TTsProbe 不应被 setTauriAdapter 覆盖');
+      ok(customCalled >= 1, '宿主自带探针应仍被调用（未被替换成空壳）');
+      void savedProbe2;
+    }
+
+    // 复原沙箱，避免影响后续断言
+    delete W.__TAURI_INTERNALS__;
+    if (savedSpeak === undefined) delete W.__TTsSpeak; else W.__TTsSpeak = savedSpeak;
+    if (savedStop === undefined) delete W.__TTsStop; else W.__TTsStop = savedStop;
+    if (savedProbe === undefined) delete W.__TTsProbe; else W.__TTsProbe = savedProbe;
+    T.state.engine = savedEngine;
+    T.state.supported = true;
+  }
+
+  // ⑥ stop() 也要查表分发：engine=tauri 时调宿主 stop，不调浏览器 cancel
+  {
+    const savedEngine = T.state.engine;
+    let hostStop = 0;
+    let webCancel = 0;
+    const ss = sandbox.speechSynthesis;
+    const savedCancel = ss && ss.cancel;
+
+    W.__TTsStop = function () { hostStop++; };
+    W.__TTsProbe = function () { return true; };
+    W.__TAURI_INTERNALS__ = {};
+    if (ss) ss.cancel = function () { webCancel++; };
+
+    T.state.engine = 'tauri';
+    T.stop();
+    ok(hostStop === 1, `engine=tauri 时 stop 应调宿主实现 1 次，实际 ${hostStop}`);
+    ok(webCancel === 0, `engine=tauri 时 stop 不应调浏览器 cancel，实际 ${webCancel} 次`);
+
+    T.state.engine = 'web';
+    T.stop();
+    ok(webCancel === 1, `engine=web 时 stop 应调浏览器 cancel 1 次，实际 ${webCancel}`);
+
+    if (ss && savedCancel) ss.cancel = savedCancel;
+    delete W.__TTsProbe;
+    delete W.__TTsStop;
+    delete W.__TAURI_INTERNALS__;
+    T.state.engine = savedEngine;
+  }
+
+  // ⑦ 没有引擎时 speak 要给结构化失败，不能抛
+  {
+    const savedEngine = T.state.engine;
+    T.state.engine = 'none';
+    let threw = false;
+    let r = null;
+    try {
+      r = await T.speak('没有引擎', { force: true });
+    } catch (e) { threw = true; }
+    ok(!threw, '没有引擎时 speak 不许抛异常（上层要结构化错误）');
+    ok(r && r.ok === false && r.reason === 'no-engine',
+      `没有引擎时应返回 reason=no-engine，实际 ${JSON.stringify(r)}`);
+    T.state.engine = savedEngine;
   }
 }
 

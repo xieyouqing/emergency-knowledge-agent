@@ -101,6 +101,40 @@ main{
    独立一行放在输入框下方：打字仍是最可靠路径，语音给不会打字的老人。
    尺寸与 .voice-btn 同口径（≥76px 高、字号走 --fs-min），
    老人手指粗、手抖，不能做成小圆钮。 */
+/* ---------- 朗读语速（K3） ----------
+   放页面底部：设一次长期生效，不需要每次碰。
+   按钮仍需 ≥48px 高（老人手指），字号走 --fs-min。 */
+.rate-row{
+  margin: 40px 0 24px;
+  padding-top: 24px;
+  border-top: 2px solid var(--line);
+}
+.rate-label{
+  display: block;
+  font-size: var(--fs-min);
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-bottom: 12px;
+}
+.rate-opts{ display: flex; gap: 12px; }
+.rate-btn{
+  flex: 1;
+  min-height: 64px;
+  font-size: var(--fs-min);
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--bg-soft);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+}
+.rate-btn[aria-pressed="true"]{
+  background: var(--act);
+  border-color: var(--act);
+  color: #fff;
+}
+
 .voicein-row{
   margin: -12px 0 28px;
 }

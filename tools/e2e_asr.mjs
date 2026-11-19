@@ -236,8 +236,10 @@ for (const c of CASES) {
     M._talk.ctl.btn = makeEl('talkBtnE2E');
     M._talk.ctl.hint = makeEl('talkHintE2E');
     M._talk.ctl.input = inputBox;
-    M._talk.up();
-    await new Promise((r) => setTimeout(r, 120));   // 等 handleQuery（含真实 LLM）完成
+    /* await 完成信号，不等固定毫秒。
+       原来写 120ms：LLM 缓存命中时够（3ms），一旦清缓存要 800–1800ms，
+       测试立刻变成假失败——这是「测试依赖时序」的典型症状。 */
+    await M._talk.up();
     A2.stop = savedStop;
   }
 
@@ -251,7 +253,16 @@ for (const c of CASES) {
 
   ok(card === c.expectCard, `「${c.say}」应出 ${c.expectCard} 卡，实际 ${card}`);
   ok(text.includes(c.expectText), `识别文本应含「${c.expectText}」，实际「${text}」`);
-  ok(ms < 8000, `端到端应 < 8s（老人等不了），实际 ${ms}ms`);
+  /* 阈值口径（2026-11-19 修正）：
+     原来写「端到端 < 8s」——8 秒是我拍的，`01` 里没有这条判据，属于无依据的门槛。
+     而且它把「ASR 上游抖动」和「我们的链路慢」混在一个数字里：实测出现过 9477ms，
+     复查发现是上游网络抖动，产品侧没有问题，红的是这条自造门槛。
+
+     现在只断言「ASR 这一段有没有异常到不正常」（真正的病态是超时或长时间无响应）：
+       - 正常区间实测：662–1191ms
+       - 异常上限取 5000ms（约为正常的 4 倍，抓的是真故障而非抖动）
+     产品判据「首句播报 ≤ 3 秒」在 tools/measure_latency.mjs 里单独测（`04` §7.2.1）。 */
+  ok(ms < 5000, `ASR 段不应超过 5s（正常 662–1191ms，超过视为上游异常），实际 ${ms}ms`);
 }
 
 /* ---------- 错误路径：空音频必须被拒，不能返回「识别成功但文本为空」 ---------- */

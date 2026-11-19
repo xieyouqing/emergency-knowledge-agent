@@ -130,6 +130,21 @@
     V.speak(V.composeTriageScript(entry), { force: true });
   }
 
+  /* 手动朗读分诊卡（K2 补）。与 autoReadTriage 的区别只在两处：
+     ① 不受 state.mode 与静默位限制（用户明确点了按钮）
+     ② 失败要给提示，不能静默（这条是用户主动要求的） */
+  function speakTriage(entry) {
+    if (!V) { showVoiceNotice('这台设备的浏览器不支持语音朗读'); return; }
+    if (!V.state.supported) { showVoiceNotice(V.state.unavailableReason || '语音朗读暂不可用'); return; }
+    var script = V.composeTriageScript(entry);
+    if (!script) return;
+    V.speak(script, { force: true }).then(function (r) {
+      if (r && !r.ok && r.reason !== 'cancelled') {
+        showVoiceNotice(r.message || '朗读失败，请重试');
+      }
+    });
+  }
+
   function muteAutoRead() {
     autoRead.muted = true;
     if (V) V.stop();
@@ -366,9 +381,13 @@
   /* window 上的松手监听只挂一次（所有按钮共用）。
      理由：手指可能滑出按钮才松开，只挂按钮会永远收不到 pointerup，
      表现为「一直录到 15 秒上限」——实测踩过。 */
+  /* 返回值：Promise，在整条链（识别 → 填框 → 出答案 → 朗读）走完后 resolve。
+     为什么要返回：测试必须能 await 到「真的出卡了」，而不是等一个固定毫秒数。
+     实测踩过——e2e_asr 原来等 120ms，LLM 缓存命中时够用，清缓存后要 800–1800ms，
+     测试立刻变成假失败。等完成信号永远比等时间可靠。 */
   function onTalkUp() {
-    if (!talkCtl.active) return;
-    if (!talkCtl.listening) { talkReset(); return; }   // start 就没成功，无需 stop
+    if (!talkCtl.active) return Promise.resolve('idle');
+    if (!talkCtl.listening) { talkReset(); return Promise.resolve('not-listening'); }   // start 就没成功，无需 stop
     talkCtl.listening = false;
     var btn = talkCtl.btn;
     var hint = talkCtl.hint;
@@ -379,13 +398,13 @@
     setTalkBusy(btn, true);
     showTalkProgress(hint && hint.parentNode, true);
 
-    ASR.stop().then(function (r) {
+    return ASR.stop().then(function (r) {
       setTalkBusy(btn, false);
       showTalkProgress(hint && hint.parentNode, false);
       if (!r || !r.ok) {
         setTalkHint(hint, (r && r.message) || '没听清，请再说一遍。');
         lg('info', '语音输入未取得文本', { reason: r && r.reason });
-        return;
+        return 'no-text';
       }
       setTalkHint(hint, '');
       logAlways('语音输入', {
@@ -398,7 +417,8 @@
          填框失败时仍然出答案——绝不能因为界面结构变了就把识别结果吞掉。 */
       var filled = fillInput(input, r.text);
       if (!filled) lg('warn', '找不到输入框，直接提问（结果不丢）');
-      handleQuery(r.text);
+      /* 把 handleQuery 的 Promise 传出去，调用方才能 await 到「卡出完了」。 */
+      return handleQuery(r.text).then(function () { return 'done'; });
     });
   }
 
@@ -561,12 +581,36 @@
     var opts = entry.triage.options.map(function (o, i) {
       return '<button class="triage-btn" type="button" data-i="' + i + '">' + esc(o.label) + '</button>';
     }).join('');
+    /* 分诊卡也要有朗读/停止（2026-11-19 修复 K2）。
+       为什么必须补：gas_leak / earthquake / fall_elderly 三条走分诊，
+       而**分诊卡就是它们的首屏**。没有这两个按钮，老人在首屏自动读完之后
+       没听清就无法重播，响了也无法按停 —— M2 必做项 2「可重播、可打断」
+       在这三条场景上不成立。
+
+       位置放在选项之后：先让老人看到「要选哪个」，按钮不该挡在选项前面。 */
     container.innerHTML =
       '<article class="card">' +
         '<h2 class="card-title">' + esc(entry.name) + '</h2>' +
         '<p class="triage-q">' + esc(entry.triage.question) + '</p>' +
         '<div class="triage-opts">' + opts + '</div>' +
+        '<div class="voice-row">' +
+          '<button class="voice-btn" type="button" data-act="read" aria-label="再听一遍这个问题">' +
+            '<span class="voice-ico" aria-hidden="true">▸</span>再听一遍' +
+          '</button>' +
+          '<button class="voice-btn is-stop" type="button" data-act="stop" aria-label="停止朗读">停止</button>' +
+        '</div>' +
       '</article>';
+
+    // 手动重播：与步骤卡同一套逻辑（读问题+选项+安全句），不受静默限制
+    var readBtn = container.querySelector('[data-act="read"]');
+    if (readBtn) {
+      readBtn.addEventListener('click', function () { speakTriage(entry); });
+    }
+    var stopBtn = container.querySelector('[data-act="stop"]');
+    if (stopBtn) {
+      stopBtn.addEventListener('click', function () { muteAutoRead(); });
+    }
+
     // 分诊阶段还没有步骤，只能读问题与选项
     autoReadTriage(entry);
     container.querySelectorAll('.triage-btn').forEach(function (btn) {
@@ -843,6 +887,48 @@
      先探测，不支持也渲染按钮（按下给原因），不隐藏成「没这功能」。 */
   /* 语音输入按钮：两个模式各一个，识别结果写回各自的输入框。
      window 上的松手监听**只挂一次**（两个按钮共用一份状态）。 */
+  /* ---------- 朗读语速控件（K3） ----------
+     M2 必做项 2 要求「语速可调慢」。原来只有 TTS.setRate() 这个函数，
+     界面上没有任何入口 —— 只有默认 0.9（偏慢），不满足「可调」。
+
+     两档而不是三档：老人记不住哪档是自己上次选的。
+       慢一点 = 0.75（比默认更慢，给听不清的）
+       正常   = 1.0
+     选择落盘 localStorage，下次打开仍然生效（voice.js 的 savePref 已做）。
+
+     为什么不做成滑块：滑块要精细拖拽，老人手抖拖不准；
+     两个大按钮点一下就定，且能用 aria-pressed 读出当前档位。 */
+  (function initRate() {
+    var row = document.getElementById('rateRow');
+    if (!row) return;
+    if (!V) { row.hidden = true; return; }
+    /* ⚠️ 不能在这里判断 V.state.supported：
+       detect() 是异步的，启动瞬间 supported 还是 false，会把控件误藏。
+       改为先渲染，等探测结果回来再决定（下面的 detect().then 里处理）。 */
+
+    var btns = row.querySelectorAll('.rate-btn');
+    function paint() {
+      var cur = V.state.rate;
+      for (var i = 0; i < btns.length; i++) {
+        var r = Number(btns[i].getAttribute('data-rate'));
+        // 0.75 档：rate < 0.9 即算「慢」；1.0 档：rate >= 0.9
+        var on = (r < 0.9) ? (cur < 0.9) : (cur >= 0.9);
+        btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
+    }
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function (ev) {
+        var r = Number(ev.currentTarget.getAttribute('data-rate'));
+        V.setRate(r);
+        paint();
+        // 立刻读一句让用户听到差别，否则他不知道按钮生效没有
+        V.speak('朗读速度改好了。', { force: true });
+        logAlways('语速变更', { rate: r });
+      });
+    }
+    paint();
+  })();
+
   initTalk('dailyTalk', 'dailyTalkHint', 'dailyInput');
   initTalk('emgTalk', 'emgTalkHint', 'emgInput');
   window.addEventListener('pointerup', onTalkUp);
@@ -873,6 +959,9 @@
      不支持时按钮仍渲染，点了给明确提示（不许静默失败）。 */
   if (V) {
     V.detect().then(function () {
+      // 探测完才知道能不能读：不能读就把语速控件藏掉（调了也没用）
+      var rateRow = document.getElementById('rateRow');
+      if (rateRow) rateRow.hidden = !V.state.supported;
       if (!V.state.supported && V.state.unavailableReason) {
         // 只在用户已经进到紧急模式时才提示，避免日常首屏就被技术提示干扰
         if (state.mode === 'emergency') showVoiceNotice(V.state.unavailableReason);
@@ -912,6 +1001,7 @@
     handleQuery: handleQuery,        // 异步主路径，端到端验证用（含状态切换）
     speakSteps: speakSteps,          // 供语音自测调用
     speakDaily: speakDaily,          // 日常卡朗读（自动读摘要 / 手动读全文）
+    speakTriage: speakTriage,        // 分诊卡手动重播（K2）
     // 语音输入（M2）：供自测断言能力探测与状态，不参与界面渲染
     asrState: ASR ? ASR.state : null,
     asrAvailable: !!ASR,

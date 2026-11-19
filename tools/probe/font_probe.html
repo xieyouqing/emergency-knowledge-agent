@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>font-probe</title>
+<style>
+  body { font-family: system-ui, sans-serif; padding: 16px; }
+  pre { font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+  .pass { color: #1a7f37; }
+  .fail { color: #c1121f; font-weight: 700; }
+</style>
+</head>
+<body>
+<!--
+  U2 自动化探测页（2026-11-19）
+
+  为什么需要它：`04` 的 U2 判据是「getComputedStyle 实测字号 ≥ 32px」。
+  只在源码里 grep `--fs-min: 32px` 不算数——变量可能被别处覆盖、某条规则可能
+  直接写了 28px（`style.css:532` 的媒体查询就重定义过几个变量）。
+  所以必须真的让浏览器算出结果。
+
+  用法：node tools/probe_font.mjs   （用 headless Chrome 跑本页并读结果）
+        或直接在浏览器打开本页肉眼看。
+-->
+<h3>U2 字号实测</h3>
+<div id="out"><pre>探测中…</pre></div>
+
+<iframe id="fr" src="../../app/index.html" style="width:420px;height:900px;border:1px solid #ccc"></iframe>
+
+<script>
+(function () {
+  var out = document.getElementById('out');
+  var fr = document.getElementById('fr');
+
+  function line(s, cls) {
+    return '<span' + (cls ? ' class="' + cls + '"' : '') + '>' + s + '</span>\n';
+  }
+
+  fr.addEventListener('load', function () {
+    var d, w;
+    try {
+      d = fr.contentDocument;
+      w = fr.contentWindow;
+    } catch (e) {
+      out.innerHTML = '<pre class="fail">读不到 iframe 内容：' + e.message + '</pre>';
+      return;
+    }
+    if (!d) { out.innerHTML = '<pre class="fail">contentDocument 为空</pre>'; return; }
+
+    // 图标渲染是同步的（app.js 启动即 renderIcons），但保险起见等一轮任务
+    setTimeout(function () {
+      // 触发一次「紧急场景」渲染，让步骤卡真正出现在 DOM 里。
+      // ⚠️ 两步：gas_leak 是分诊场景，点图标只出**分诊卡**（此时没有 .step），
+      //    必须再点一个分诊选项才会渲染步骤卡。首版只点了一步，
+      //    结果 .step 全是「未找到元素」——不是字号不合格，是没渲染。
+      var btn = d.querySelector('#dailyIcons .icon-btn[data-id="gas_leak"]')
+             || d.querySelector('#dailyIcons .icon-btn');
+      if (btn) btn.click();
+      var opt = d.querySelector('.triage-btn');
+      if (opt) opt.click();
+
+      setTimeout(function () {
+        var rows = [];
+        var fails = [];
+
+        function probe(sel, label, minPx) {
+          var els = Array.prototype.slice.call(d.querySelectorAll(sel));
+          if (!els.length) {
+            rows.push(line('  ' + label + ' — 未找到元素（' + sel + '）', 'fail'));
+            fails.push(label + ' 未渲染');
+            return null;
+          }
+          var vals = els.map(function (e) {
+            return parseFloat(w.getComputedStyle(e).fontSize);
+          });
+          var min = Math.min.apply(null, vals);
+          var uniq = vals.filter(function (v, i, a) { return a.indexOf(v) === i; });
+          var ok = min >= minPx;
+          rows.push(line('  ' + label + '  min=' + min + 'px  取值=' + uniq.join('/') +
+            'px  ' + (ok ? '✓' : '✗ 低于 ' + minPx + 'px'), ok ? 'pass' : 'fail'));
+          if (!ok) fails.push(label + ' = ' + min + 'px < ' + minPx + 'px');
+          return min;
+        }
+
+        rows.push(line('【U2 判据：正文与操作步骤实际计算字号 ≥ 32px（24pt）】'));
+        probe('.step', '操作步骤 .step', 32);
+        probe('.step .txt', '步骤文字 .step .txt', 32);
+        probe('.card-title', '卡片标题 .card-title', 32);
+        probe('.seg-head', '段落标题 .seg-head', 32);
+        probe('.ask-input', '输入框 .ask-input', 32);
+        probe('.ask-btn', '提问按钮 .ask-btn', 32);
+        probe('.icon-label', '图标文字 .icon-label', 32);
+        // 分诊卡在点选项后已被替换，单独再触发一次只到分诊阶段
+        var d2 = d;
+        var icon2 = d2.querySelector('#dailyIcons .icon-btn[data-id="gas_leak"]');
+        if (icon2) {
+          icon2.click();
+          probe('.triage-q', '分诊问题 .triage-q', 32);
+          probe('.triage-btn', '分诊按钮 .triage-btn', 32);
+          var opt2 = d2.querySelector('.triage-btn');
+          if (opt2) opt2.click();   // 复原到步骤卡，别影响后续观察
+        }
+
+        // 媒体查询里变量被重定义过，单独把根变量打出来对照
+        var rootFs = w.getComputedStyle(d.documentElement).getPropertyValue('--fs-min').trim();
+        var rootStep = w.getComputedStyle(d.documentElement).getPropertyValue('--fs-step').trim();
+        rows.push(line(''));
+        rows.push(line('【根变量】--fs-min=' + (rootFs || '(未定义)') + '  --fs-step=' + (rootStep || '(未定义)') +
+          '  视口=' + w.innerWidth + 'px（' + (w.innerWidth < 520 ? '走窄屏媒体查询' : '走宽屏') + '）'));
+
+        rows.push(line(''));
+        rows.push(line('【结论】' + (fails.length ? '不通过：' + fails.join('；') : '全部 ≥ 32px，U2 通过'),
+          fails.length ? 'fail' : 'pass'));
+
+        out.innerHTML = '<pre>' + rows.join('') + '</pre>';
+        // 供 headless 读取
+        document.title = 'RESULT:' + (fails.length ? 'FAIL' : 'PASS');
+      }, 400);
+    }, 60);
+  });
+})();
+</script>
+</body>
+</html>

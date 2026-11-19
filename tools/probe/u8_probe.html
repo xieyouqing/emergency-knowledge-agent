@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>u8-probe</title>
+<style>
+  body { font-family: system-ui, sans-serif; padding: 16px; font-size: 14px; }
+  pre { font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+  .pass { color: #1a7f37; }
+  .fail { color: #c1121f; font-weight: 700; }
+  .dim { color: #666; }
+</style>
+</head>
+<body>
+<!--
+  U8 剩余缺口探测：按「停止」后是否真的不再自动读（2026-11-19）
+
+  为什么不能靠听：`03` §2.4.3 写明「自动读失败是静默的」。
+  耳朵听到的「没声音」可能是被自动播放策略拦了，也可能是逻辑没触发——
+  两者在产品上长得一样。这里改成记 `TTS.speak` 的调用次数，用数字判断。
+
+  也为什么不在 headless 里跑：iframe 里 TTS 能力探测与真浏览器不同，
+  必须在你自己的桌面上跑，结论才代表真实环境。
+
+  用法：直接用桌面 Chrome 打开本页（服务已起在 :8898）。
+-->
+<h3>U8 剩余步骤：按停后不再自动读</h3>
+<div id="out"><pre>探测中…</pre></div>
+
+<iframe id="fr" src="../../app/index.html" style="width:420px;height:820px;border:1px solid #ccc"></iframe>
+
+<script>
+(function () {
+  var out = document.getElementById('out');
+  var fr = document.getElementById('fr');
+  var rows = [];
+  var fails = [];
+
+  function L(s, cls) { rows.push('<span' + (cls ? ' class="' + cls + '"' : '') + '>' + s + '</span>\n'); }
+  function chk(cond, okMsg, failMsg) {
+    if (cond) { L('    ✓ ' + okMsg, 'pass'); }
+    else { L('    ✗ ' + failMsg, 'fail'); fails.push(failMsg); }
+  }
+
+  fr.addEventListener('load', function () {
+    var w = fr.contentWindow, d = fr.contentDocument;
+    if (!d) { out.innerHTML = '<pre class="fail">读不到 iframe</pre>'; return; }
+
+    setTimeout(function () {
+      var TTS = w.TTS, M = w.__M1__;
+      if (!TTS || !M) { out.innerHTML = '<pre class="fail">TTS 或 __M1__ 未导出，检查脚本加载顺序</pre>'; return; }
+
+      /* hook speak：只记次数，不改行为。用原函数转发，保证真的会读。 */
+      var calls = [];
+      var realSpeak = TTS.speak;
+      TTS.speak = function (text, opts) {
+        calls.push({ text: String(text || '').slice(0, 24), auto: !!(opts && opts.auto) });
+        return realSpeak.apply(TTS, arguments);
+      };
+
+      L('【环境】');
+      L('  TTS 引擎: ' + (TTS.state.engine || '(未探测)') + '  supported: ' + TTS.state.supported +
+        '  音色: ' + (TTS.state.voiceName || '—'));
+      L('  说明：若 supported=false，下面的 autoRead 判定仍会走到「因不支持而不读」，' +
+        '      那样测不出静默逻辑，需要换一台能出声的机器。');
+      L('');
+
+      function click(sel) {
+        var el = d.querySelector(sel);
+        if (el) { el.click(); return true; }
+        return false;
+      }
+
+      L('【第 1 步】点图标「燃气泄漏」→ 出分诊卡，应按设计自动读 1 次');
+      var c0 = calls.length;
+      var okIcon = click('#dailyIcons .icon-btn[data-id="gas_leak"]');
+      chk(okIcon, '图标已点击', '找不到 gas_leak 图标');
+      L('    → 本次新增 speak 调用: ' + (calls.length - c0));
+      var afterCard = calls.length;
+      chk(afterCard > c0, '出卡时触发了自动朗读（第 1 次发声）',
+        '出卡没有触发任何朗读 —— 要么 TTS 不可用，要么自动读没接上');
+      L('');
+
+      L('【第 2 步】点「停止」');
+      var stopSel = '.voice-row [data-act="stop"], .voice-row .is-stop';
+      var okStop = click(stopSel);
+      chk(okStop, '找到并点击了停止按钮', '找不到停止按钮（' + stopSel + '）');
+      L('    静默位 autoRead.muted = ' + (M.autoReadState ? M.autoReadState.muted : '(未导出)'));
+      chk(M.autoReadState && M.autoReadState.muted === true,
+        '按停止后静默位已置 true', '按停止后静默位仍为 false —— 停止没有生效');
+      L('');
+
+      /* 第 3 步才是 U8 真正要验的边界。
+         「按停后不再自动读」**只在同一次提问流内**成立：
+         分诊卡 → 按停 → 选选项 → 步骤卡出现，此时不该再读。
+         而「点图标」按设计就是新一次意图表达，会解除静默——所以这里不能点图标，
+         否则测的是「解除静默」，不是「按停生效」。
+         首版写成「按停后点另一个图标」，逻辑上就和设计冲突，测不出东西。 */
+      L('【第 3 步】按停后**仍在同一次提问流内**：选一个分诊选项 → 出步骤卡');
+      L('    设计预期：仍保持静默，不自动读（只有「新一次提问」才解除）');
+      var c1 = calls.length;
+      var opt = d.querySelector('.triage-btn');
+      chk(!!opt, '找到分诊选项按钮', '找不到 .triage-btn —— 分诊卡没渲染');
+      if (opt) opt.click();
+      var added = calls.length - c1;
+      L('    → 本次新增 speak 调用: ' + added + '（预期 0）');
+      chk(added === 0, '按停后同一流内出步骤卡不出声 ✓',
+        '按停后出步骤卡又自动读了 ' + added + ' 次 —— 静默被绕过');
+
+      L('');
+      L('【第 4 步】手动点「朗读一遍」→ 应出声（手动读不受静默限制）');
+      var c3 = calls.length;
+      var manual = d.querySelector('.voice-row [data-act="read"]');
+      chk(!!manual, '找到「朗读一遍」按钮', '找不到手动朗读按钮');
+      if (manual) manual.click();
+      L('    → 本次新增 speak 调用: ' + (calls.length - c3) + '（预期 ≥1）');
+      chk(calls.length > c3, '手动点朗读能出声 ✓', '手动点朗读也不出声 —— 静默错误地拦住了手动路径');
+
+      L('');
+      L('【第 5 步】新一次提问（点另一场景图标）→ 应解除静默并恢复自动读');
+      var c2 = calls.length;
+      click('#emgIcons .icon-btn[data-id="co_poisoning"]') || click('#emgIcons .icon-btn');
+      L('    → 本次新增 speak 调用: ' + (calls.length - c2) + '（预期 ≥1）');
+      chk(calls.length > c2, '新一次提问后恢复自动读 ✓', '新一次提问后仍不出声 —— 老人将永远听不到声音');
+      chk(M.autoReadState.muted === false, '静默位已自动解除', '静默位仍为 true');
+
+      L('');
+      L('【全部 speak 调用记录】');
+      calls.forEach(function (c, i) {
+        L('  ' + String(i + 1).padStart(2) + '. auto=' + (c.auto ? 'Y' : 'N') + '  「' + c.text + '」', 'dim');
+      });
+
+      L('');
+      L('【结论】' + (fails.length ? '不通过：' + fails.join('；') : '全部符合设计，U8 剩余步骤通过'),
+        fails.length ? 'fail' : 'pass');
+
+      TTS.speak = realSpeak;
+      out.innerHTML = '<pre>' + rows.join('') + '</pre>';
+      document.title = 'RESULT:' + (fails.length ? 'FAIL' : 'PASS');
+    }, 200);
+  });
+})();
+</script>
+</body>
+</html>
