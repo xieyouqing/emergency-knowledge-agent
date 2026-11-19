@@ -58,16 +58,17 @@ const LOG_KEEP_DAYS = 7;
 const SECRET_PATTERNS = [
   /sk-[A-Za-z0-9_-]{8,}/g,
   /Bearer\s+[A-Za-z0-9_.-]{8,}/gi,
-  /(["']?(?:api[_-]?key|apikey|secret|token|password)["']?\s*[:=]\s*["']?)[^\s'",}]{6,}/gi
+  /(["']?(?:api[_-]?key|apikey|secret|token|password)["']?\s*[:=]\s*["']?)[^\s'",}]{6,}/gi,
 ];
 
 function scrubText(s) {
   let out = String(s ?? '');
-  for (const re of SECRET_PATTERNS) out = out.replace(re, (m, p1) => (
-    // 无捕获组的正则，p1 拿到的是「偏移量数字」而不是分组文本。
-    // 必须判类型，否则会把偏移量拼进日志（实测踩过：sk-xxx 被替换成 "92***"）。
-    typeof p1 === 'string' && p1 ? p1 + '***' : '***'
-  ));
+  for (const re of SECRET_PATTERNS)
+    out = out.replace(re, (m, p1) =>
+      // 无捕获组的正则，p1 拿到的是「偏移量数字」而不是分组文本。
+      // 必须判类型，否则会把偏移量拼进日志（实测踩过：sk-xxx 被替换成 "92***"）。
+      typeof p1 === 'string' && p1 ? p1 + '***' : '***'
+    );
   return out;
 }
 
@@ -93,7 +94,9 @@ function logFileFor(d = new Date()) {
       while (fs.existsSync(`${base}.${i}`) && fs.statSync(`${base}.${i}`).size > LOG_MAX_BYTES) i++;
       base = `${base}.${i}`;
     }
-  } catch (e) { /* 统计失败就照原文件写 */ }
+  } catch (e) {
+    /* 统计失败就照原文件写 */
+  }
   return base;
 }
 
@@ -103,7 +106,11 @@ function appendLogs(records) {
   for (const r of records) {
     if (!r || typeof r !== 'object') continue;
     let line;
-    try { line = JSON.stringify(r); } catch { continue; }
+    try {
+      line = JSON.stringify(r);
+    } catch {
+      continue;
+    }
     lines.push(scrubText(line));
   }
   if (!lines.length) return 0;
@@ -125,7 +132,9 @@ function pruneLogs() {
       const p = path.join(LOG_DIR, f);
       if (fs.statSync(p).mtimeMs < cutoff) fs.unlinkSync(p);
     }
-  } catch (e) { console.error('日志清理失败:', e.message); }
+  } catch (e) {
+    console.error('日志清理失败:', e.message);
+  }
 }
 
 /* ---------- 读 .env（零依赖，不引 dotenv） ---------- */
@@ -153,7 +162,7 @@ const API_KEY = env.DEEPSEEK_API_KEY || '';
 const BASE_URL = (env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
 const MODEL = env.DEEPSEEK_MODEL || 'deepseek-chat';
 const PORT = Number(env.LLM_PROXY_PORT || 8787);
-const HOST = '127.0.0.1';                 // 绝不监听 0.0.0.0
+const HOST = '127.0.0.1'; // 绝不监听 0.0.0.0
 const ALLOW_ORIGIN = env.LLM_PROXY_ORIGIN || '*'; // 本地开发可放宽；部署时必须收紧
 
 if (!API_KEY) {
@@ -168,8 +177,131 @@ if (!API_KEY.startsWith('sk-')) {
 
 /* ---------- 场景白名单：从 index.json 读，不硬编码 ---------- */
 const INDEX = JSON.parse(fs.readFileSync(path.join(ROOT, 'knowledge', 'index.json'), 'utf8'));
-const SCENE_IDS = INDEX.slots.map(s => s.id);
-const READY_IDS = INDEX.slots.filter(s => s.state === 'ready').map(s => s.id);
+const SCENE_IDS = INDEX.slots.map((s) => s.id);
+const READY_IDS = INDEX.slots.filter((s) => s.state === 'ready').map((s) => s.id);
+
+/* =========================================================
+   /act 端点：让模型直接输出工具调用（docs/03 §2.5.12 D-12）
+   与 /judge 的分工：
+     /judge  = 「这是什么意图」（标签），路由由前端代码定
+     /act    = 「下一步调哪个工具」（动作），循环由前端调度器执行
+
+   为什么单独一个端点而不是扩 /judge：
+     两者的输出契约、prompt、缓存键都不同；混在一个端点里，
+     任何一方改 prompt 都会污染另一方的评测基线（03 §6 要求对照组稳定）。
+
+   ★ 只允许输出一个动作，参数必须能用 JSON 表示。
+     本端点**不判断动作是否合法**（白名单、前置条件），那归前端 tools.js 的 checkGate。
+     理由：门的实现只能有一处，否则「测的」与「用的」会分叉（踩过这个坑）。
+   ========================================================= */
+const TOOL_SCHEMA = [
+  {
+    name: 'lookup_scene',
+    need: 'scene',
+    desc: '查这个场景有没有已发布条目。出任何内容前必须先调它一次',
+    args: { scene: `<${SCENE_IDS.join('|')}>` },
+  },
+  {
+    name: 'ask',
+    need: 'scene,options',
+    desc: '二选一追问，等用户点选。只在场景已确定、意图拿不准时用',
+    args: { scene: '<场景id>', options: '["选项1","选项2"]（必须 2 个，每个 ≤12 字）' },
+  },
+  {
+    name: 'get_steps',
+    need: 'scene',
+    desc: '出三段式急救步骤卡。只能用于「正在发生」或用户点图标',
+    args: { scene: '<场景id>' },
+  },
+  {
+    name: 'get_daily',
+    need: 'scene',
+    desc: '出日常解释卡。用于「怎么预防」「要不要装」这类知识性问题',
+    args: { scene: '<场景id>' },
+  },
+  {
+    name: 'triage',
+    need: 'scene',
+    desc: '出分诊卡。条目自带分诊问题时用它，比直接给步骤更安全',
+    args: { scene: '<场景id>' },
+  },
+  {
+    name: 'speak',
+    need: 'entry_id,segment',
+    desc: '朗读某个条目的指定段落。只能念条目字段，不能念自由文本',
+    args: { entry_id: '<场景id>', segment: 'immediate|next|never|daily|triage' },
+  },
+  {
+    name: 'dial',
+    need: 'number',
+    desc: '出拨号按钮卡。库内没有对应条目、或判断不了时用（不代为拨出）',
+    args: { number: '120|119（只能用这两个）' },
+  },
+  {
+    name: 'refuse',
+    need: 'reason',
+    desc: '拒答。与应急急救无关、或信息不足无法判断时用',
+    args: { reason: '简短英文标识，如 off-topic / unclear' },
+  },
+];
+
+const ACT_PROMPT = `你是应急问答系统的工具调度器。只输出 JSON，不解释、不加代码块。
+
+可选场景 id（只能用这些，不许自造）：
+${SCENE_IDS.join(', ')}
+
+可用工具（每次只选一个）：
+${TOOL_SCHEMA.map((t) => `- ${t.name}(${Object.keys(t.args).join(', ')})：${t.desc}`).join('\n')}
+
+硬规则（违反即视为错误）：
+1. 调用 get_steps / get_daily / triage / speak 之前，history 里必须已经有同场景的 lookup_scene 且其 found=true。
+   没有就**先输出 lookup_scene**，不要直接出内容。
+2. 只有「危险正在发生」才出 get_steps。问「怎么预防」「要不要装」「多久一次」一律出 get_daily。
+3. 与应急急救无关（缴费、投诉、价格、理赔、广告、邻里关系）一律 refuse。
+   **但「选购类」要分两种，不能一律 refuse（2026-11-19 修）**：
+   · **安全防护设备**的选购 → get_daily（属 prevention）。清单：燃气报警器、烟感器、
+     一氧化碳报警器、灭火器、防滑垫、扶手、插座保护盖、漏电保护器、防坠网。
+     判断原则：**买错或没装会直接导致防护失效、进而伤人**的，就是防护设备。
+   · **消费品**的选购 → refuse。清单：燃气热水器、护理床、跌打药、电梯房、按摩椅。
+     判断原则：买错只影响价格、舒适或效果，**不会因为选错就在险情里保护失效**。
+   ⚠️ 为什么这条要单独写：「灭火器怎么选」曾被判成「商品选购，与应急无关」→ refuse，
+   而标注要求 daily。根因是旧规则 3「选购一律 refuse」与规则 2「要不要装→get_daily」
+   **自相矛盾**（「家里要不要装燃气报警器」走规则 2 对，「灭火器怎么选」走规则 3 错）。
+   灭火器选错类型（如水基灭不了电器火）会在关键时刻失效，这与「没装报警器」是同一类风险。
+4. 场景拿不准就给 refuse，不要猜一个相近的场景。
+5. 已经拿到结果就停止，不要重复查同一个场景。
+6. **紧急场景一律不许用 ask 追问，直接出内容或拨号。**
+   具体征兆包括：闻到异味/臭味/煤气味、看到明火或烟、有人倒地/叫不醒/抽搐、
+   有人触电、有人溺水、大出血、被烫伤、电梯困人、地震。
+   用户加「不知道是不是」「好像是」「可能」这类不确定词，**不改变判定** ——
+   他只是不能确认，不是没有征兆。**闻到异味就按泄漏处理，宁可多给。**
+   **为什么紧急不许问**：紧急链路每问一句，用户要多等约 1 秒且可能根本不回答
+   （手在抖、人已昏迷、在跑）。宁可给一个覆盖更坏情况的步骤，也不要停下来问。
+   ⚠️ 不要把「器具故障」当需要处理的情形 —— 例如「打不着火」但没提任何味道/异响：
+   那是家务事，不是急救，应 refuse。本产品不做「先确认再决定管不管」的追问。
+7. **本库没有覆盖的急症，必须直接 dial，不许 get_steps。**
+   未覆盖清单：**没有呼吸 / 无呼吸 / 呼吸停止 / 心跳停止 / 叫不醒且无反应（需 CPR）、
+   大出血、昏迷不醒、抽搐不止、卒中（嘴歪眼斜半身不遂）**。
+   为什么这条比「给步骤」更安全：库里的 fall_elderly 首屏会问
+   「现在能自己试着动一动胳膊腿吗？」—— **对一个已经没呼吸的人问这句是致命的**。
+   给不出的内容宁可不给，直接给 120 拨号按钮。
+   注意：airway_obstruction 只讲噎食（海姆立克），**不是 CPR**，不要拿它顶替。
+   ⚠️⚠️ **触发条件必须由用户明说，不许推测。**
+   用户只说「倒了 / 摔了 / 跌了一跤」，**没提呼吸和意识**时，不要假设最坏情况，
+   按常规出 triage 或 get_steps（fall_elderly 的分诊会自己问「能不能动胳膊腿」，
+   这对清醒的摔伤者是合适的）。只有当用户**明确说出**「没呼吸 / 没反应 / 叫不醒 /
+   昏迷 / 大出血」时才 dial。
+   判断依据是「用户说了什么」，不是「可能会怎样」。过度保守会让用户拿不到任何处置指引，
+   比给分诊卡更差。
+
+输出格式（严格）：
+{"act":"<工具名>","args":{...},"reason":"<一句话，为什么选它>"}`;
+
+/* 缓存键必须与 /judge 分开：同一句话在两套 prompt 下结论不同 */
+const actCache = new Map();
+/* 缓存上限。满时不全清（那会让已稳定的答案重新摇），改为淘汰最旧 1/8。
+   800 的依据：100 条评测集 × 最多 6 步 ≈ 600 个键，留 200 余量。 */
+const ACT_CACHE_MAX = 800;
 
 const SYSTEM_PROMPT = `你是应急问答系统的意图分类器。只输出 JSON，不解释、不加代码块。
 
@@ -186,7 +318,13 @@ ${SCENE_IDS.join(', ')}
 
 判定要点：
 - "怎么预防X"、"X多久一次"、"要不要装X" 属 prevention，不是 ongoing
-- "X费怎么交"、"X怎么投诉"、"X怎么选"、"X多少钱" 属 off_scope
+- "X费怎么交"、"X怎么投诉"、"X多少钱" 属 off_scope
+- **"X怎么选"要分两种（2026-11-19 修，旧版一律归 off_scope 与上一条自相矛盾）**：
+  · **安全防护设备** → prevention（燃气报警器、烟感器、一氧化碳报警器、灭火器、
+    防滑垫、扶手、插座保护盖、漏电保护器）。判断原则：**买错或没装会直接导致
+    防护失效、进而伤人**。
+  · **消费品** → off_scope（燃气热水器、护理床、跌打药、电梯房、按摩椅）。
+    判断原则：买错只影响价格、舒适或效果，不会在险情里保护失效。
 - 只在真的正在出事时给 ongoing
 - 宁可 scene 为 null，也不要猜一个相近的场景
 
@@ -205,7 +343,7 @@ ${SCENE_IDS.join(', ')}
 
    ⚠️ M3 打包后没有 Node 进程，本端点会一起消失（docs/03 D-6 已记录：
       能力归零，回落 L3）。这不是本实现的缺陷。 */
-const ASR_MAX_BYTES = 12 * 1024 * 1024;   // 12MB ≈ 6 分钟 16k 单声道 WAV
+const ASR_MAX_BYTES = 12 * 1024 * 1024; // 12MB ≈ 6 分钟 16k 单声道 WAV
 const ASR_TIMEOUT_MS = 15000;
 
 /* ASR 调用统一走 tools/asr/ 里的 provider（2026-11-19 抽出）。
@@ -235,7 +373,7 @@ function providerEnv() {
     XFYUN_APISECRET: env.XFYUN_APISECRET,
     XFYUN_ASR_HOST: env.XFYUN_ASR_HOST,
     XFYUN_ASR_PATH: env.XFYUN_ASR_PATH,
-    XFYUN_ASR_DOMAIN: env.XFYUN_ASR_DOMAIN
+    XFYUN_ASR_DOMAIN: env.XFYUN_ASR_DOMAIN,
   };
 }
 
@@ -249,10 +387,14 @@ async function transcribe(wavBuffer, opts = {}) {
     return { ok: false, provider: 'none', error: picked.reason };
   }
   try {
-    const r = await picked.provider.transcribe(wavBuffer, {
-      timeoutMs: opts.timeoutMs || ASR_TIMEOUT_MS,
-      trace: opts.trace
-    }, providerEnv());
+    const r = await picked.provider.transcribe(
+      wavBuffer,
+      {
+        timeoutMs: opts.timeoutMs || ASR_TIMEOUT_MS,
+        trace: opts.trace,
+      },
+      providerEnv()
+    );
     // provider 已保证不抛；这里再兜一层，防实现方未来改动
     return r && typeof r === 'object'
       ? r
@@ -274,15 +416,82 @@ async function synthesize(text) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
+      Authorization: `Bearer ${API_KEY}`,
     },
-    body: JSON.stringify({ text })
+    body: JSON.stringify({ text }),
   });
   if (!res.ok) {
     const t = await res.text().catch(() => '');
     throw new Error(`TTS 上游 ${res.status}: ${String(t).slice(0, 200)}`);
   }
   return Buffer.from(await res.arrayBuffer());
+}
+
+/* ---------- 从模型输出里取出 JSON 对象 ----------
+   ⚠️ 2026-11-19 加（probe_multi_turn 实测撞出来，两次都不是同一个症状）：
+
+     第 1 次（max_tokens=160）：模型把 reason 写长 → JSON 被**截断在字符串中间**
+       → 直解析抛错 → 前端回落单次判定 → 循环那一步的动作丢失。
+     第 2 次（把 max_tokens 提到 320）：JSON 完整了，但模型在它**后面又追加
+       「注：fall_elderly 是老人跌倒，儿童坠床…」这类解释文字**
+       → 整段仍不是合法 JSON → 同一个错误的另一副面孔。
+
+     结论：**"模型只输出 JSON" 是一个请求，不是保证。** prompt 写再多遍
+     「只输出 JSON，不解释」也管不住——必须由解析侧容错。
+     这不是宽松化：取出的仍必须是**一个完整配平的对象**，
+     截断/不配平照样报错（下面括号计数不平就返回 null）。
+
+     顺序：直解析 → 去 ```json 围栏 → 从第一个 { 起做括号计数（跳过字符串内的括号）。 */
+function extractJson(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return null;
+
+  try {
+    return JSON.parse(s);
+  } catch {
+    /* 继续尝试 */
+  }
+
+  const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) {
+    try {
+      return JSON.parse(fenced[1].trim());
+    } catch {
+      /* 继续尝试 */
+    }
+  }
+
+  const start = s.indexOf('{');
+  if (start < 0) return null;
+
+  let depth = 0;
+  let inStr = false;
+  let escaped = false;
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') {
+      inStr = true;
+      continue;
+    }
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(s.slice(start, i + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 /* ---------- 缓存：同一句只花一次钱 ---------- */
@@ -300,18 +509,18 @@ async function judge(text, opts) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${API_KEY}`
+      Authorization: `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
       model: MODEL,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: text }
+        { role: 'user', content: text },
       ],
       temperature: 0,
       max_tokens: 80,
-      response_format: { type: 'json_object' }
-    })
+      response_format: { type: 'json_object' },
+    }),
   });
 
   if (!res.ok) {
@@ -325,12 +534,8 @@ async function judge(text, opts) {
   const raw = data?.choices?.[0]?.message?.content || '{}';
   const latency = Date.now() - t0;
 
-  let obj;
-  try {
-    obj = JSON.parse(raw);
-  } catch {
-    throw new Error(`模型返回不是合法 JSON: ${raw.slice(0, 120)}`);
-  }
+  let obj = extractJson(raw);
+  if (!obj) throw new Error(`模型返回不是合法 JSON: ${String(raw).slice(0, 120)}`);
 
   /* 收紧模型输出：任何越界值一律降级为安全值 */
   let intent = String(obj.intent || '').trim();
@@ -338,7 +543,7 @@ async function judge(text, opts) {
 
   let scene = obj.scene;
   if (scene === 'null' || scene === '' || scene === undefined) scene = null;
-  if (scene !== null && !SCENE_IDS.includes(scene)) scene = null;  // 自造场景 → null
+  if (scene !== null && !SCENE_IDS.includes(scene)) scene = null; // 自造场景 → null
 
   // 一致性：off_scope 不该带场景
   if (intent === 'off_scope') scene = null;
@@ -355,7 +560,7 @@ async function judge(text, opts) {
     confidence,
     latency_ms: latency,
     cached: false,
-    model: data?.model || MODEL
+    model: data?.model || MODEL,
   };
 
   if (cache.size >= CACHE_MAX) cache.clear();
@@ -372,10 +577,122 @@ function proxyLog(level, msg, fields = {}) {
     module: 'proxy',
     trace: fields.trace || null,
     msg,
-    ...fields
+    ...fields,
   };
   if ('trace' in rec && typeof rec.trace === 'undefined') rec.trace = null;
   appendLogs([rec]);
+}
+
+/* ---------- 让模型选一个工具（/act）----------
+   history 只传「动作摘要」，不传原文与渲染结果：
+     一段长 history 会把 prompt 撑爆并拖慢首字；而模型判断下一步只需要知道
+     「已经查过哪些场景、拿到什么结论」，不需要知道卡片长什么样。
+     实测（03 §2.4）单次往返 683–1627ms，prompt 越长越靠上限。
+
+   ★ 本函数**不校验动作合法性**。只做「结构合法性」检查（有没有 act、是不是字符串）。
+     白名单与前置条件归前端 tools.js —— 一处实现，避免两套判据打架。 */
+async function act(text, opts = {}) {
+  const history = Array.isArray(opts.history) ? opts.history : [];
+  const noCache = opts.noCache === true;
+
+  /* 缓存键含 history：同一句话在不同上下文下该调的工具不同。
+     只取「动作名+场景」拼键，不含 reason（模型措辞会变，会让缓存命中率归零）。 */
+  const key =
+    text + '|' + history.map((h) => `${h.act}:${(h.args && h.args.scene) || ''}`).join('>');
+  if (!noCache) {
+    const hit = actCache.get(key);
+    if (hit) return { ...hit, cached: true, latency_ms: 0 };
+  }
+
+  const histLines = history.length
+    ? history
+        .map(
+          (h, i) =>
+            `${i + 1}. ${h.act}(${JSON.stringify(h.args || {})}) → ${JSON.stringify(h.result || {})}`
+        )
+        .join('\n')
+    : '（还没有调用过任何工具）';
+
+  const userMsg = `用户说：${text}
+
+已经调用过的工具与结果：
+${histLines}
+
+现在应该调用哪个工具？只输出 JSON。`;
+
+  const t0 = Date.now();
+  const res = await fetch(`${BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: 'system', content: ACT_PROMPT },
+        { role: 'user', content: userMsg },
+      ],
+      temperature: 0,
+      /* 160 → 320（2026-11-19 修，probe_multi_turn 实测 MT08 撞出来）：
+         max_tokens=160 时，模型若把 reason 写长（>100 字），JSON 会被**截断在
+         字符串中间** → 解析抛「模型返回不是合法 JSON」→ 前端回落单次判定。
+         症状很隐蔽：用户最终仍拿到答案，但**走的是回落路径**，
+         循环里那一步的动作丢失（MT08 从 steps 掉成 unknown）。
+
+         prompt 里「reason 一句话」管不住 —— 那是**请求**不是**保证**，上限必须给足。
+         320 的依据：实测最长响应 211 token，留 100 余量。 */
+      max_tokens: 320,
+      response_format: { type: 'json_object' },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`上游 ${res.status}: ${String(body).slice(0, 200)}`);
+  }
+  const data = await res.json();
+  const raw = data?.choices?.[0]?.message?.content || '{}';
+  const obj = extractJson(raw);
+  if (!obj) throw new Error(`模型返回不是合法 JSON: ${String(raw).slice(0, 120)}`);
+
+  const actName = String(obj.act || '').trim();
+  if (!actName) throw new Error('模型没给出 act 字段');
+
+  const args = obj.args && typeof obj.args === 'object' && !Array.isArray(obj.args) ? obj.args : {};
+
+  const out = {
+    act: actName,
+    args,
+    reason: String(obj.reason || '').slice(0, 120),
+    latency_ms: Date.now() - t0,
+    cached: false,
+    model: data?.model || MODEL,
+  };
+
+  /* ⚠️ 2026-11-19 改：原来是 `if (actCache.size >= 800) actCache.clear()`，
+     满 800 条**全清**。这会让已经稳定的答案重新去问模型 → 重新摇。
+
+     为什么这是真问题（实测支撑）：
+       稳定性探针（tools/probe_stability.mjs）实测三条边界样本的摇摆率
+       P006 40% / P020 25% / O008 45%。这些摇摆**只发生在缓存未命中时**。
+       全清之后它们全部回到未命中状态，于是「刚才还稳定」的答案重新开始摇。
+       演示时反复测很容易超过 800 次，那时光清一次就会重新洗牌。
+
+     改成 LRU（删最旧 1/8），保留绝大多数已稳定的答案。
+     同时加日志：全清/批量淘汰必须留痕，否则事后无法确认「是否发生过」——
+     这类「静默改变行为」的事，没有日志就只能靠猜。 */
+  if (actCache.size >= ACT_CACHE_MAX) {
+    const drop = Math.ceil(ACT_CACHE_MAX / 8);
+    let n = 0;
+    for (const k of actCache.keys()) {
+      if (n++ >= drop) break;
+      actCache.delete(k);
+    }
+    proxyLog('info', 'act 缓存达上限，淘汰最旧一批（LRU）', {
+      evicted: n,
+      remain: actCache.size,
+      max: ACT_CACHE_MAX,
+    });
+  }
+  actCache.set(key, out);
+  return out;
 }
 
 /* ---------- HTTP 服务 ---------- */
@@ -393,9 +710,13 @@ function readBody(req, limit = 64 * 1024) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
-    req.on('data', c => {
+    req.on('data', (c) => {
       size += c.length;
-      if (size > limit) { reject(new Error('body 过大')); req.destroy(); return; }
+      if (size > limit) {
+        reject(new Error('body 过大'));
+        req.destroy();
+        return;
+      }
       chunks.push(c);
     });
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
@@ -407,9 +728,13 @@ function readBodyBuffer(req, limit) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
-    req.on('data', c => {
+    req.on('data', (c) => {
       size += c.length;
-      if (size > limit) { reject(new Error('body 过大')); req.destroy(); return; }
+      if (size > limit) {
+        reject(new Error('body 过大'));
+        req.destroy();
+        return;
+      }
       chunks.push(c);
     });
     req.on('end', () => resolve(Buffer.concat(chunks)));
@@ -418,7 +743,12 @@ function readBodyBuffer(req, limit) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === 'OPTIONS') { cors(res); res.writeHead(204); res.end(); return; }
+  if (req.method === 'OPTIONS') {
+    cors(res);
+    res.writeHead(204);
+    res.end();
+    return;
+  }
 
   const url = new URL(req.url, `http://${HOST}:${PORT}`);
 
@@ -437,7 +767,7 @@ const server = http.createServer(async (req, res) => {
         return p.ok ? p.id : 'unavailable:' + p.reason;
       })(),
       asr_default: DEFAULT_PROVIDER,
-      asr_providers: listProviders(providerEnv())
+      asr_providers: listProviders(providerEnv()),
     });
   }
 
@@ -445,10 +775,16 @@ const server = http.createServer(async (req, res) => {
      没有它，评测跑第二次就是拿缓存自欺（latency_ms 恒为 0）。
      仅测试/评测用，不影响产品路径。 */
   if (req.method === 'POST' && url.pathname === '/cache/clear') {
-    const n = cache.size;
+    /* 两套缓存必须一起清（2026-11-19 修：原来只清 cache，
+       结果评测跑出「总耗时 1s」——全是 act 缓存命中，测的不是真实时延）。
+       这与 docs/03 v1.7 立的第 2 条纪律「复跑评测前须清缓存」直接相关：
+       清不干净等于没清。 */
+    const nJudge = cache.size;
+    const nAct = actCache.size;
     cache.clear();
-    proxyLog('info', '清空判定缓存', { cleared: n });
-    return json(res, 200, { ok: true, cleared: n });
+    actCache.clear();
+    proxyLog('info', '清空缓存', { judge: nJudge, act: nAct });
+    return json(res, 200, { ok: true, cleared: nJudge + nAct, judge: nJudge, act: nAct });
   }
 
   if (req.method === 'POST' && url.pathname === '/judge') {
@@ -478,12 +814,48 @@ const server = http.createServer(async (req, res) => {
         cached: r.cached,
         latency_ms: r.latency_ms,
         total_ms: Date.now() - t0,
-        text_len: text.length
+        text_len: text.length,
       });
       return json(res, 200, r);
     } catch (e) {
       // 错误信息里可能带上游响应，但不含 key
       proxyLog('error', 'judge 失败', { trace, error: scrubText(String(e.message || e)) });
+      return json(res, 502, { error: String(e.message || e) });
+    }
+  }
+
+  /* ---------- /act：让模型选工具（docs/03 §2.5.12 D-12） ---------- */
+  if (req.method === 'POST' && url.pathname === '/act') {
+    let text = '';
+    let history = [];
+    let trace = null;
+    let noCache = false;
+    try {
+      const body = JSON.parse(await readBody(req));
+      text = String(body.text || '').trim();
+      history = Array.isArray(body.history) ? body.history.slice(-6) : [];
+      trace = typeof body.trace === 'string' ? body.trace.slice(0, 64) : null;
+      noCache = body.nocache === true;
+    } catch {
+      return json(res, 400, { error: 'body 不是合法 JSON' });
+    }
+    if (!text) return json(res, 400, { error: 'text 为空' });
+    if (text.length > 500) return json(res, 400, { error: 'text 超过 500 字' });
+
+    try {
+      const r = await act(text, { history, noCache });
+      proxyLog('info', 'act 完成', {
+        trace,
+        act: r.act,
+        args: r.args,
+        cached: r.cached,
+        latency_ms: r.latency_ms,
+        history_len: history.length,
+        text_len: text.length,
+      });
+      return json(res, 200, r);
+    } catch (e) {
+      proxyLog('error', 'act 失败', { trace, error: scrubText(String(e.message || e)) });
       return json(res, 502, { error: String(e.message || e) });
     }
   }
@@ -508,7 +880,11 @@ const server = http.createServer(async (req, res) => {
      统一在代理侧组，前端只负责「把字节发出去」。 */
   if (req.method === 'POST' && url.pathname === '/asr') {
     let trace = null;
-    try { trace = (url.searchParams.get('trace') || '').slice(0, 64) || null; } catch { /* ignore */ }
+    try {
+      trace = (url.searchParams.get('trace') || '').slice(0, 64) || null;
+    } catch {
+      /* ignore */
+    }
     let buf;
     try {
       buf = await readBodyBuffer(req, ASR_MAX_BYTES);
@@ -534,11 +910,11 @@ const server = http.createServer(async (req, res) => {
         provider: r.provider,
         bytes: buf.length,
         code: r.code || null,
-        error: scrubText(msg)
+        error: scrubText(msg),
       });
       return json(res, isTimeout ? 504 : 502, {
         error: scrubText(msg),
-        provider: r.provider
+        provider: r.provider,
       });
     }
 
@@ -553,14 +929,14 @@ const server = http.createServer(async (req, res) => {
       text_len: String(r.text || '').length,
       audio_ms: r.duration_ms,
       upstream_ms: r.latency_ms,
-      total_ms: Date.now() - t0
+      total_ms: Date.now() - t0,
     });
     return json(res, 200, {
       text: String(r.text || '').trim(),
       duration_ms: r.duration_ms,
       latency_ms: r.latency_ms,
       provider: r.provider,
-      request_id: r.request_id || null
+      request_id: r.request_id || null,
     });
   }
 

@@ -30,6 +30,12 @@ knowledge/.*
 # 重新生成：python -c "import os;open('tools/probe/dummy_25mb.bin','wb').write(os.urandom(25*1024*1024))"
 tools/probe/dummy_25mb.bin
 
+# ---- 离线小模型探针的模型文件（22.9MB，镜像下载，不进仓库） ----
+# 重新获取见 tools/probe/intent_probe/RESULT.md §5
+tools/probe/intent_probe/models/
+tools/probe/intent_probe/.cache/
+tools/probe/intent_probe/*.log
+
 # ---- 编辑器与系统 ----
 .vscode/
 .idea/
