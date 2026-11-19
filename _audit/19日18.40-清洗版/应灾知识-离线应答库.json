@@ -1,0 +1,2407 @@
+{
+ "meta": {
+  "name": "应灾知识-离线应答库",
+  "version": "1.5.2",
+  "generated_at": "2026-11-19T18:40:00+08:00",
+  "source_table": "应灾知识-数据表.xlsx",
+  "source_sheet": "1-官方文件",
+  "total_scenes": 24,
+  "design_principles": [
+   "面向低知识水平人群：3 步以内、短句、动词开头、无术语",
+   "离线可用：单文件 JSON，零网络依赖",
+   "可审计：每条步骤溯源到源表行号与逐字原文",
+   "安全优先：不确定就兜底到 120/119"
+  ],
+  "status": "draft",
+  "inherited_open_issues": [
+   "烧伤冲洗时长已裁定（2026-11-19）：统一话术 15~30分钟／至少10分钟／化学烧伤20~30，四源兼容（源表待验证34 已销账）",
+   "气道口径已裁定（2026-11-18 背5冲5）＋2025 期刊解读已入表（2026-11-19 销账）；AHA ZHCN PDF 直连403 待提取（不阻塞）",
+   "蛇咬切开口径已裁定甲案（2026-11-19：公众一律禁切开、院内血清后；源表待验证16/17 已销账）",
+   "CO 死亡181：已裁定永久禁用（2026-11-19），国家一手出现前不启用（源表待验证36 保持开放）",
+   "validate_knowledge.py 已建（tools/validate_knowledge.py，2026-11-19 实跑 8/8＋自测 8/8 检出）"
+  ],
+  "changelog": [
+   "2026-11-19 v1.1：合入骨折待审核表27行（主表241-267行）。新增 fracture 场景；fall_elderly 增疑似骨折/开放性骨折分支与四禁忌；source_audit 增26条。主表同步266行。",
+   "2026-11-19 v1.1：H4授权修复——battery_fire 增关键词「电池起火」，修「电池起火能浇水吗」误路由 fire_escape（最长匹配抢词）。",
+   "2026-11-19 v1.2：按《应灾Agent应答层系统提示词》v0.3 优化——去术语（被动免疫制剂/卒中中心/灭活病毒/分级罗马数字/℃）、去用户可见数字（100%致死）、co_poisoning steps 补开窗/撤室外、cpr/choking/drowning 口径对齐、fracture 髋部手术话术降信息员、stroke 三问+BEFAST 白话化、警告语肯定化等 14 处。",
+   "2026-11-19 v1.3：地震禁忌表 8 行合入（主表 268-275）。earthquake 补跳楼/乘电梯/结绳/乱跑挤楼道/冲楼梯五禁忌+「震时正在电梯里」分支，阳台窗边升级溯源；elevator 补震时禁乘交叉引用；H1 甲案落地：fire_escape 公众端只出退回等救、结绳留档（主库火灾跳楼行降信息员）。source_audit 176→185（earthquake+8、elevator+1）。主表同步 274 行。",
+   "2026-11-19 v1.3（第七轮复审 R1-R8 治理文字清理）：meta 未决项改「脚本已建」；蛇咬 notes 精确化为「原则已定/切开待裁」、choking notes 补裁定凭据；4 场景 keywords 去重；4 场景 notes 加「内部参考·不进应答」前缀；co_poisoning notes 更新 2025 口径 84.3% 并标年份。内容口径零变化。",
+   "2026-11-19 v1.4：四项未决证据落表——snake_bite 切禁溯源挂 2024 指南并注明院内边界（建议甲案待确认）；burn_scald 冲洗步改「凉水冲15到30分钟」挂北京卫健委行、四源兼容说明；choking 增期刊解读背书（1级推荐B-NR）；co_poisoning notes 注明死亡数国家一手未获取。source_audit 185→190（+5）。主表同步 280 行。",
+   "2026-11-19 v1.5：四项未决销账——snake_bite/burn_scald/choking confidence 升 high（甲案/统一话术/期刊解读）；co_poisoning 保持 medium（181 永久禁用）；meta.inherited_open_issues 全面改写为「已裁定/已销账」表述。内容口径零变化。",
+   "2026-11-19 v1.5.1：第八轮复审修订——burn_scald 化学烧伤分支「至少30分钟」改「冲20到30分钟」（与统一话术及主步一致，detail 保留「冲到30分钟更好」覆盖最严值）；snake_bite notes 删除与销账结论矛盾的「裁定待项目组」残留。内容口径对齐，审计 190 条不变。",
+   "2026-11-19 v1.5.2：数据清洗版。①关键词「煤气」原判为跨场景冲突，经最长匹配回归（test_match.py，11 条口语）证伪——「煤气中毒」4 字恒优先于「煤气」2 字，原版路由正确，撤回拆分建议，关键词零改动；②meta.source_md5 换成 source_rows + source_ids_sha1；③源表已完成章节/受众/层级归一（134→29 / 34→12 原子值 / 17→15），本库字段未受影响。"
+  ],
+  "source_rows": 280,
+  "source_id_count": 280,
+  "source_ids_sha1": "62e8361d1b4f88ced7195799efa0e83ff2bbcdc4",
+  "source_checksum_note": "原 meta.source_md5 已移除。实测两版源表 md5（14:10 版 98564d76…、17.00 版 14fde534…）均不等于原声明值 5082000c…，该字段无法用于对账（Office 重存/网盘导出都会改变字节）。改记数据行数 + 编号集合 sha1，二者不随文件重存变化。"
+ },
+ "global": {
+  "fallback_no_match": "这个我还不会。请立刻拨打 120 或 119，说清楚你在哪、发生了什么，按接线员说的做。",
+  "fallback_conflict": "有两个说法，不确定哪个对。安全起见请立刻拨打 120，按急救人员说的做。",
+  "always_call_120_for": [
+   "昏迷",
+   "呼吸停止",
+   "心跳停止",
+   "大量出血",
+   "抽搐",
+   "意识不清"
+  ],
+  "core_rules": [
+   "不确定病情时，不要自己吃药",
+   "先保证自己安全，再救别人",
+   "能打 120 就打 120，不要自己开车送医院"
+  ]
+ },
+ "scenes": [
+  {
+   "id": "gas_leak",
+   "name": "燃气泄漏",
+   "category": "居家事故",
+   "keywords": [
+    "煤气泄漏",
+    "燃气泄漏",
+    "漏气",
+    "煤气味",
+    "燃气味",
+    "煤气",
+    "燃气"
+   ],
+   "question_variants": [
+    "煤气泄漏怎么办",
+    "闻到煤气味怎么办",
+    "燃气漏了怎么办",
+    "家里有煤气味"
+   ],
+   "emergency_call": "119",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "慢慢关掉燃气总阀",
+     "detail": "不要快关，慢慢拧",
+     "source_id": "燃气关阀新华"
+    },
+    {
+     "action": "打开门窗",
+     "detail": "让空气流通",
+     "source_id": "燃气关阀新华"
+    },
+    {
+     "action": "走到外面再打电话",
+     "detail": "到室外上风方向，打 119 或燃气公司电话",
+     "source_id": "燃气应急上风"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "开关任何电器",
+     "reason": "会产生火花",
+     "source_id": "燃气关阀不炸"
+    },
+    {
+     "action": "在屋里打电话",
+     "reason": "手机也会产生火花",
+     "source_id": "燃气关阀新华"
+    },
+    {
+     "action": "用打火机检查",
+     "reason": "一点就炸",
+     "source_id": "燃气关阀新华"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "管道已经着火",
+     "steps": [
+      {
+       "action": "逐渐关小阀门",
+       "source_id": "燃气管火慢关"
+      },
+      {
+       "action": "把火降到最小",
+       "source_id": "燃气管火慢关"
+      },
+      {
+       "action": "再关闭阀门",
+       "source_id": "燃气管火慢关"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "直接快速关死阀门（防回火爆炸）",
+       "reason": "",
+       "source_id": "燃气管火慢关"
+      }
+     ],
+     "source_id": "燃气管火慢关"
+    },
+    {
+     "condition": "有人在泄漏点附近晕倒",
+     "steps": [
+      {
+       "action": "不要冲进去救",
+       "source_id": "燃气盲救"
+      },
+      {
+       "action": "在安全处等抢险队",
+       "source_id": "燃气盲救"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "没有任何防护就进去救人",
+       "reason": "",
+       "source_id": "燃气盲救"
+      }
+     ],
+     "source_id": "燃气盲救"
+    }
+   ],
+   "source_ids": [
+    "燃气关阀新华",
+    "燃气管火慢关",
+    "燃气关阀不炸",
+    "燃气应急开窗",
+    "燃气应急上风",
+    "燃气盲救"
+   ],
+   "confidence": "high",
+   "notes": "Q6 已裁定（2026-11-18）：多方官方一致确认应缓慢关阀。中国消防辟谣「缓慢关阀不会引发爆炸」。"
+  },
+  {
+   "id": "fire_escape",
+   "name": "家庭火灾逃生",
+   "category": "居家事故",
+   "keywords": [
+    "火灾",
+    "着火",
+    "起火",
+    "浓烟",
+    "逃生",
+    "火场"
+   ],
+   "question_variants": [
+    "家里着火怎么办",
+    "火灾怎么逃生",
+    "着火了怎么办",
+    "楼里着火怎么办"
+   ],
+   "emergency_call": "119",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "立刻往外跑",
+     "detail": "别回去拿东西",
+     "source_id": "火灾逃生应急"
+    },
+    {
+     "action": "走楼梯，不坐电梯",
+     "detail": "沿楼梯右侧向下",
+     "source_id": "火灾逃生"
+    },
+    {
+     "action": "烟大时蹲低走",
+     "detail": "贴地面，湿毛巾捂住嘴鼻",
+     "source_id": "火灾低姿"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "贪恋财物返回",
+     "reason": "火势蔓延快，回来就出不去了",
+     "source_id": "火灾逃生应急"
+    },
+    {
+     "action": "乘坐电梯",
+     "reason": "停电会困在里面",
+     "source_id": "火灾逃生应急"
+    },
+    {
+     "action": "盲目跳楼",
+     "reason": "别跳楼、别结绳下滑；退回屋里关门堵缝等救",
+     "source_id": "火灾跳楼"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "门把手发烫（门外有火）",
+     "steps": [
+      {
+       "action": "不要开门",
+       "source_id": "火灾门烫"
+      },
+      {
+       "action": "用湿被子堵住门缝",
+       "source_id": "火灾门烫"
+      },
+      {
+       "action": "泼水降温，向窗外求救",
+       "source_id": "火灾门烫"
+      }
+     ],
+     "source_id": "火灾门烫",
+     "never_do": []
+    },
+    {
+     "condition": "所有路都被火封住",
+     "steps": [
+      {
+       "action": "退回屋里",
+       "source_id": "火灾被困"
+      },
+      {
+       "action": "用手电、挥衣服、喊叫向窗外求救",
+       "source_id": "火灾被困"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "跳楼",
+       "reason": "",
+       "source_id": "火灾被困"
+      }
+     ],
+     "source_id": "火灾被困"
+    },
+    {
+     "condition": "身上着火",
+     "steps": [
+      {
+       "action": "立刻脱衣服",
+       "source_id": "身上着火"
+      },
+      {
+       "action": "脱不下来就慢慢就地打滚",
+       "source_id": "身上着火"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "奔跑",
+       "reason": "",
+       "source_id": "身上着火"
+      },
+      {
+       "action": "大喊",
+       "reason": "",
+       "source_id": "身上着火"
+      },
+      {
+       "action": "用手拍火",
+       "reason": "",
+       "source_id": "身上着火"
+      }
+     ],
+     "source_id": "身上着火"
+    }
+   ],
+   "source_ids": [
+    "火灾逃生应急",
+    "火灾逃生",
+    "火灾低姿",
+    "火灾门烫",
+    "火灾被困",
+    "火灾跳楼",
+    "身上着火",
+    "油火禁水"
+   ],
+   "confidence": "high",
+   "notes": "【内部参考·不进应答】油火/电气火灾禁水（油火禁水行）；火灾死亡 65.1% 是窒息中毒，不是烧伤（火灾窒息行）。【2026-11-19甲案裁定】主库「火灾跳楼」行（教床单结绳）降受众仅医务人员/信息员，结绳留档禁入公众话术；公众端只出「退回关门堵缝等救」。本场景 steps 本不含结绳，never_do「盲目跳楼」理由已去除结绳教法。「火灾跳楼」仍保留在 source_ids 作禁跳楼禁忌溯源。"
+  },
+  {
+   "id": "co_poisoning",
+   "name": "一氧化碳中毒",
+   "category": "居家事故",
+   "keywords": [
+    "一氧化碳",
+    "CO",
+    "煤气中毒",
+    "烧炭",
+    "炭火",
+    "取暖",
+    "炉子",
+    "煤炉",
+    "煤气",
+    "头晕恶心",
+    "中毒"
+   ],
+   "question_variants": [
+    "煤气中毒怎么办",
+    "一氧化碳中毒怎么办",
+    "头晕恶心是不是中毒了"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "马上开窗、关燃气阀",
+     "detail": "让空气流通，切断气源",
+     "source_id": "CO施救入口"
+    },
+    {
+     "action": "把人抬到室外通风处",
+     "detail": "解开领口，注意保暖",
+     "source_id": "CO移离"
+    },
+    {
+     "action": "到室外再打 120",
+     "detail": "屋里别打电话、别开电器",
+     "source_id": "CO施救入口"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "开灯或开电器",
+     "reason": "火花会引起爆炸",
+     "source_id": "CO施救入口"
+    },
+    {
+     "action": "在密闭屋里打电话",
+     "reason": "先开窗，到外面再打",
+     "source_id": "CO施救入口"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "要进屋救人",
+     "steps": [
+      {
+       "action": "蹲低身子进去（一氧化碳比空气轻）",
+       "source_id": "CO施救入口"
+      },
+      {
+       "action": "先开窗",
+       "source_id": "CO施救入口"
+      },
+      {
+       "action": "再关燃气",
+       "source_id": "CO施救入口"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "开灯",
+       "reason": "",
+       "source_id": "CO施救入口"
+      },
+      {
+       "action": "打火",
+       "reason": "",
+       "source_id": "CO施救入口"
+      }
+     ],
+     "source_id": "CO施救入口"
+    }
+   ],
+   "source_ids": [
+    "CO移离",
+    "CO施救入口",
+    "CO全年",
+    "CO家庭",
+    "CO原因",
+    "CO季节"
+   ],
+   "confidence": "medium",
+   "notes": "【内部参考·不进应答】2025 口径：家庭占 84.3%（CO2025场所行）；2023 口径 82.7% 家中/68.1% 燃料取暖留档（CO家庭/CO原因行）。2026-11-19：死亡数（181/14035）国家一手未获取，已留档受限行「CO2025精确数留档」（仅医务人员/信息员）；公众端不播报，不得从留档行取数。181 已裁定永久禁用（2026-11-19），confidence 保持 medium。"
+  },
+  {
+   "id": "electric_shock",
+   "name": "触电",
+   "category": "居家事故",
+   "keywords": [
+    "触电",
+    "电到",
+    "被电",
+    "高压",
+    "雷击"
+   ],
+   "question_variants": [
+    "有人触电怎么办",
+    "被电到了怎么办",
+    "触电了怎么救"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "先切断电源",
+     "detail": "关电闸或拔插头",
+     "source_id": "触电断电"
+    },
+    {
+     "action": "不能用手拉人",
+     "detail": "用干竹竿、木棍把电线挑开",
+     "source_id": "触电挑开电线"
+    },
+    {
+     "action": "打 120",
+     "detail": "人清醒也要平躺别动",
+     "source_id": "触电平卧"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "用手直接拉触电者",
+     "reason": "自己也会触电",
+     "source_id": "触电断电"
+    },
+    {
+     "action": "走近掉在地上的电线",
+     "reason": "可能有电，打电话给电力部门",
+     "source_id": "触电落地线"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "高压电线触电",
+     "steps": [
+      {
+       "action": "通知电网停电",
+       "source_id": "高压十米"
+      },
+      {
+       "action": "禁止进入 10 米以内",
+       "source_id": "高压十米"
+      }
+     ],
+     "source_id": "高压十米",
+     "never_do": []
+    },
+    {
+     "condition": "被雷击",
+     "steps": [
+      {
+       "action": "确认周围安全后才能靠近",
+       "source_id": "雷击施救"
+      },
+      {
+       "action": "再看他有没有呼吸",
+       "source_id": "雷击施救"
+      }
+     ],
+     "source_id": "雷击施救",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "触电断电",
+    "触电平卧",
+    "高压十米",
+    "雷击施救",
+    "触电流程",
+    "触电先断电再靠近",
+    "触电挑开电线",
+    "触电落地线"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "burn_scald",
+   "name": "烧烫伤",
+   "category": "居家事故",
+   "keywords": [
+    "烧伤",
+    "烫伤",
+    "烫到",
+    "烧到",
+    "化学烧伤",
+    "开水",
+    "烫了",
+    "热油"
+   ],
+   "question_variants": [
+    "烫伤了怎么办",
+    "烧伤了怎么办",
+    "被热水烫到怎么办"
+   ],
+   "emergency_call": "120",
+   "severity": "moderate",
+   "steps": [
+    {
+     "action": "凉水冲 15 到 30 分钟",
+     "detail": "冲到不那么疼，别用冰块；化学烧伤冲 20 到 30 分钟",
+     "source_id": "烧伤冲洗北京卫健委"
+    },
+    {
+     "action": "轻轻盖住伤口",
+     "detail": "用保鲜膜或干净塑料袋盖上去，不是涂上去",
+     "source_id": "烧伤覆盖"
+    },
+    {
+     "action": "严重就送医院",
+     "detail": "大面积、起水泡、发白发黑都要去",
+     "source_id": "烧伤冷疗"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "往伤口上抹酱油、牙膏",
+     "reason": "容易感染，加重伤情",
+     "source_id": "儿童烫伤禁涂"
+    },
+    {
+     "action": "硬撕粘住的衣服",
+     "reason": "会撕掉皮",
+     "source_id": "烧伤禁忌"
+    },
+    {
+     "action": "挑破水泡",
+     "reason": "容易感染",
+     "source_id": "烧伤禁忌"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "化学烧伤（酸、碱）",
+     "steps": [
+      {
+       "action": "用大量清水冲 20 到 30 分钟",
+       "source_id": "化学烧伤",
+       "detail": "酸碱液体烧伤冲到 30 分钟更好"
+      },
+      {
+       "action": "干粉先擦掉再冲至少 20 分钟",
+       "source_id": "化学烧伤"
+      }
+     ],
+     "source_id": "化学烧伤",
+     "never_do": []
+    },
+    {
+     "condition": "大面积烧伤或最重的烧伤",
+     "steps": [
+      {
+       "action": "不要用冷水冲",
+       "source_id": "烧伤冷疗"
+      },
+      {
+       "action": "盖上干净布，立即打 120",
+       "source_id": "烧伤冷疗"
+      }
+     ],
+     "source_id": "烧伤冷疗",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "烧伤红会十分钟",
+    "烧伤冷疗",
+    "烧伤禁忌",
+    "化学烧伤",
+    "烧伤覆盖",
+    "烧伤五步",
+    "儿童烫伤禁涂",
+    "烧伤降温机理",
+    "烧伤冲洗北京卫健委",
+    "烧伤规范2025冲洗"
+   ],
+   "confidence": "high",
+   "notes": "冲水时长两源：红会「至少十分钟」vs N1「疼痛缓解前」。对外统一说「至少 10 分钟、冲到不那么疼」。口诀：一灭二查三防四包五送。2026-11-19 四源兼容：红会「至少10分钟」为下限保底；N1「疼痛缓解前」为终点判据；北京卫健委「15~30分钟」为区间主力；国家规范502号「20~30分钟（尤化学烧伤）」为规范依据。统一话术见主表「烧伤分钟」行；2026-11-19 项目组销账，confidence 升 high。2026-11-19 第八轮复审（M1）：分支原写「至少 30 分钟」，与主步与统一话术「20 到 30 分钟」自相矛盾（主表「化学烧伤」行原文为酸碱液体至少 30 min／干粉至少 20 min，两值非酸/碱之分，分支两步已分别对应）。现统一为区间话术，并在 detail 保留「冲到 30 分钟更好」覆盖最严值；三源交集：北京卫健委至少 20／502 号规范 20~30／N1 液体至少 30。"
+  },
+  {
+   "id": "choking",
+   "name": "气道梗阻（卡喉）",
+   "category": "急救",
+   "keywords": [
+    "卡喉",
+    "噎住",
+    "气道",
+    "海姆立克",
+    "海姆利克",
+    "异物",
+    "喘不上气",
+    "卡住",
+    "卡住了",
+    "呛到",
+    "吞不下"
+   ],
+   "question_variants": [
+    "有人噎住了怎么办",
+    "卡喉了怎么办",
+    "海姆立克怎么做",
+    "东西卡在喉咙里"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "鼓励他用力咳",
+     "detail": "还能咳说明没完全堵死",
+     "source_id": "气道鼓励咳"
+    },
+    {
+     "action": "咳不出来就拍背压肚",
+     "detail": "拍背：后背两块骨头中间拍 5 次；压肚口诀剪刀石头布：肚脐上两指、握拳抵住、另一手包住，快速向后上方冲 5 次，交替做",
+     "source_id": "气道新版背5冲5"
+    },
+    {
+     "action": "立刻打 120",
+     "detail": "同时继续做",
+     "source_id": "气道红会交替"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "在真人身上练习",
+     "reason": "会压断肋骨、伤到内脏",
+     "source_id": "气道禁练"
+    },
+    {
+     "action": "给 1 岁以内宝宝压肚子",
+     "reason": "婴儿要用拍背+压胸，不能压肚子",
+     "source_id": "气道红会禁忌"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "1 岁以内婴儿",
+     "steps": [
+      {
+       "action": "面朝下趴在手臂上，头低脚高",
+       "source_id": "气道红会婴儿"
+      },
+      {
+       "action": "拍背 5 次",
+       "source_id": "气道红会婴儿"
+      },
+      {
+       "action": "翻过来压胸 5 次，反复做",
+       "source_id": "气道红会婴儿"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "压肚子",
+       "reason": "",
+       "source_id": "气道红会婴儿"
+      }
+     ],
+     "source_id": "气道红会婴儿"
+    },
+    {
+     "condition": "孕妇或特别胖的人",
+     "steps": [
+      {
+       "action": "改用胸部冲击",
+       "source_id": "气道孕妇胸冲击"
+      },
+      {
+       "action": "拳头放在胸骨下半部分",
+       "source_id": "气道孕妇胸冲击"
+      },
+      {
+       "action": "快速向后向内冲击 5 次",
+       "source_id": "气道孕妇胸冲击"
+      }
+     ],
+     "source_id": "气道孕妇胸冲击",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "气道新版背5冲5",
+    "气道红会交替",
+    "气道红会婴儿",
+    "气道红会禁忌",
+    "气道鼓励咳",
+    "气道禁练",
+    "气道剪刀石头布",
+    "气道孕妇胸冲击",
+    "气道背5三优势",
+    "气道2025期刊解读"
+   ],
+   "confidence": "high",
+   "notes": "已裁定（2026-11-18）：成人先背5冲5交替，不再单纯腹部冲击。口诀「剪刀石头布」。口径凭据：项目组 2026-11-18 裁定＋应答层提示词 v0.4 场景口径；AHA 2025 中文一手为证据待补项（待验证19）。2026-11-19：2025 口径已获中华急诊医学杂志全文解读逐字背书（§1.5：5次背部叩击+5次腹部冲击循环，1级推荐B-NR）；AHA 官方简体中文 PDF（ZHCN）直连403 暂未获取（继续尝试，不阻塞）；2026-11-19 项目组销账，confidence 升 high。"
+  },
+  {
+   "id": "drowning",
+   "name": "溺水",
+   "category": "急救",
+   "keywords": [
+    "溺水",
+    "淹溺",
+    "掉水里",
+    "落水"
+   ],
+   "question_variants": [
+    "有人溺水怎么办",
+    "掉水里了怎么救",
+    "溺水了怎么急救"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "别自己下水",
+     "detail": "递棍子、扔绳子、抛漂浮物",
+     "source_id": "溺水岸上"
+    },
+    {
+     "action": "上岸后清口鼻",
+     "detail": "把嘴鼻里的泥沙脏物清出来",
+     "source_id": "溺水清口鼻"
+    },
+    {
+     "action": "没呼吸就先吹 2-5 口气",
+     "detail": "再压 30 次胸口、吹 2 口气，做 5 轮后再看有没有呼吸心跳",
+     "source_id": "溺水先通气"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "控水（倒挂、挤肚子）",
+     "reason": "没用，还耽误抢救、把胃里东西呛进肺",
+     "source_id": "溺水禁控水"
+    },
+    {
+     "action": "手拉手下去救",
+     "reason": "容易一起被拉下水",
+     "source_id": "溺水岸上"
+    },
+    {
+     "action": "用 15:1 的旧比例",
+     "reason": "已过时，用 30:2",
+     "source_id": "溺水不用15比1"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "儿童、且有两个以上人帮忙",
+     "steps": [
+      {
+       "action": "改成压 15 次、吹 2 口气",
+       "source_id": "溺水儿童15比2"
+      }
+     ],
+     "source_id": "溺水儿童15比2",
+     "never_do": []
+    },
+    {
+     "condition": "胸口畸形、胸口有伤、肋骨断了",
+     "steps": [
+      {
+       "action": "不要按压胸口",
+       "source_id": "溺水禁按压"
+      },
+      {
+       "action": "打 120 等救援",
+       "source_id": "溺水禁按压"
+      }
+     ],
+     "source_id": "溺水禁按压",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "溺水岸上",
+    "溺水清口鼻",
+    "溺水先通气",
+    "溺水禁控水",
+    "溺水禁按压",
+    "溺水儿童15比2",
+    "溺水不用15比1",
+    "溺水禁控水王荃",
+    "溺水量级"
+   ],
+   "confidence": "high",
+   "notes": "通气次数已裁定（2026-11-18）：初始 2～5 次通气（优先于按压），随后 30:2；儿童双人 15:2。"
+  },
+  {
+   "id": "earthquake",
+   "name": "地震",
+   "category": "自然灾害",
+   "keywords": [
+    "地震",
+    "震了",
+    "地震了",
+    "晃了",
+    "地面摇"
+   ],
+   "question_variants": [
+    "地震了怎么办",
+    "地震怎么躲",
+    "地震的时候该做什么",
+    "地震能跳楼吗",
+    "地震时电梯里怎么办",
+    "一二楼跳下去行不行",
+    "地震能不能用绳子爬下去",
+    "地震往阳台跑"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "在屋里：蹲下、躲住、抓牢",
+     "detail": "躲到桌子底下或沙发旁，抓住固定的东西，护住头",
+     "source_id": "地震室内三动作"
+    },
+    {
+     "action": "在外面：找空地蹲下",
+     "detail": "远离高楼、电线杆、广告牌",
+     "source_id": "地震室外空旷"
+    },
+    {
+     "action": "被埋了：有节奏敲管道",
+     "detail": "别一直大喊，省力气，用砖头钢筋敲墙和管道",
+     "source_id": "地震被困敲击"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "往阳台、窗户跑",
+     "reason": "玻璃和外墙最危险",
+     "source_id": "地震禁阳台窗边"
+    },
+    {
+     "action": "被埋时不停大喊",
+     "reason": "耗尽力气，用敲击代替",
+     "source_id": "地震被困敲击"
+    },
+    {
+     "action": "跳楼逃生（一二楼也不行）",
+     "reason": "会骨折、还会被掉下来的东西砸伤",
+     "source_id": "地震禁跳楼"
+    },
+    {
+     "action": "坐电梯逃生",
+     "reason": "一断电就困在里头出不来",
+     "source_id": "地震禁乘电梯"
+    },
+    {
+     "action": "用绳子或床单结绳往下爬",
+     "reason": "没练过的人这么干跟跳楼一样",
+     "source_id": "地震禁速降绳结绳"
+    },
+    {
+     "action": "乱跑、往楼道挤",
+     "reason": "人挤人容易踩踏",
+     "source_id": "地震禁乱跑挤楼道"
+    },
+    {
+     "action": "摇晃时往外冲楼梯",
+     "reason": "震时别冲，震后撤离再走楼梯",
+     "source_id": "地震禁冲楼梯"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "震时正在电梯里",
+     "steps": [
+      {
+       "action": "把每层按钮都按下，一停就出去",
+       "source_id": "地震电梯内应急"
+      },
+      {
+       "action": "门打不开就抱头蹲下、抓牢扶手",
+       "detail": "等救援，别扒门",
+       "source_id": "地震电梯内应急"
+      }
+     ],
+     "never_do": [],
+     "source_id": "地震电梯内应急"
+    }
+   ],
+   "source_ids": [
+    "地震室内三动作",
+    "地震室外空旷",
+    "地震被困敲击",
+    "地震禁跳楼",
+    "地震禁乘电梯",
+    "地震电梯内应急",
+    "地震低楼禁跳楼",
+    "地震禁速降绳结绳",
+    "地震禁阳台窗边",
+    "地震禁乱跑挤楼道",
+    "地震禁冲楼梯"
+   ],
+   "confidence": "high",
+   "notes": "【2026-11-19 v1.3】合入地震禁忌表 8 行（主表 268-275）：补跳楼/乘电梯/结绳/乱跑挤楼道/冲楼梯五禁忌，阳台窗边升级溯源「地震禁阳台窗边」，增「震时正在电梯里」分支。结绳对公众一律禁（未训练者=跳楼，应急部原文），与 fire_escape 甲案口径统一。"
+  },
+  {
+   "id": "elevator",
+   "name": "电梯困人",
+   "category": "居家事故",
+   "keywords": [
+    "电梯",
+    "困在电梯",
+    "电梯故障",
+    "电梯停了"
+   ],
+   "question_variants": [
+    "被困在电梯里怎么办",
+    "电梯困人怎么办",
+    "电梯停了怎么办"
+   ],
+   "emergency_call": "119",
+   "severity": "moderate",
+   "steps": [
+    {
+     "action": "按报警按钮或用手机",
+     "detail": "联系外面的人",
+     "source_id": "电梯报警等待"
+    },
+    {
+     "action": "耐心等待救援",
+     "detail": "电梯有通风孔，不会闷死",
+     "source_id": "电梯不扒门"
+    },
+    {
+     "action": "保持冷静，节省体力",
+     "detail": "不要大喊大叫",
+     "source_id": "电梯报警等待"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "强行扒门",
+     "reason": "非常危险",
+     "source_id": "电梯不扒门"
+    },
+    {
+     "action": "撬门、捶门、踢门",
+     "reason": "都极危险",
+     "source_id": "电梯不踢门"
+    },
+    {
+     "action": "地震时坐电梯逃生",
+     "reason": "一断电就困在轿厢里",
+     "source_id": "地震禁乘电梯"
+    }
+   ],
+   "branches": [],
+   "source_ids": [
+    "电梯报警等待",
+    "电梯不扒门",
+    "电梯不踢门",
+    "电梯2025事故",
+    "地震禁乘电梯"
+   ],
+   "confidence": "high",
+   "notes": "【2026-11-19 v1.3】补震时禁乘交叉引用（源「地震禁乘电梯」，中国地震局+应急部两家一致）；震时被困电梯的抱头蹲下抓牢扶手见 earthquake 场景「震时正在电梯里」分支。"
+  },
+  {
+   "id": "heart_attack",
+   "name": "心肌梗死",
+   "category": "突发疾病",
+   "keywords": [
+    "心梗",
+    "心肌梗死",
+    "胸痛",
+    "胸口疼",
+    "胸闷",
+    "心口疼",
+    "胸口压",
+    "石头压",
+    "压得喘",
+    "胸口闷"
+   ],
+   "question_variants": [
+    "胸口疼怎么办",
+    "心梗了怎么办",
+    "胸口像被石头压住"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "立刻打 120",
+     "detail": "不要自己开车，也不要让家人送",
+     "source_id": "心梗禁自驾"
+    },
+    {
+     "action": "停下所有事，躺下休息",
+     "detail": "平卧或半靠着，别乱动",
+     "source_id": "心梗现场休息"
+    },
+    {
+     "action": "等急救人员来",
+     "detail": "不要自己找药吃",
+     "source_id": "心梗呼救"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "自己开车或让家人送医院",
+     "reason": "急救人员能边救边送",
+     "source_id": "心梗禁自驾"
+    },
+    {
+     "action": "自己吃药（包括阿司匹林）",
+     "reason": "不确定是不是心梗时吃药可能有害",
+     "source_id": "心梗呼救"
+    },
+    {
+     "action": "反复观察、拖着不去医院",
+     "reason": "时间就是心肌",
+     "source_id": "心梗呼救"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "怎么判断是不是心梗",
+     "steps": [
+      {
+       "action": "胸口像被石头压住一样剧痛",
+       "source_id": "心梗识别"
+      },
+      {
+       "action": "超过 10-20 分钟不缓解",
+       "source_id": "心梗识别"
+      },
+      {
+       "action": "疼到胳膊、下巴、后背，还恶心、大汗",
+       "source_id": "心梗识别"
+      }
+     ],
+     "source_id": "心梗识别",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "心梗识别",
+    "心梗呼救",
+    "心梗禁自驾",
+    "心梗现场休息",
+    "心梗嚼阿司匹林",
+    "心梗阿司匹林"
+   ],
+   "confidence": "high",
+   "notes": "阿司匹林嚼服仅限医务人员/信息员（已降级 2026-11-19）。公众端只出「打120、别自己吃药」。"
+  },
+  {
+   "id": "stroke",
+   "name": "脑卒中（中风）",
+   "category": "突发疾病",
+   "keywords": [
+    "中风",
+    "卒中",
+    "脑梗",
+    "脑出血",
+    "嘴歪",
+    "手脚没劲"
+   ],
+   "question_variants": [
+    "中风了怎么办",
+    "嘴歪了怎么回事",
+    "手脚突然没劲",
+    "说话不清楚"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "看脸歪不歪、胳膊抬不抬、说话清不清",
+     "detail": "有一个不对就是中风，中风 120：1 看脸、2 查臂、0 听讲话",
+     "source_id": "中风120"
+    },
+    {
+     "action": "立刻打 120",
+     "detail": "别等症状自己消失",
+     "source_id": "卒中不等"
+    },
+    {
+     "action": "叫救护车，不要自己送",
+     "detail": "救护车能边救边送，直接到能看中风的医院",
+     "source_id": "卒中转运"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "自己开车或让家人送",
+     "reason": "救护车能边救边送，直接到能看中风的医院",
+     "source_id": "卒中转运"
+    },
+    {
+     "action": "等一等看看会不会好",
+     "reason": "时间就是大脑，越早越好",
+     "source_id": "卒中时间"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "还要注意这些表现",
+     "steps": [
+      {
+       "action": "突然走路不稳、站不住",
+       "source_id": "BEFAST"
+      },
+      {
+       "action": "突然看不清东西",
+       "source_id": "BEFAST"
+      },
+      {
+       "action": "脸歪向一边",
+       "source_id": "BEFAST"
+      },
+      {
+       "action": "一侧胳膊抬不起来",
+       "source_id": "BEFAST"
+      },
+      {
+       "action": "说话含糊不清",
+       "source_id": "BEFAST"
+      },
+      {
+       "action": "有一个就立刻打 120",
+       "source_id": "BEFAST"
+      }
+     ],
+     "source_id": "BEFAST",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "中风120",
+    "BEFAST",
+    "卒中不等",
+    "卒中转运",
+    "卒中时间",
+    "卒中首位",
+    "溶栓时窗",
+    "卒中康复"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "heat_stroke",
+   "name": "中暑/热射病",
+   "category": "突发疾病",
+   "keywords": [
+    "中暑",
+    "热射病",
+    "热射",
+    "高热",
+    "热天",
+    "晒晕",
+    "高温",
+    "天热",
+    "热得难受",
+    "晒",
+    "暴晒"
+   ],
+   "question_variants": [
+    "中暑了怎么办",
+    "热射病怎么办",
+    "天热头晕怎么办",
+    "有人中暑了"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "移到阴凉通风处",
+     "detail": "平躺，头偏向一侧，解开衣领",
+     "source_id": "热射体位"
+    },
+    {
+     "action": "赶紧降温",
+     "detail": "凉水擦身、扇风，头 30 分钟最要命",
+     "source_id": "热射黄金期"
+    },
+    {
+     "action": "打 120",
+     "detail": "边降温边等，不要干等",
+     "source_id": "热射黄金期"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "给不清醒的人喂水",
+     "reason": "会呛进肺里窒息",
+     "source_id": "热射禁水"
+    },
+    {
+     "action": "用酒精擦身",
+     "reason": "禁止",
+     "source_id": "热射禁药"
+    },
+    {
+     "action": "冰袋敷胸口或肚子",
+     "reason": "禁止",
+     "source_id": "热射禁药"
+    },
+    {
+     "action": "自己吃布洛芬等退烧药",
+     "reason": "中暑高热严禁",
+     "source_id": "热射禁药"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "人清醒、能喝水",
+     "steps": [
+      {
+       "action": "少量多次喝淡盐水或运动饮料",
+       "source_id": "热射补液疾控"
+      },
+      {
+       "action": "每次不到 100 毫升",
+       "source_id": "热射补液疾控"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "一次灌很多水",
+       "reason": "",
+       "source_id": "热射补液疾控"
+      }
+     ],
+     "source_id": "热射补液疾控"
+    },
+    {
+     "condition": "人不清醒、抽搐或一直吐",
+     "steps": [
+      {
+       "action": "绝对不能喂水喂饭",
+       "source_id": "热射补液职卫"
+      },
+      {
+       "action": "头偏向一侧防呕吐误吸",
+       "source_id": "热射补液职卫"
+      }
+     ],
+     "source_id": "热射补液职卫",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "热射体位",
+    "热射禁水",
+    "热射黄金期",
+    "热射补液疾控",
+    "热射补液职卫",
+    "热射禁药",
+    "热射降温",
+    "热射测温",
+    "热射转运"
+   ],
+   "confidence": "high",
+   "notes": "热射补水已解决（2026-11-18）：两家疾控系统互证。清醒者少量多次补电解质饮料，意识不清严禁经口喂水。"
+  },
+  {
+   "id": "snake_bite",
+   "name": "蛇咬伤",
+   "category": "动物致伤",
+   "keywords": [
+    "蛇咬",
+    "被蛇咬",
+    "蛇",
+    "毒蛇"
+   ],
+   "question_variants": [
+    "被蛇咬了怎么办",
+    "蛇咬伤怎么处理",
+    "被毒蛇咬了"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "立刻离开被咬的地方",
+     "detail": "别去抓蛇打蛇",
+     "source_id": "蛇咬脱离"
+    },
+    {
+     "action": "记住蛇的样子或拍照",
+     "detail": "方便医生判断用哪种药",
+     "source_id": "蛇咬认蛇"
+    },
+    {
+     "action": "打 120 送医院",
+     "detail": "别等症状出来，越快越好",
+     "source_id": "蛇咬呼救"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "用刀切开伤口",
+     "reason": "2024 指南列为禁忌",
+     "source_id": "蛇伤指南2024全文"
+    },
+    {
+     "action": "用嘴吸",
+     "reason": "用嘴吸的人也会中毒",
+     "source_id": "蛇咬禁忌"
+    },
+    {
+     "action": "绑止血带",
+     "reason": "会加重组织坏死",
+     "source_id": "蛇咬禁忌"
+    },
+    {
+     "action": "冰敷或泡冰水",
+     "reason": "加重损伤",
+     "source_id": "蛇咬禁忌"
+    },
+    {
+     "action": "喝酒止痛",
+     "reason": "加速毒素吸收",
+     "source_id": "蛇咬禁忌"
+    },
+    {
+     "action": "烧灼伤口",
+     "reason": "加重损伤",
+     "source_id": "蛇咬禁忌"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "被蛇咬住不放",
+     "steps": [
+      {
+       "action": "用棍棒轻轻弄开",
+       "source_id": "蛇咬脱离"
+      }
+     ],
+     "source_id": "蛇咬脱离",
+     "never_do": []
+    },
+    {
+     "condition": "伤口处理（送医前）",
+     "steps": [
+      {
+       "action": "摘掉戒指手表",
+       "source_id": "蛇咬解压"
+      },
+      {
+       "action": "伤口用清水简单冲",
+       "source_id": "蛇咬解压"
+      },
+      {
+       "action": "伤肢别动，放低于心脏的位置",
+       "source_id": "蛇咬解压"
+      }
+     ],
+     "source_id": "蛇咬解压",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "蛇咬脱离",
+    "蛇咬认蛇",
+    "蛇咬镇定",
+    "蛇咬呼救",
+    "蛇咬解压",
+    "蛇咬制动",
+    "蛇咬禁忌",
+    "蛇咬原则",
+    "蛇咬复苏",
+    "蛇咬包扎",
+    "蛇伤指南2024全文",
+    "蛇伤切开院内边界"
+   ],
+   "confidence": "high",
+   "notes": "★ 2018 年旧说（cem.org.cn id/11986）教结扎/切开/烧烙，已被 2024 指南否定，禁止进入应答。处置原则已定并按甲案执行：只做「不伤害、不延误」（禁切开/结扎/烧烙/嘴吸；做脱离/认蛇/制动/呼救）。2026-11-19 证据闭合：2024《中国蛇伤救治指南》全文已逐字取回并入表（蛇伤指南2024全文／蛇咬切开院内边界），7.1.10 现场禁忌与 7.4.1 院内边界两处明文；甲案已于 2026-11-19 经项目组确认（公众一律禁切开，含神经毒类；院内血清后见「蛇咬切开院内边界」行）；confidence 升 high。"
+  },
+  {
+   "id": "dog_bite",
+   "name": "犬咬伤/狂犬病",
+   "category": "动物致伤",
+   "keywords": [
+    "狗咬",
+    "犬咬",
+    "被狗咬",
+    "狂犬",
+    "猫咬",
+    "抓伤"
+   ],
+   "question_variants": [
+    "被狗咬了怎么办",
+    "被猫抓了怎么办",
+    "要不要打狂犬疫苗"
+   ],
+   "emergency_call": "120",
+   "severity": "high",
+   "steps": [
+    {
+     "action": "用肥皂水和清水交替冲 15 分钟",
+     "detail": "有压力的流动清水，交替冲",
+     "source_id": "犬咬冲洗"
+    },
+    {
+     "action": "涂消毒剂",
+     "detail": "碘伏这类消毒药水，没有就先送医",
+     "source_id": "犬咬消毒"
+    },
+    {
+     "action": "尽快去医院打疫苗",
+     "detail": "越早越好，狂犬病没药治，打疫苗才防得住",
+     "source_id": "狂犬无禁"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "不冲洗直接包扎",
+     "reason": "冲洗是最关键的一步",
+     "source_id": "犬咬冲洗"
+    },
+    {
+     "action": "伤口已结痂就不处理",
+     "reason": "已结痂的不再处置，但没结痂的越早越好",
+     "source_id": "狂犬越早"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "只是被舔到完好皮肤",
+     "steps": [
+      {
+       "action": "洗干净就行",
+       "source_id": "狂犬一级"
+      },
+      {
+       "action": "不用打针",
+       "source_id": "狂犬一级"
+      }
+     ],
+     "source_id": "狂犬一级",
+     "never_do": []
+    },
+    {
+     "condition": "轻微咬伤抓伤没出血",
+     "steps": [
+      {
+       "action": "处理伤口",
+       "source_id": "狂犬二级"
+      },
+      {
+       "action": "打狂犬病疫苗",
+       "source_id": "狂犬二级"
+      }
+     ],
+     "source_id": "狂犬二级",
+     "never_do": []
+    },
+    {
+     "condition": "咬出血或黏膜被舔",
+     "steps": [
+      {
+       "action": "处理伤口",
+       "source_id": "狂犬三级"
+      },
+      {
+       "action": "打疫苗，让医生看要不要加针",
+       "source_id": "狂犬三级",
+       "detail": "伤口咬出血了，医生会决定要不要打额外的针"
+      }
+     ],
+     "source_id": "狂犬三级",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "犬咬冲洗",
+    "犬咬消毒",
+    "狂犬分级",
+    "狂犬一级",
+    "狂犬二级",
+    "狂犬三级",
+    "狂犬冲洗",
+    "狂犬消毒",
+    "狂犬越早",
+    "狂犬无禁",
+    "狂犬程序",
+    "狂犬再暴"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "tick_bite",
+   "name": "蜱咬伤",
+   "category": "动物致伤",
+   "keywords": [
+    "蜱",
+    "蜱虫",
+    "被蜱咬"
+   ],
+   "question_variants": [
+    "被蜱虫咬了怎么办",
+    "身上有蜱虫怎么办"
+   ],
+   "emergency_call": "120",
+   "severity": "high",
+   "steps": [
+    {
+     "action": "不要自己拔",
+     "detail": "立刻去医院取",
+     "source_id": "蜱咬原则"
+    },
+    {
+     "action": "尽快到医院",
+     "detail": "让医生取出来，评估病情",
+     "source_id": "蜱咬原则"
+    },
+    {
+     "action": "注意后续症状",
+     "detail": "发热、乏力、出血点要告诉医生",
+     "source_id": "蜱SFTS"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "自己用手拔或拍死",
+     "reason": "口器断在肉里，还会放出病菌",
+     "source_id": "蜱咬原则"
+    }
+   ],
+   "branches": [],
+   "source_ids": [
+    "蜱咬原则",
+    "蜱咬取蜱",
+    "蜱咬预防",
+    "蜱SFTS",
+    "蜱趋势",
+    "蜱人传人"
+   ],
+   "confidence": "high",
+   "notes": "蜱咬取蜱方法属医务人员操作，公众端只出「不要自己拔、去医院」。"
+  },
+  {
+   "id": "bee_sting",
+   "name": "蜂蜇伤",
+   "category": "动物致伤",
+   "keywords": [
+    "胡蜂",
+    "马蜂",
+    "蜜蜂",
+    "蜂蜇",
+    "蜂蛰",
+    "被蜂"
+   ],
+   "question_variants": [
+    "被马蜂蜇了怎么办",
+    "被蜂蜇了怎么办",
+    "被蛰了怎么办"
+   ],
+   "emergency_call": "120",
+   "severity": "moderate",
+   "steps": [
+    {
+     "action": "离开蜂群，躲到安全处",
+     "detail": "不要再挥手驱赶",
+     "source_id": "胡蜂处置"
+    },
+    {
+     "action": "用酸性液体冲洗",
+     "detail": "食醋或清水（胡蜂毒是碱性）",
+     "source_id": "胡蜂酸碱"
+    },
+    {
+     "action": "严重就送医院",
+     "detail": "被蜇多处、头晕心慌、尿色变深都要去",
+     "source_id": "胡蜂分级"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "挤压伤口",
+     "reason": "会加速毒液吸收",
+     "source_id": "胡蜂处置"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "蜜蜂蜇伤（有刺留在皮肤里）",
+     "steps": [
+      {
+       "action": "用胶布粘或卡片刮出毒针",
+       "source_id": "胡蜂处置"
+      },
+      {
+       "action": "不要挤",
+       "source_id": "胡蜂处置"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "用手拔（会挤进更多毒）",
+       "reason": "",
+       "source_id": "胡蜂处置"
+      }
+     ],
+     "source_id": "胡蜂处置"
+    }
+   ],
+   "source_ids": [
+    "胡蜂处置",
+    "胡蜂酸碱",
+    "胡蜂分级"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "jellyfish",
+   "name": "海蜇蜇伤",
+   "category": "动物致伤",
+   "keywords": [
+    "海蜇",
+    "水母",
+    "海蜇蜇",
+    "被海蜇",
+    "水母蜇"
+   ],
+   "question_variants": [
+    "被海蜇蜇了怎么办",
+    "被水母蜇了怎么办"
+   ],
+   "emergency_call": "120",
+   "severity": "high",
+   "steps": [
+    {
+     "action": "立刻上岸",
+     "detail": "离开蜇伤环境",
+     "source_id": "海蜇上岸"
+    },
+    {
+     "action": "用海水反复冲",
+     "detail": "千万别用淡水或生理盐水",
+     "source_id": "海蜇冲洗"
+    },
+    {
+     "action": "用卡片刮掉触手",
+     "detail": "银行卡或镊子，不要用手碰",
+     "source_id": "海蜇清除"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "用淡水冲",
+     "reason": "渗透压太低，刺丝囊会破裂释放更多毒素",
+     "source_id": "海蜇冲洗"
+    },
+    {
+     "action": "用手直接碰或用力搓",
+     "reason": "会加重蜇伤",
+     "source_id": "海蜇清除"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "去掉触手后",
+     "steps": [
+      {
+       "action": "用 40-50 度 热水泡 20 分钟",
+       "source_id": "海蜇热敷",
+       "detail": ""
+      }
+     ],
+     "source_id": "海蜇热敷",
+     "never_do": []
+    },
+    {
+     "condition": "出现呼吸困难、头晕",
+     "steps": [
+      {
+       "action": "立刻打 120",
+       "source_id": "海蜇速恶",
+       "detail": ""
+      }
+     ],
+     "source_id": "海蜇速恶",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "海蜇上岸",
+    "海蜇冲洗",
+    "海蜇清除",
+    "海蜇热敷",
+    "海蜇速恶"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "child_ingest",
+   "name": "儿童误服/误食",
+   "category": "居家事故",
+   "keywords": [
+    "误服",
+    "误食",
+    "孩子吃了",
+    "误吃了",
+    "误吃",
+    "吃了药",
+    "孩子中毒",
+    "吞下去",
+    "误喝",
+    "消毒液",
+    "宝宝吞",
+    "小孩吞",
+    "孩子吞",
+    "吞了东西",
+    "吃了东西"
+   ],
+   "question_variants": [
+    "孩子误吃了药怎么办",
+    "小孩吞了东西怎么办",
+    "孩子误食了怎么办"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "抠出口腔残留物",
+     "detail": "清醒才抠，只抠看得见的，别往喉咙深掏",
+     "source_id": "儿童误服抠残留"
+    },
+    {
+     "action": "收集误食物品",
+     "detail": "瓶子、说明书、残留物都带上",
+     "source_id": "儿童误服收集证据"
+    },
+    {
+     "action": "立刻送医院",
+     "detail": "打 120 或尽快自己去",
+     "source_id": "儿童误服禁催吐"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "催吐",
+     "reason": "会再次损伤食道咽喉，非常难修复",
+     "source_id": "儿童误服禁催吐"
+    },
+    {
+     "action": "喂水",
+     "reason": "大量喝水反而促进化学物质吸收",
+     "source_id": "儿童误服禁喂水"
+    },
+    {
+     "action": "给强酸强碱催吐",
+     "reason": "会造成更大伤害",
+     "source_id": "儿童误服强酸"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "吞了尖锐异物（图钉、电池、缝衣针）",
+     "steps": [
+      {
+       "action": "立刻送医院",
+       "source_id": "儿童误服危险异物"
+      },
+      {
+       "action": "不要乱吃东西或大幅度活动",
+       "source_id": "儿童误服危险异物"
+      }
+     ],
+     "source_id": "儿童误服危险异物",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "儿童误服禁催吐",
+    "儿童误服抠残留",
+    "儿童误服收集证据",
+    "儿童误服危险异物",
+    "儿童误服禁喂水",
+    "儿童误服强酸",
+    "儿童误服预防",
+    "儿童误服可催吐"
+   ],
+   "confidence": "high",
+   "notes": "可催吐条件极多且属医务人员判断，公众端一律出「不催吐、送医院」。"
+  },
+  {
+   "id": "chikungunya",
+   "name": "基孔肯雅热",
+   "category": "传染病",
+   "keywords": [
+    "基孔肯雅",
+    "发热关节痛",
+    "关节痛发热",
+    "发烧关节疼"
+   ],
+   "question_variants": [
+    "基孔肯雅热怎么办",
+    "发烧关节痛是不是基孔肯雅"
+   ],
+   "emergency_call": "120",
+   "severity": "moderate",
+   "steps": [
+    {
+     "action": "识别症状",
+     "detail": "发热、皮疹、关节和肌肉疼痛",
+     "source_id": "基孔肯雅症状"
+    },
+    {
+     "action": "防蚊虫叮咬",
+     "detail": "用驱蚊剂、穿长袖、装纱窗；日常接触不传人",
+     "source_id": "基孔肯雅防蚊"
+    },
+    {
+     "action": "严重就去医院",
+     "detail": "老人、新生儿、有基础病的要特别小心",
+     "source_id": "基孔肯雅重症"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "吃阿司匹林或布洛芬",
+     "reason": "排除登革热前吃会增加出血风险",
+     "source_id": "基孔肯雅禁阿司"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "会传染吗",
+     "steps": [
+      {
+       "action": "不会通过日常接触、咳嗽、打喷嚏传播",
+       "source_id": "基孔肯雅不人传"
+      },
+      {
+       "action": "只有蚊子叮咬传播",
+       "source_id": "基孔肯雅不人传"
+      }
+     ],
+     "source_id": "基孔肯雅不人传",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "基孔肯雅症状",
+    "基孔肯雅不人传",
+    "基孔肯雅禁阿司",
+    "基孔肯雅重症",
+    "基孔肯雅防蚊"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "battery_fire",
+   "name": "锂电池/电动车起火",
+   "category": "居家事故",
+   "keywords": [
+    "电池",
+    "锂电池",
+    "电动车",
+    "充电宝",
+    "充电",
+    "电池着火",
+    "电动车着火",
+    "电池起火"
+   ],
+   "question_variants": [
+    "电动车着火怎么办",
+    "充电宝起火怎么办",
+    "电池冒烟了怎么办"
+   ],
+   "emergency_call": "119",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "先让人跑开",
+     "detail": "毒烟最要命",
+     "source_id": "电池先撤人"
+    },
+    {
+     "action": "打 119",
+     "detail": "从室外安全处打",
+     "source_id": "电池先撤人"
+    },
+    {
+     "action": "能安全够到就拔电源",
+     "detail": "不要拔电池、不要搬车",
+     "source_id": "电池断电撤离"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "把烧着的车推进电梯或楼道",
+     "reason": "毒烟会灌满整栋楼",
+     "source_id": "电池禁泼水"
+    },
+    {
+     "action": "往电池仓浇一点水",
+     "reason": "没用",
+     "source_id": "电池禁泼水"
+    },
+    {
+     "action": "试图拆解电池灭火",
+     "reason": "非常危险",
+     "source_id": "电池禁泼水"
+    },
+    {
+     "action": "在室内停留观望",
+     "reason": "毒烟致命",
+     "source_id": "电池禁泼水"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "看着火灭了",
+     "steps": [
+      {
+       "action": "人别靠近",
+       "source_id": "电池会复燃"
+      },
+      {
+       "action": "等消防来处理",
+       "source_id": "电池会复燃"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "以为没事就走开（会复燃）",
+       "reason": "",
+       "source_id": "电池会复燃"
+      },
+      {
+       "action": "自己浇水（毒烟危险）",
+       "reason": "",
+       "source_id": "电池会复燃"
+      }
+     ],
+     "source_id": "电池会复燃"
+    }
+   ],
+   "source_ids": [
+    "电池先撤人",
+    "电池断电撤离",
+    "电池禁泼水",
+    "电池会复燃"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "bleeding",
+   "name": "创伤止血",
+   "category": "急救",
+   "keywords": [
+    "止血",
+    "出血",
+    "流血",
+    "割伤",
+    "止血带"
+   ],
+   "question_variants": [
+    "流血了怎么办",
+    "怎么止血",
+    "割伤了怎么办"
+   ],
+   "emergency_call": "120",
+   "severity": "high",
+   "steps": [
+    {
+     "action": "直接压住伤口",
+     "detail": "用手或干净布压住",
+     "source_id": "体表压迫"
+    },
+    {
+     "action": "压不住就上止血带",
+     "detail": "绑在出血点上方，用宽布条，别用铁丝细绳",
+     "source_id": "临时止血带"
+    },
+    {
+     "action": "立刻打 120",
+     "detail": "记录上止血带的时间",
+     "source_id": "临时止血带"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "止血带绑超过 2 小时",
+     "reason": "会导致组织坏死",
+     "source_id": "临时止血带"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "腋下、腹股沟、颈部出血",
+     "steps": [
+      {
+       "action": "用干净布填塞伤口再加压包扎",
+       "source_id": "特殊部位"
+      }
+     ],
+     "source_id": "特殊部位",
+     "never_do": []
+    }
+   ],
+   "source_ids": [
+    "体表压迫",
+    "临时止血带",
+    "止血带规格",
+    "止血科普",
+    "特殊部位"
+   ],
+   "confidence": "high"
+  },
+  {
+   "id": "fall_elderly",
+   "name": "老人跌倒",
+   "category": "居家事故",
+   "keywords": [
+    "跌倒",
+    "摔倒",
+    "摔了",
+    "老人摔",
+    "摔倒了",
+    "摔了一跤",
+    "老人摔倒"
+   ],
+   "question_variants": [
+    "老人摔倒了怎么办",
+    "跌倒了要不要扶",
+    "摔了一跤怎么办",
+    "摔了要不要扶起来"
+   ],
+   "emergency_call": "120",
+   "severity": "high",
+   "steps": [
+    {
+     "action": "不要急着扶起来",
+     "detail": "先别扶也别揉，看他清不清醒",
+     "source_id": "跌倒不扶起"
+    },
+    {
+     "action": "清醒就问三个问题",
+     "detail": "记得怎么摔的？头痛嘴歪手脚没劲吗？哪里特别疼？",
+     "source_id": "跌倒意识清"
+    },
+    {
+     "action": "怀疑骨折或脑出血就打 120",
+     "detail": "不要随便搬动",
+     "source_id": "跌倒骨折"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "马上拽起来",
+     "reason": "可能有骨折或脑出血，搬动会加重",
+     "source_id": "跌倒不扶起"
+    },
+    {
+     "action": "揉按伤处或热敷",
+     "reason": "会把骨折揉得更错位、加重肿胀出血",
+     "source_id": "骨折禁揉热敷"
+    },
+    {
+     "action": "让他走路试试、甩一甩",
+     "reason": "轻微骨折会变错位骨折",
+     "source_id": "骨折禁强行活动"
+    },
+    {
+     "action": "涂药酒、贴膏药",
+     "reason": "掩盖病情，加重肿胀",
+     "source_id": "骨折禁涂药酒"
+    },
+    {
+     "action": "拖着不去医院",
+     "reason": "越拖越难复位、越难长好",
+     "source_id": "骨折禁拖延"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "人不清醒又呕吐",
+     "steps": [
+      {
+       "action": "头偏向一侧",
+       "source_id": "跌倒意识不清理吐"
+      },
+      {
+       "action": "清理口鼻里的呕吐物",
+       "source_id": "跌倒意识不清理吐"
+      }
+     ],
+     "source_id": "跌倒意识不清理吐",
+     "never_do": []
+    },
+    {
+     "condition": "摸不到呼吸、叫不醒",
+     "steps": [
+      {
+       "action": "立刻做胸外按压和人工呼吸",
+       "source_id": "跌倒无呼吸"
+      },
+      {
+       "action": "同时打 120",
+       "source_id": "跌倒无呼吸"
+      }
+     ],
+     "source_id": "跌倒无呼吸",
+     "never_do": []
+    },
+    {
+     "condition": "疼得厉害、肢体变形或动不了（疑似骨折）",
+     "steps": [
+      {
+       "action": "原地别动，打 120",
+       "source_id": "骨折原地评估"
+      },
+      {
+       "action": "木棍围巾绑住伤处",
+       "detail": "绑上下两个关节，别太紧",
+       "source_id": "骨折简单固定"
+      },
+      {
+       "action": "有出血用干净衣服压住",
+       "source_id": "骨折压迫止血"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "给他吃东西喝水",
+       "reason": "可能要手术全麻，等急救人员说能喝再喝",
+       "source_id": "骨折禁喂食"
+      }
+     ],
+     "source_id": "骨折正确四步"
+    },
+    {
+     "condition": "骨头露在外面",
+     "steps": [
+      {
+       "action": "干净布盖住伤口",
+       "detail": "别碰骨头、别往里塞",
+       "source_id": "骨折禁推骨"
+      },
+      {
+       "action": "打 120，原地别动",
+       "source_id": "骨折禁推骨"
+      }
+     ],
+     "never_do": [
+      {
+       "action": "把骨头推回去",
+       "reason": "会加重损伤，等专业医疗救助",
+       "source_id": "骨折禁推骨"
+      }
+     ],
+     "source_id": "骨折禁推骨"
+    }
+   ],
+   "source_ids": [
+    "跌倒不扶起",
+    "跌倒意识清",
+    "跌倒骨折",
+    "跌倒意识不清理吐",
+    "跌倒无呼吸",
+    "骨折禁揉热敷",
+    "骨折禁强行活动",
+    "骨折禁涂药酒",
+    "骨折禁拖延",
+    "骨折原地评估",
+    "骨折简单固定",
+    "骨折压迫止血",
+    "骨折禁喂食",
+    "骨折正确四步",
+    "骨折禁推骨"
+   ],
+   "confidence": "high",
+   "notes": "2026-11-19 合入骨折待审核表：新增疑似骨折/开放性骨折分支与揉按、强行活动、药酒、拖延四禁忌。「能动也可能骨折」见 fracture 场景；死亡率数字不对公众播报。"
+  },
+  {
+   "id": "cpr",
+   "name": "成人心肺复苏",
+   "category": "急救",
+   "keywords": [
+    "心肺复苏",
+    "CPR",
+    "按压",
+    "人工呼吸",
+    "心脏骤停",
+    "猝死",
+    "心跳停",
+    "没呼吸",
+    "叫不醒",
+    "没气了",
+    "晕倒没反应",
+    "没心跳"
+   ],
+   "question_variants": [
+    "怎么做心肺复苏",
+    "有人晕倒没呼吸了怎么办",
+    "CPR怎么做"
+   ],
+   "emergency_call": "120",
+   "severity": "life_threatening",
+   "steps": [
+    {
+     "action": "确认没呼吸没心跳",
+     "detail": "拍肩膀大声叫，看胸口有没有起伏",
+     "source_id": "CPR按压参数"
+    },
+    {
+     "action": "压胸口 30 次、吹 2 口气",
+     "detail": "一秒约两下，压五六厘米深",
+     "source_id": "CPR按压参数"
+    },
+    {
+     "action": "非专业人士可只压胸口",
+     "detail": "没学过吹气，光压也管用，一直压到救护车来",
+     "source_id": "CPR按压参数"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "在真人身上练习",
+     "reason": "会压断肋骨、伤到内脏",
+     "source_id": "气道禁练"
+    }
+   ],
+   "branches": [],
+   "source_ids": [
+    "CPR按压参数",
+    "CPR黄金4分钟",
+    "气道禁练"
+   ],
+   "confidence": "high",
+   "notes": "【内部参考·不进应答】黄金抢救时间只有 4 分钟，每耽误 1 分钟存活率下降 7-10%（CPR黄金4分钟行）。"
+  },
+  {
+   "id": "fracture",
+   "name": "骨折处置",
+   "category": "急救",
+   "keywords": [
+    "骨折",
+    "骨头断",
+    "骨头露",
+    "骨裂",
+    "摔断",
+    "断了"
+   ],
+   "question_variants": [
+    "骨折了怎么办",
+    "骨头断了怎么办",
+    "摔了能动是不是没事",
+    "骨头露出来怎么办",
+    "摔了能不能喂水",
+    "骨折能不能喝水",
+    "摔了能不能揉",
+    "骨折要不要手术",
+    "老人髋部骨折怎么办",
+    "绑夹板手指发紫"
+   ],
+   "emergency_call": "120",
+   "severity": "high",
+   "steps": [
+    {
+     "action": "原地别动，先别扶",
+     "detail": "能动也可能已经骨折",
+     "source_id": "骨折能动也折"
+    },
+    {
+     "action": "简单固定伤处",
+     "detail": "绑上下两个关节，别太紧",
+     "source_id": "骨折简单固定"
+    },
+    {
+     "action": "打 120 送医院拍片",
+     "detail": "别拖着不去",
+     "source_id": "骨折正确四步"
+    }
+   ],
+   "never_do": [
+    {
+     "action": "扶起来、拉起来、抱起来",
+     "reason": "乱搬动会伤到血管神经",
+     "source_id": "骨折禁扶起"
+    },
+    {
+     "action": "揉一揉、按一按、热敷",
+     "reason": "揉得更错位，热敷加重肿胀出血",
+     "source_id": "骨折禁揉热敷"
+    },
+    {
+     "action": "走路试试、甩一甩",
+     "reason": "轻微骨折直接变错位骨折",
+     "source_id": "骨折禁强行活动"
+    },
+    {
+     "action": "涂药酒、贴膏药",
+     "reason": "掩盖病情，加重肿胀",
+     "source_id": "骨折禁涂药酒"
+    },
+    {
+     "action": "给他吃东西喝水",
+     "reason": "可能要手术全麻；等医生/急救人员说能喝再喝",
+     "source_id": "骨折禁喂食"
+    },
+    {
+     "action": "把露出的骨头推回去",
+     "reason": "干净布盖住、别碰骨头，等专业救助",
+     "source_id": "骨折禁推骨"
+    },
+    {
+     "action": "夹板绷带绑太紧",
+     "reason": "血液不通，严重可致肢体坏死；指头发紫发凉就是太紧",
+     "source_id": "骨折禁绑太紧"
+    }
+   ],
+   "branches": [
+    {
+     "condition": "想冷敷消肿",
+     "steps": [
+      {
+       "action": "冰袋包一层布再敷",
+       "detail": "别直接贴皮肤，防冻伤",
+       "source_id": "骨折正确四步"
+      },
+      {
+       "action": "一次别超过 15-20 分钟",
+       "source_id": "骨折正确四步"
+      }
+     ],
+     "never_do": [],
+     "source_id": "骨折正确四步"
+    },
+    {
+     "condition": "老人髋部摔了（大腿根疼）",
+     "steps": [
+      {
+       "action": "别急着扶他站起来",
+       "detail": "先问哪里疼，疼就原地别动",
+       "source_id": "骨折老人禁搀扶"
+      },
+      {
+       "action": "打 120 送医院",
+       "detail": "别拖着，让急救人员来搬",
+       "source_id": "髋骨折手术降死"
+      }
+     ],
+     "never_do": [],
+     "source_id": "骨折老人禁搀扶"
+    },
+    {
+     "condition": "头晕、吐、手脚发麻",
+     "steps": [
+      {
+       "action": "绝对不能搬动",
+       "detail": "可能头颈脊柱伤或脑出血",
+       "source_id": "骨折禁搬动"
+      },
+      {
+       "action": "打 120 等专业人员",
+       "source_id": "骨折禁搬动"
+      }
+     ],
+     "never_do": [],
+     "source_id": "骨折禁搬动"
+    }
+   ],
+   "source_ids": [
+    "骨折能动也折",
+    "骨折误区疼痛",
+    "骨折先别动",
+    "骨折正确四步",
+    "骨折简单固定",
+    "骨折禁扶起",
+    "骨折禁揉热敷",
+    "骨折禁强行活动",
+    "骨折禁涂药酒",
+    "骨折禁喂食",
+    "骨折禁推骨",
+    "骨折禁绑太紧",
+    "骨折老人禁搀扶",
+    "骨折禁搬动",
+    "髋骨折手术降死",
+    "髋骨折保守并发症"
+   ],
+   "confidence": "high",
+   "notes": "【内部参考·不进应答】2026-11-19 自骨折待审核表合入（27行，两轮审核通过）。死亡率数字（髋骨折一年死亡率50%/保守20%～30%）源表受众限信息员/家属，不进公众话术。髋部手术时机（骨折髋部手术/骨折越早手术）为医务/信息员素材。与热射病路由隔离：骨折疑似需手术禁喂食喂水；中暑清醒可补液——两场景禁忌相反，不得互串。【提示词优化】髋部「尽早手术」话术降为信息员/家属素材，公众步骤只说打120送医院（提示词场景口径：尽早手术只对家属/信息员说）。"
+  }
+ ]
+}
