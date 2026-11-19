@@ -1,0 +1,101 @@
+﻿id	group	text	expect_intent	expect_scene	rule_hit	model_pred	margin	final_pred	intent_ok	model_scene	scene_ok
+E001	emergency	煤气漏了	ongoing	gas_leak	gas_leak	ongoing	0.033	ongoing	1	gas_leak	1
+E002	emergency	闻到煤气味了	ongoing	gas_leak	gas_leak	ongoing	0.036	ongoing	1	gas_leak	1
+E003	emergency	厨房有股臭鸡蛋味	ongoing	gas_leak	gas_leak	ongoing	0.007	ongoing	1	gas_leak	1
+E004	emergency	天然气好像漏了	ongoing	gas_leak	gas_leak	off_scope	0	ongoing	1	gas_leak	1
+E005	emergency	液化气罐漏气	ongoing	gas_leak	gas_leak	prevention	0.007	ongoing	1	gas_leak	1
+E006	emergency	屋里一股怪味不知道是不是漏气	ongoing	gas_leak	gas_leak	prevention	0.029	ongoing	1	gas_leak	1
+E007	emergency	煤气罐漏了怎么办	ongoing	gas_leak	gas_leak	prevention	0.022	ongoing	1	gas_leak	1
+E008	emergency	我爸摔倒了	ongoing	fall_elderly	fall_elderly	ongoing	0.043	ongoing	1	fall_elderly	1
+E009	emergency	奶奶跌倒起不来	ongoing	fall_elderly	fall_elderly	ongoing	0.045	ongoing	1	fall_elderly	1
+E010	emergency	老人摔了一跤	ongoing	fall_elderly	fall_elderly	ongoing	0.079	ongoing	1	fall_elderly	1
+E011	emergency	我妈在卫生间摔了	ongoing	fall_elderly	fall_elderly	ongoing	0.046	ongoing	1	fall_elderly	1
+E012	emergency	摔倒了自己爬不起来	ongoing	fall_elderly	fall_elderly	ongoing	0.062	ongoing	1	fall_elderly	1
+E013	emergency	老伴在客厅跌倒了动不了	ongoing	fall_elderly	fall_elderly	ongoing	0.017	ongoing	1	fall_elderly	1
+E014	emergency	被困在电梯里了	ongoing	elevator_trapped	elevator_trapped	ongoing	0.082	ongoing	1	elevator_trapped	1
+E015	emergency	电梯突然停了	ongoing	elevator_trapped	elevator_trapped	ongoing	0.068	ongoing	1	elevator_trapped	1
+E016	emergency	电梯门打不开了	ongoing	elevator_trapped	elevator_trapped	off_scope	0.013	ongoing	1	elevator_trapped	1
+E017	emergency	关在电梯里出不去	ongoing	elevator_trapped	elevator_trapped	prevention	0.004	ongoing	1	elevator_trapped	1
+E018	emergency	电梯卡在两层中间了	ongoing	elevator_trapped	elevator_trapped	ongoing	0.03	ongoing	1	elevator_trapped	1
+E019	emergency	电梯不动了按警铃没人应	ongoing	elevator_trapped	elevator_trapped	ongoing	0.014	ongoing	1	elevator_trapped	1
+E020	emergency	着火了	ongoing	fire_home	fire_home	ongoing	0.102	ongoing	1	fire_home	1
+E021	emergency	厨房冒烟了	ongoing	fire_home	fire_home	prevention	0.004	ongoing	1	fire_home	1
+E022	emergency	锅烧起来了	ongoing	fire_home	fire_home	ongoing	0.128	ongoing	1	scald_burn	0
+E023	emergency	家里起火了快跑	ongoing	fire_home	fire_home	ongoing	0.041	ongoing	1	fire_home	1
+E024	emergency	一氧化碳中毒了	ongoing	co_poisoning	co_poisoning	ongoing	0.019	ongoing	1	co_poisoning	1
+E025	emergency	烧炭取暖头晕恶心	ongoing	co_poisoning	co_poisoning	ongoing	0.027	ongoing	1	co_poisoning	1
+E026	emergency	关着窗户用煤炉子头疼	ongoing	co_poisoning	co_poisoning	ongoing	0.018	ongoing	1	co_poisoning	1
+E027	emergency	好像煤气中毒了	ongoing	co_poisoning	co_poisoning	ongoing	0.075	ongoing	1	co_poisoning	1
+E028	emergency	开水烫伤了	ongoing	scald_burn	scald_burn	ongoing	0.059	ongoing	1	scald_burn	1
+E029	emergency	手被油烫了	ongoing	scald_burn	scald_burn	ongoing	0.077	ongoing	1	scald_burn	1
+E030	emergency	孩子被热水烫起泡了	ongoing	scald_burn	scald_burn	ongoing	0.09	ongoing	1	scald_burn	1
+E031	emergency	触电了	ongoing	electric_shock	electric_shock	ongoing	0.051	ongoing	1	electric_shock	1
+E032	emergency	有人被电到了	ongoing	electric_shock	electric_shock	ongoing	0.083	ongoing	1	electric_shock	1
+E033	emergency	插座漏电麻手	ongoing	electric_shock	electric_shock	prevention	0.042	ongoing	1	electric_shock	1
+E034	emergency	老人噎住了	ongoing	airway_obstruction	airway_obstruction	ongoing	0.033	ongoing	1	airway_obstruction	1
+E035	emergency	卡喉咙了说不出话	ongoing	airway_obstruction	airway_obstruction	off_scope	0.032	ongoing	1	airway_obstruction	1
+E036	emergency	吃东西呛到喘不上气	ongoing	airway_obstruction	airway_obstruction	ongoing	0.021	ongoing	1	airway_obstruction	1
+E037	emergency	有人落水了	ongoing	drowning	drowning	ongoing	0.094	ongoing	1	drowning	1
+E038	emergency	小孩掉水里了	ongoing	drowning	drowning	ongoing	0.06	ongoing	1	drowning	1
+E039	emergency	地震了	ongoing	earthquake	earthquake	ongoing	0.098	ongoing	1	earthquake	1
+E040	emergency	房子在晃是不是地震	ongoing	earthquake	earthquake	prevention	0.014	ongoing	1	earthquake	1
+P001	prevention	怎么预防煤气泄漏	prevention	gas_leak	gas_leak	prevention	0.077	prevention	1	gas_leak	1
+P002	prevention	家里要不要装燃气报警器	prevention	gas_leak	gas_leak	prevention	0.088	prevention	1	gas_leak	1
+P003	prevention	燃气软管多久换一次	prevention	gas_leak	gas_leak	prevention	0.032	ongoing	0	gas_leak	1
+P004	prevention	平时怎么检查有没有漏气	prevention	gas_leak	gas_leak	prevention	0.097	prevention	1	gas_leak	1
+P005	prevention	老人怎么预防跌倒	prevention	fall_elderly	fall_elderly	prevention	0.084	prevention	1	fall_elderly	1
+P006	prevention	家里地面怎么防滑	prevention	fall_elderly		prevention	0.046	prevention	1	earthquake	0
+P007	prevention	老人房间要不要装扶手	prevention	fall_elderly		prevention	0.085	prevention	1	fall_elderly	1
+P008	prevention	防跌倒平时要注意什么	prevention	fall_elderly	fall_elderly	prevention	0.106	prevention	1	fall_elderly	1
+P009	prevention	电梯多久年检一次	prevention	elevator_trapped	elevator_trapped	prevention	0.062	prevention	1	elevator_trapped	1
+P010	prevention	坐电梯要注意什么	prevention	elevator_trapped	elevator_trapped	prevention	0.097	prevention	1	elevator_trapped	1
+P011	prevention	电梯超载会怎么样	prevention	elevator_trapped	elevator_trapped	prevention	0.032	ongoing	0	elevator_trapped	1
+P012	prevention	停电的时候坐电梯安全吗	prevention	elevator_trapped	elevator_trapped	prevention	0.048	prevention	1	elevator_trapped	1
+P013	prevention	家里怎么防火	prevention	fire_home		prevention	0.091	prevention	1	fire_home	1
+P014	prevention	灭火器怎么选	prevention	fire_home		prevention	0.01	prevention	1	fire_home	1
+P015	prevention	烟感器有用吗	prevention	fire_home		prevention	0.024	prevention	1	co_poisoning	0
+P016	prevention	怎么防一氧化碳中毒	prevention	co_poisoning	co_poisoning	prevention	0.055	prevention	1	co_poisoning	1
+P017	prevention	煤炉怎么用才安全	prevention	co_poisoning	co_poisoning	prevention	0.04	ongoing	0	co_poisoning	1
+P018	prevention	炭火取暖要注意什么	prevention	co_poisoning	co_poisoning	prevention	0.068	prevention	1	fire_home	0
+P019	prevention	烫伤怎么预防	prevention	scald_burn	scald_burn	prevention	0.058	prevention	1	scald_burn	1
+P020	prevention	热水器温度设多少合适	prevention	scald_burn		off_scope	0.031	off_scope	0	scald_burn	1
+P021	prevention	孩子怎么防烫伤	prevention	scald_burn	scald_burn	prevention	0.06	prevention	1	scald_burn	1
+P022	prevention	家里怎么防触电	prevention	electric_shock	electric_shock	prevention	0.119	prevention	1	electric_shock	1
+P023	prevention	插座要不要装保护盖	prevention	electric_shock		prevention	0.145	prevention	1	elevator_trapped	0
+P024	prevention	漏电保护器多久换一次	prevention	electric_shock	electric_shock	prevention	0.081	prevention	1	electric_shock	1
+P025	prevention	老人吃饭怎么防噎	prevention	airway_obstruction		prevention	0.078	prevention	1	airway_obstruction	1
+P026	prevention	噎食怎么预防	prevention	airway_obstruction		prevention	0.099	prevention	1	airway_obstruction	1
+P027	prevention	孩子游泳怎么防溺水	prevention	drowning	drowning	prevention	0.014	ongoing	0	drowning	1
+P028	prevention	溺水怎么预防	prevention	drowning	drowning	prevention	0.093	prevention	1	drowning	1
+P029	prevention	地震应急包要准备什么	prevention	earthquake	earthquake	prevention	0.053	prevention	1	earthquake	1
+P030	prevention	家里怎么防震	prevention	earthquake		prevention	0.07	prevention	1	earthquake	1
+O001	off_scope	煤气费怎么交	off_scope		gas_leak	off_scope	0.122	off_scope	1	gas_leak	
+O002	off_scope	燃气热水器怎么选	off_scope		gas_leak	off_scope	0.041	ongoing	0	gas_leak	
+O003	off_scope	天然气多少钱一方	off_scope		gas_leak	off_scope	0.15	off_scope	1	gas_leak	
+O004	off_scope	煤气罐去哪里换	off_scope		gas_leak	off_scope	0.062	off_scope	1	gas_leak	
+O005	off_scope	燃气灶打不着火	off_scope		gas_leak	prevention	0.006	ongoing	0	fire_home	
+O006	off_scope	电梯广告怎么投诉	off_scope		elevator_trapped	off_scope	0.103	off_scope	1	elevator_trapped	
+O007	off_scope	电梯里遇到邻居怎么打招呼	off_scope		elevator_trapped	off_scope	0.04	ongoing	0	electric_shock	
+O008	off_scope	电梯维修电话多少	off_scope		elevator_trapped	off_scope	0.066	off_scope	1	elevator_trapped	
+O009	off_scope	电梯房和楼梯房哪个好	off_scope		elevator_trapped	off_scope	0.056	off_scope	1	elevator_trapped	
+O010	off_scope	电梯卡在哪里办	off_scope		elevator_trapped	off_scope	0.125	off_scope	1	elevator_trapped	
+O011	off_scope	摔倒保险怎么理赔	off_scope		fall_elderly	off_scope	0.04	ongoing	0	fall_elderly	
+O012	off_scope	老人护理床怎么选	off_scope			prevention	0.008	prevention	0	fall_elderly	
+O013	off_scope	跌打损伤药哪个好	off_scope			off_scope	0.058	off_scope	1	scald_burn	
+O014	off_scope	火锅底料怎么做	off_scope			off_scope	0.062	off_scope	1	fire_home	
+O015	off_scope	火车票怎么买	off_scope			off_scope	0.046	off_scope	1	fire_home	
+O016	off_scope	火山旅游攻略	off_scope			off_scope	0.038	off_scope	1	fire_home	
+O017	off_scope	火腿肠怎么保存	off_scope			prevention	0.045	prevention	0	fire_home	
+O018	off_scope	今天天气怎么样	off_scope			off_scope	0.065	off_scope	1	gas_leak	
+O019	off_scope	帮我写个请假条	off_scope			off_scope	0.135	off_scope	1	co_poisoning	
+O020	off_scope	红烧肉怎么做	off_scope			off_scope	0.034	off_scope	1	scald_burn	
+O021	off_scope	股票会涨吗	off_scope			prevention	0.034	prevention	0	fire_home	
+O022	off_scope	我睡眠不好怎么办	off_scope			off_scope	0.009	off_scope	1	elevator_trapped	
+O023	off_scope	怎么减肥	off_scope			off_scope	0.096	off_scope	1	airway_obstruction	
+O024	off_scope	电脑开不了机	off_scope			prevention	0.008	prevention	0	elevator_trapped	
+O025	off_scope	帮我订机票	off_scope			off_scope	0.126	off_scope	1	fall_elderly	
+O026	off_scope	你叫什么名字	off_scope			off_scope	0.052	off_scope	1	fire_home	
+O027	off_scope	明天要下雨吗	off_scope			prevention	0.011	prevention	0	electric_shock	
+O028	off_scope	推荐一部电影	off_scope			off_scope	0.068	off_scope	1	electric_shock	
+O029	off_scope	怎么学英语	off_scope			off_scope	0.041	off_scope	1	airway_obstruction	
+O030	off_scope	手机没电了	off_scope			ongoing	0.039	ongoing	0	electric_shock	

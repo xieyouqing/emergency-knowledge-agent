@@ -1,0 +1,68 @@
+{
+ "probe": "bge-small-zh-v1.5 q8 + 规则兜底",
+ "run_at": "2026-11-19",
+ "model_bytes": 24010842,
+ "dim": 512,
+ "latency_ms": {
+  "load_cold": 1377,
+  "load_warm": 536,
+  "single_p50": 21,
+  "single_p95": 35
+ },
+ "intent": {
+  "rule_baseline": {
+   "total": 61,
+   "emergency": "40/40",
+   "prevention": "3/30",
+   "off_scope": "18/30"
+  },
+  "final": {
+   "total": 85,
+   "per_group": {
+    "emergency": "40/40",
+    "prevention": "25/30",
+    "off_scope": "20/30"
+   }
+  },
+  "margin_threshold": 0.045
+ },
+ "scene": {
+  "rule": "54/70",
+  "model": "65/70"
+ },
+ "overridden_count": 18,
+ "overridden_ids": [
+  "E004",
+  "E005",
+  "E006",
+  "E007",
+  "E016",
+  "E017",
+  "E021",
+  "E033",
+  "E035",
+  "E040",
+  "P003",
+  "P011",
+  "P017",
+  "P027",
+  "O002",
+  "O005",
+  "O007",
+  "O011"
+ ],
+ "low_confidence_unruled": [
+  "P014",
+  "P015",
+  "P020",
+  "O012",
+  "O016",
+  "O020",
+  "O021",
+  "O022",
+  "O024",
+  "O027",
+  "O029",
+  "O030"
+ ]
+}
