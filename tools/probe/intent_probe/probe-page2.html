@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>探针 V2 · 原型来源对比 + 复合判定</title>
+<style>body{font:13px/1.55 ui-monospace,Consolas,monospace;background:#111;color:#ddd;padding:14px;margin:0}pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<div id="status">loading…</div>
+<pre id="out"></pre>
+<script src="/app/retrieval.js"></script>
+<script type="module">
+/* =========================================================================
+   V2 探针：回答 V1 暴露的两个问题
+     Q1 V1 的意图原型是「抽象的元语句」，与实际口语差太远（分数全挤在 0.45–0.60）
+        → 换成「由知识库条目衍生」的原型（零泄漏：产品数据，非评测案例）
+     Q2 单靠模型会把 emergency 从 40/40 拉低到 26/40
+        → 测四种「规则闸 + 模型」复合策略，看哪种不牺牲紧急召回
+   另测：场景定位的模型方案 vs 现有字符规则方案（同一批 69 条）
+   ========================================================================= */
+import { pipeline, env } from './node_modules/@huggingface/transformers/dist/transformers.min.js';
+
+const statusEl = document.getElementById('status');
+const outEl = document.getElementById('out');
+const L = [];
+const say = (s = '') => { L.push(s); outEl.textContent = L.join('\n'); };
+window.__DONE = false;
+window.__LOG = L;
+
+const l2 = (v) => { let n = 0; for (let i = 0; i < v.length; i++) n += v[i] * v[i]; n = Math.sqrt(n) || 1; const o = new Float32Array(v.length); for (let i = 0; i < v.length; i++) o[i] = v[i] / n; return o; };
+const cos = (a, b) => { let d = 0; for (let i = 0; i < a.length; i++) d += a[i] * b[i]; return d; };
+const meanVec = (vs) => { const o = new Float32Array(vs[0].length); for (const v of vs) for (let i = 0; i < v.length; i++) o[i] += v[i]; for (let i = 0; i < o.length; i++) o[i] /= vs.length; return l2(o); };
+
+/* ---------- V1 原型（沿用上一轮，作对照） ---------- */
+const V1 = {
+  ongoing: ['我家现在正在发生危险，需要马上告诉我该怎么做','已经出事了，火已经烧起来了，有人倒在地上了','现在正在漏气、冒烟、流血，情况紧急','刚刚发生了事故，人受伤了，怎么办'],
+  prevention: ['平时该怎么预防这类事情发生','日常要注意什么，多久检查一次，要不要装报警器','如何避免以后出这种事，有什么注意事项','这个东西平时怎么保养、怎么维护'],
+  off_scope: ['跟紧急安全和疾病无关的日常问题','煤气费怎么交，热水器怎么选，多少钱一方','帮我写个东西，陪我聊聊天，讲个笑话','今天天气怎么样，推荐一部电影']
+};
+
+/* 通用「框架句」：不带具体场景，只表达提问方式 */
+const FRAME = {
+  ongoing: ['正在发生，已经出事了，现在就有危险，马上怎么办', '已经烧起来了、人倒下了、正在流血，现在就要处理'],
+  prevention: ['平时怎么预防，日常要注意什么，多久检查一次', '要不要装一个、买哪种好、平时怎么维护保养'],
+  off_scope: ['跟安全无关的日常琐事、手续、费用、娱乐']
+};
+
+async function main() {
+  const t0 = performance.now();
+  env.allowRemoteModels = false;
+  env.allowLocalModels = true;
+  env.localModelPath = '/tools/probe/intent_probe/models';
+  env.useBrowserCache = false;
+  env.backends.onnx.wasm.numThreads = 1;
+  env.backends.onnx.wasm.wasmPaths = '/tools/probe/intent_probe/node_modules/@huggingface/transformers/dist/';
+
+  statusEl.textContent = '加载模型…';
+  let extractor;
+  try {
+    extractor = await pipeline('feature-extraction', 'bge-small-zh-v1.5', { dtype: 'q8', local_files_only: true });
+  } catch (e) {
+    say('模型加载失败: ' + (e && e.message || e)); window.__ERR = String(e && e.stack || e); window.__DONE = true; return;
+  }
+  const loadMs = Math.round(performance.now() - t0);
+  statusEl.textContent = '评测中…';
+
+  const embed = async (texts) => {
+    const out = await extractor(texts, { pooling: 'mean', normalize: true });
+    return out.tolist().map((r) => l2(Float32Array.from(r)));
+  };
+
+  /* ---------- 数据 ---------- */
+  const slots = (await (await fetch('/knowledge/index.json')).json()).slots;
+  const entries = [];
+  for (const s of slots) {
+    let e = null;
+    try { e = await (await fetch(`/knowledge/${s.id}.json`)).json(); } catch (_) { e = null; }
+    if (e) entries.push(e);
+  }
+  const { cases } = await (await fetch('/tools/eval/cases.json')).json();
+
+  /* ---------- V2 原型：知识库条目衍生（零泄漏） ---------- */
+  const V2texts = { ongoing: [...FRAME.ongoing], prevention: [...FRAME.prevention], off_scope: [...FRAME.off_scope] };
+  let nOngoing = FRAME.ongoing.length, nPrev = FRAME.prevention.length;
+  for (const e of entries) {
+    const imm = (e.steps && Array.isArray(e.steps.immediate)) ? e.steps.immediate.map((s) => s.text).join('，') : '';
+    const nev = (e.steps && Array.isArray(e.steps.never)) ? e.steps.never.join ? e.steps.never.join('，') : e.steps.never.map((s) => s.text).join('，') : '';
+    if (imm) { V2texts.ongoing.push(`现在${e.name}正在发生，${imm}${nev ? '，' + nev : ''}`); nOngoing++; }
+    const prev = (e.daily && Array.isArray(e.daily.prevention)) ? e.daily.prevention.join('，') : '';
+    if (prev) { V2texts.prevention.push(`平时怎么预防${e.name}，${prev}`); nPrev++; }
+  }
+
+  const intentIds = ['ongoing', 'prevention', 'off_scope'];
+  const buildProto = async (texts) => {
+    const o = {};
+    for (const k of intentIds) o[k] = meanVec(await embed(texts[k]));
+    return o;
+  };
+  const protoV1 = await buildProto(V1);
+  const protoV2 = await buildProto(V2texts);
+
+  /* 场景原型：来自条目原文（与 V1 相同来源） */
+  const sceneDocs = [];
+  for (const s of slots) {
+    const e = entries.find((x) => x.id === s.id);
+    const parts = [s.name];
+    if (e) {
+      if (Array.isArray(e.aliases)) parts.push(e.aliases.join('、'));
+      if (Array.isArray(e.keywords)) parts.push(e.keywords.join('、'));
+      if (e.daily && e.daily.summary) parts.push(e.daily.summary);
+    }
+    sceneDocs.push({ id: s.id, text: parts.filter(Boolean).join('｜') });
+  }
+  const sceneVecs = await embed(sceneDocs.map((d) => d.text));
+
+  const caseVecs = await embed(cases.map((c) => c.text));
+
+  /* ---------- 判定函数 ---------- */
+  const scoresOf = (v, proto) => { const s = {}; for (const k of intentIds) s[k] = cos(v, proto[k]); return s; };
+  const argmax = (s) => { let b = null; for (const k of intentIds) if (!b || s[k] > s[b]) b = k; return b; };
+
+  /* 规则闸（复用产品现码） */
+  const R = window.R || null;
+  const ruleHit = (text) => {
+    if (!R || !R.detectDanger) return null;
+    const r = R.detectDanger(text);
+    return r ? r.id : null;
+  };
+
+  /* ---------- 评测 ---------- */
+  const variants = {
+    'V1 元语句原型': (r) => r.p1,
+    'V2 条目衍生原型': (r) => r.p2,
+    'V2 + 规则闸优先': (r) => (r.rule ? 'ongoing' : r.p2),
+    'V2 + 紧急兜底': (r) => (r.p2 === 'off_scope' && r.rule ? 'ongoing' : r.p2),
+    'V2 + 仅拦 off_scope': (r) => {
+      if (r.p2 === 'off_scope' && r.rule && !/费|多少钱|怎么交|选|买|报修|投诉/.test(r.text)) return 'ongoing';
+      return r.p2;
+    }
+  };
+
+  const rows = [];
+  for (let i = 0; i < cases.length; i++) {
+    const c = cases[i], v = caseVecs[i];
+    const s1 = scoresOf(v, protoV1), s2 = scoresOf(v, protoV2);
+    let bi = -1, bs = -2;
+    for (let j = 0; j < sceneVecs.length; j++) { const s = cos(v, sceneVecs[j]); if (s > bs) { bs = s; bi = j; } }
+    rows.push({
+      id: c.id, text: c.text, group: c.group, expect: c.expect_intent, expectScene: c.expect_scene,
+      s1, s2, p1: argmax(s1), p2: argmax(s2),
+      rule: ruleHit(c.text),
+      modelScene: sceneDocs[bi].id, modelSceneScore: +bs.toFixed(3),
+      ruleScene: null
+    });
+  }
+
+  /* 现有字符规则定位（同一批样本对照） */
+  if (R && R.rankByRules) {
+    for (const r of rows) {
+      try {
+        const res = R.rankByRules(r.text, null);
+        const top = Array.isArray(res) ? res[0] : (res && res[0]);
+        r.ruleScene = top ? (top.id || top.entryId || top.entry && top.entry.id || null) : null;
+      } catch (_) { r.ruleScene = null; }
+    }
+  }
+
+  /* ---------- 汇总 ---------- */
+  const groups = ['emergency', 'prevention', 'off_scope'];
+  const RULE_BASE = { emergency: 40, prevention: 3, off_scope: 18 };
+
+  say('='.repeat(80));
+  say('探针 V2 · 原型来源对比 + 规则闸复合策略');
+  say('='.repeat(80));
+  say(`模型加载 ${loadMs} ms ｜ 维度 ${sceneVecs[0].length} ｜ 条目数 ${entries.length} ｜ 评测 ${cases.length} 条`);
+  say(`原型条数 V2: ongoing ${nOngoing}（含框架句 ${FRAME.ongoing.length}） / prevention ${nPrev}（含 ${FRAME.prevention.length}） / off_scope ${V2texts.off_scope.length}`);
+  say('');
+
+  for (const [name, fn] of Object.entries(variants)) {
+    const acc = {};
+    for (const g of groups) acc[g] = { n: 0, hit: 0 };
+    let total = 0;
+    for (const r of rows) {
+      const pred = fn(r);
+      const ok = pred === r.expect;
+      if (ok) total++;
+      acc[r.group].n++; if (ok) acc[r.group].hit++;
+    }
+    say(`【${name}】 总 ${total}/100 = ${total}%   (规则基线 61%)`);
+    say('   ' + groups.map((g) => `${g} ${acc[g].hit}/${acc[g].n}(基线${RULE_BASE[g]})`).join('  '));
+  }
+
+  /* 混淆矩阵 V2 */
+  const CM = {};
+  for (const a of intentIds) { CM[a] = {}; for (const b of intentIds) CM[a][b] = 0; }
+  for (const r of rows) CM[r.expect][r.p2]++;
+  say('');
+  say('V2 混淆矩阵（行=期望 列=预测）:');
+  say('      ' + intentIds.map((k) => k.padStart(12)).join(''));
+  for (const a of intentIds) say('  ' + a.padEnd(4) + intentIds.map((b) => String(CM[a][b]).padStart(12)).join(''));
+
+  /* 场景：模型 vs 字符规则 */
+  const sRows = rows.filter((r) => r.expectScene);
+  let mHit = 0, rHit = 0, both = 0;
+  for (const r of sRows) {
+    const m = r.modelScene === r.expectScene;
+    const rr = r.ruleScene === r.expectScene;
+    if (m) mHit++; if (rr) rHit++; if (m && rr) both++;
+  }
+  say('');
+  say(`--- 场景定位对比（${sRows.length} 条，只算 expect_scene 非空） ---`);
+  say(`模型原型方案      ${mHit}/${sRows.length} = ${(mHit / sRows.length * 100).toFixed(1)}%`);
+  say(`现字符规则方案    ${rHit}/${sRows.length} = ${(rHit / sRows.length * 100).toFixed(1)}%`);
+  say(`两者都对          ${both}/${sRows.length}`);
+  say(`模型对/规则错     ${sRows.filter((r) => r.modelScene === r.expectScene && r.ruleScene !== r.expectScene).length}`);
+  say(`规则对/模型错     ${sRows.filter((r) => r.ruleScene === r.expectScene && r.modelScene !== r.expectScene).length}`);
+
+  /* 规则闸在 emergency 与 prevention 上的命中情况 */
+  const emg = rows.filter((r) => r.group === 'emergency');
+  const prv = rows.filter((r) => r.group === 'prevention');
+  const off = rows.filter((r) => r.group === 'off_scope');
+  const cnt = (arr, f) => arr.filter(f).length;
+  say('');
+  say('--- 规则闸（detectDanger）命中率 ---');
+  say(`emergency  ${cnt(emg, (r) => !!r.rule)}/${emg.length}   应当全部命中`);
+  say(`prevention ${cnt(prv, (r) => !!r.rule)}/${prv.length}   ★ 这些会被误切紧急（27 条误判的来源）`);
+  say(`off_scope  ${cnt(off, (r) => !!r.rule)}/${off.length}   含「煤气费」这类假命中`);
+
+  /* V2 判错明细 */
+  const miss2 = rows.filter((r) => r.p2 !== r.expect);
+  say('');
+  say(`--- V2 判错 ${miss2.length} 条（前 20） ---`);
+  for (const r of miss2.slice(0, 20)) {
+    const s = {}; for (const k of intentIds) s[k] = +r.s2[k].toFixed(3);
+    say(`  ${r.id} 「${r.text}」 期望 ${r.expect} → ${r.p2}  ${JSON.stringify(s)}  rule=${r.rule || '-'}`);
+  }
+
+  window.__RESULT = {
+    loadMs, dim: sceneVecs[0].length, rows,
+    protoCounts: { ongoing: nOngoing, prevention: nPrev, offScope: V2texts.off_scope.length },
+    sceneCompare: { n: sRows.length, model: mHit, rule: rHit, both },
+    ruleGate: { emergency: cnt(emg, (r) => !!r.rule), prevention: cnt(prv, (r) => !!r.rule), offScope: cnt(off, (r) => !!r.rule) }
+  };
+  statusEl.textContent = 'DONE';
+  window.__DONE = true;
+}
+
+main().catch((e) => { statusEl.textContent = 'FAIL'; say('异常: ' + (e && e.stack || e)); window.__ERR = String(e && e.stack || e); window.__DONE = true; });
+</script>
+</body>
+</html>

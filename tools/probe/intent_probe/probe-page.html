@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>离线意图判定探针</title>
+<style>
+  body{font:14px/1.6 ui-monospace,Consolas,monospace;background:#111;color:#ddd;padding:16px;margin:0}
+  pre{white-space:pre-wrap;word-break:break-word}
+  .bad{color:#f66}.good{color:#6f6}
+</style>
+</head>
+<body>
+<div id="status">loading…</div>
+<pre id="out"></pre>
+<script type="module">
+/* =========================================================================
+   浏览器版探针（与 probe.mjs 同一套逻辑，同一套原型）
+   为什么用浏览器而不是 Node：
+     产品最终运行环境就是浏览器 / WebView2，Node 测出来的数字不能直接外推。
+     且这里用的是 onnxruntime-web（WASM），与打包后桌面端一致。
+   ========================================================================= */
+import { pipeline, env } from './node_modules/@huggingface/transformers/dist/transformers.min.js';
+
+const statusEl = document.getElementById('status');
+const outEl = document.getElementById('out');
+const lines = [];
+const say = (s = '') => { lines.push(s); outEl.textContent = lines.join('\n'); };
+window.__DONE = false;
+
+/* ---------- 意图原型：手写规范句（与 probe.mjs 完全一致） ---------- */
+const INTENT_PROTOS = {
+  ongoing: [
+    '我家现在正在发生危险，需要马上告诉我该怎么做',
+    '已经出事了，火已经烧起来了，有人倒在地上了',
+    '现在正在漏气、冒烟、流血，情况紧急',
+    '刚刚发生了事故，人受伤了，怎么办'
+  ],
+  prevention: [
+    '平时该怎么预防这类事情发生',
+    '日常要注意什么，多久检查一次，要不要装报警器',
+    '如何避免以后出这种事，有什么注意事项',
+    '这个东西平时怎么保养、怎么维护'
+  ],
+  off_scope: [
+    '跟紧急安全和疾病无关的日常问题',
+    '煤气费怎么交，热水器怎么选，多少钱一方',
+    '帮我写个东西，陪我聊聊天，讲个笑话',
+    '今天天气怎么样，推荐一部电影'
+  ]
+};
+
+const l2 = (v) => {
+  let n = 0; for (let i = 0; i < v.length; i++) n += v[i] * v[i];
+  n = Math.sqrt(n) || 1;
+  const o = new Float32Array(v.length);
+  for (let i = 0; i < v.length; i++) o[i] = v[i] / n;
+  return o;
+};
+const cos = (a, b) => { let d = 0; for (let i = 0; i < a.length; i++) d += a[i] * b[i]; return d; };
+const meanVec = (vs) => {
+  const o = new Float32Array(vs[0].length);
+  for (const v of vs) for (let i = 0; i < v.length; i++) o[i] += v[i];
+  for (let i = 0; i < o.length; i++) o[i] /= vs.length;
+  return l2(o);
+};
+
+async function main() {
+  const t0 = performance.now();
+
+  env.allowRemoteModels = false;               // 零网络请求
+  env.allowLocalModels = true;
+  env.localModelPath = '/tools/probe/intent_probe/models';
+  env.useBrowserCache = false;
+  env.backends.onnx.wasm.numThreads = 1;       // 无 COOP/COEP 头，单线程
+  env.backends.onnx.wasm.wasmPaths =
+    '/tools/probe/intent_probe/node_modules/@huggingface/transformers/dist/';
+
+  statusEl.textContent = '加载模型…';
+  let extractor;
+  try {
+    extractor = await pipeline('feature-extraction', 'bge-small-zh-v1.5', { dtype: 'q8', local_files_only: true });
+  } catch (e) {
+    statusEl.textContent = 'FAIL: 模型加载失败';
+    say('模型加载失败: ' + (e && e.message ? e.message : e));
+    window.__ERR = String(e && e.stack || e);
+    window.__DONE = true;
+    return;
+  }
+  const loadMs = Math.round(performance.now() - t0);
+  statusEl.textContent = '模型已加载，开始评测…';
+
+  async function embed(texts) {
+    const out = await extractor(texts, { pooling: 'mean', normalize: true });
+    return out.tolist().map((r) => l2(Float32Array.from(r)));
+  }
+
+  /* ---------- 场景原型：来自 knowledge/*.json，不碰评测集 ---------- */
+  const slots = (await (await fetch('/knowledge/index.json')).json()).slots;
+  const sceneDocs = [], sceneMeta = [];
+  for (const s of slots) {
+    let e = null;
+    try { e = await (await fetch(`/knowledge/${s.id}.json`)).json(); } catch (_) { e = null; }
+    const parts = [s.name];
+    if (e) {
+      if (Array.isArray(e.aliases)) parts.push(e.aliases.join('、'));
+      if (Array.isArray(e.keywords)) parts.push(e.keywords.join('、'));
+      if (e.daily && e.daily.summary) parts.push(e.daily.summary);
+    }
+    sceneDocs.push({ id: s.id, text: parts.filter(Boolean).join('｜') });
+    sceneMeta.push({ id: s.id, published: !!(e && e.status === 'published') });
+  }
+
+  const intentIds = Object.keys(INTENT_PROTOS);
+  const sceneVecs = await embed(sceneDocs.map((d) => d.text));
+  const intentVecs = {};
+  for (const k of intentIds) intentVecs[k] = meanVec(await embed(INTENT_PROTOS[k]));
+
+  /* ---------- 评测集 ---------- */
+  const { cases } = await (await fetch('/tools/eval/cases.json')).json();
+  const caseVecs = await embed(cases.map((c) => c.text));
+
+  const CM = {};
+  for (const a of intentIds) { CM[a] = {}; for (const b of intentIds) CM[a][b] = 0; }
+  let intentHit = 0;
+  const perGroup = {}, misses = [];
+
+  for (let i = 0; i < cases.length; i++) {
+    const c = cases[i], v = caseVecs[i];
+    const scores = {};
+    for (const k of intentIds) scores[k] = cos(v, intentVecs[k]);
+    let best = null;
+    for (const k of intentIds) if (!best || scores[k] > scores[best]) best = k;
+    CM[c.expect_intent][best]++;
+    if (best === c.expect_intent) intentHit++;
+    const g = perGroup[c.group] || (perGroup[c.group] = { n: 0, hit: 0 });
+    g.n++; if (best === c.expect_intent) g.hit++;
+    if (best !== c.expect_intent) {
+      const s = {}; for (const k of intentIds) s[k] = +scores[k].toFixed(3);
+      misses.push({ id: c.id, text: c.text, expect: c.expect_intent, got: best, s });
+    }
+  }
+
+  /* 场景准确率 */
+  let sceneN = 0, sceneHit = 0; const sceneMisses = [];
+  for (let i = 0; i < cases.length; i++) {
+    const c = cases[i];
+    if (!c.expect_scene) continue;
+    sceneN++;
+    let bi = -1, bs = -2;
+    for (let j = 0; j < sceneVecs.length; j++) {
+      const s = cos(caseVecs[i], sceneVecs[j]);
+      if (s > bs) { bs = s; bi = j; }
+    }
+    if (sceneDocs[bi].id === c.expect_scene) sceneHit++;
+    else sceneMisses.push({ id: c.id, text: c.text, expect: c.expect_scene, got: sceneDocs[bi].id, score: +bs.toFixed(3) });
+  }
+
+  /* 上界：leave-one-out 最近邻（不可部署） */
+  let looHit = 0;
+  for (let i = 0; i < cases.length; i++) {
+    let bi = -1, bs = -2;
+    for (let j = 0; j < cases.length; j++) {
+      if (i === j) continue;
+      const s = cos(caseVecs[i], caseVecs[j]);
+      if (s > bs) { bs = s; bi = j; }
+    }
+    if (cases[bi].expect_intent === cases[i].expect_intent) looHit++;
+  }
+
+  /* 延迟：单句 20 次 */
+  const lat = [];
+  for (let i = 0; i < 20; i++) {
+    const t = performance.now();
+    await embed([cases[i % cases.length].text]);
+    lat.push(performance.now() - t);
+  }
+  lat.sort((a, b) => a - b);
+  const p50 = Math.round(lat[Math.floor(lat.length / 2)]);
+  const p95 = Math.round(lat[Math.min(lat.length - 1, Math.floor(lat.length * 0.95))]);
+
+  const RULE = { ongoing: 40, prevention: 3, off_scope: 18 };
+  const m1 = intentHit > 61, m2 = (perGroup.prevention?.hit || 0) >= 24, m3 = (perGroup.emergency?.hit || 0) >= 40;
+
+  say('='.repeat(74));
+  say('离线意图判定探针 · bge-small-zh-v1.5 (q8 int8) · onnxruntime-web WASM');
+  say('='.repeat(74));
+  say(`模型加载耗时      ${loadMs} ms`);
+  say(`嵌入维度          ${sceneVecs[0].length}`);
+  say(`单句嵌入 p50/p95  ${p50} ms / ${p95} ms (n=20)`);
+  say('');
+  say('--- 意图三分类（零泄漏） ---');
+  say(`总准确率          ${intentHit}/${cases.length} = ${(intentHit / cases.length * 100).toFixed(1)}%`);
+  say(`规则基线          61/100 = 61.0%  [40/40 + 3/30 + 18/30]`);
+  say(`对基线增益        ${intentHit - 61 >= 0 ? '+' : ''}${intentHit - 61} 条`);
+  say('');
+  for (const g of ['emergency', 'prevention', 'off_scope']) {
+    const v = perGroup[g] || { n: 0, hit: 0 };
+    const rb = RULE[g === 'emergency' ? 'ongoing' : g];
+    say(`  ${g.padEnd(12)} ${String(v.hit).padStart(2)}/${v.n}   (规则基线 ${rb}/${v.n})`);
+  }
+  say('');
+  say('混淆矩阵（行=期望 列=预测）:');
+  say('      ' + intentIds.map((k) => k.padStart(12)).join(''));
+  for (const a of intentIds) say('  ' + a.padEnd(4) + intentIds.map((b) => String(CM[a][b]).padStart(12)).join(''));
+  say('');
+  say(`--- 场景定位（10 槽位，${sceneN} 条） ---`);
+  say(`准确率            ${sceneHit}/${sceneN} = ${(sceneHit / sceneN * 100).toFixed(1)}%`);
+  say('');
+  say('--- 上界参考（leave-one-out 最近邻，不可部署） ---');
+  say(`上界准确率        ${looHit}/${cases.length} = ${(looHit / cases.length * 100).toFixed(1)}%`);
+  say('');
+  if (misses.length) {
+    say(`--- 判错 ${misses.length} 条（前 15） ---`);
+    for (const m of misses.slice(0, 15)) say(`  ${m.id} 「${m.text}」 期望 ${m.expect} → ${m.got}  ${JSON.stringify(m.s)}`);
+    say('');
+  }
+  if (sceneMisses.length) {
+    say(`--- 场景判错（前 10） ---`);
+    for (const m of sceneMisses.slice(0, 10)) say(`  ${m.id} 「${m.text}」 期望 ${m.expect} → ${m.got} (${m.score})`);
+    say('');
+  }
+  say('--- 判据 ---');
+  say(`M1 准确率 > 61%       ${intentHit}%    ${m1 ? 'PASS' : 'FAIL'}`);
+  say(`M2 prevention ≥ 24    ${perGroup.prevention?.hit || 0}/30  ${m2 ? 'PASS' : 'FAIL'}`);
+  say(`M3 emergency ≥ 40     ${perGroup.emergency?.hit || 0}/40  ${m3 ? 'PASS' : 'FAIL'}`);
+
+  window.__RESULT = {
+    loadMs, dim: sceneVecs[0].length, p50, p95,
+    intent: { hit: intentHit, n: cases.length, cm: CM, perGroup },
+    scene: { hit: sceneHit, n: sceneN },
+    loo: { hit: looHit, n: cases.length },
+    misses, sceneMisses, veredict: { m1, m2, m3 }
+  };
+  statusEl.textContent = 'DONE';
+  window.__DONE = true;
+}
+
+main().catch((e) => {
+  statusEl.textContent = 'FAIL';
+  say('异常: ' + (e && e.stack || e));
+  window.__ERR = String(e && e.stack || e);
+  window.__DONE = true;
+});
+</script>
+</body>
+</html>

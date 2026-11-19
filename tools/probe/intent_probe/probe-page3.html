@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>探针 V3 · 平衡原型 + 拒判阈值 + 规则闸</title>
+<style>body{font:13px/1.55 ui-monospace,Consolas,monospace;background:#111;color:#ddd;padding:14px;margin:0}pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<div id="status">loading…</div>
+<pre id="out"></pre>
+<script src="/app/retrieval.js"></script>
+<script type="module">
+/* =========================================================================
+   V3 探针
+   V2 暴露的问题：off_scope 只有 1 条原型 → 全类判错（0/30），模型退化成
+   「只要有领域词就是 prevention」。这不是模型不行，是原型配比失衡。
+   V3 修法：
+     ① 三类各 8 条平衡原型（全部手写，不使用评测集原句）
+     ② 增加「拒判」：top1-top2 差值 < margin 时不出结论，交给图标区
+        （这对应产品里的「不确定就不猜」，是可用性设计不是妥协）
+     ③ 规则闸改用正确入口 window.RETRIEVAL.detectDanger（V2 用了 window.R，取不到）
+   ========================================================================= */
+import { pipeline, env } from './node_modules/@huggingface/transformers/dist/transformers.min.js';
+
+const statusEl = document.getElementById('status');
+const outEl = document.getElementById('out');
+const L = [];
+const say = (s = '') => { L.push(s); outEl.textContent = L.join('\n'); };
+window.__DONE = false;
+
+const l2 = (v) => { let n = 0; for (let i = 0; i < v.length; i++) n += v[i] * v[i]; n = Math.sqrt(n) || 1; const o = new Float32Array(v.length); for (let i = 0; i < v.length; i++) o[i] = v[i] / n; return o; };
+const cos = (a, b) => { let d = 0; for (let i = 0; i < a.length; i++) d += a[i] * b[i]; return d; };
+const meanVec = (vs) => { const o = new Float32Array(vs[0].length); for (const v of vs) for (let i = 0; i < v.length; i++) o[i] += v[i]; for (let i = 0; i < o.length; i++) o[i] /= vs.length; return l2(o); };
+
+/* ---------- 平衡原型：每类 8 条，均为手写，不复用评测集原句 ---------- */
+const PROTO = {
+  ongoing: [
+    '现在已经出事了，需要马上告诉我下一步做什么',
+    '现场正在漏气，味道很浓，还在往外冒',
+    '火已经起来了，烟很大，控制不住',
+    '人已经倒在地上了，喊也不应',
+    '有人受伤了，正在流血，需要立刻处理',
+    '现在正在发生的危险，我只有几十秒时间',
+    '事故刚刚发生，现在还在持续，人还在里面',
+    '眼前这个情况很危险，立刻该怎么办'
+  ],
+  prevention: [
+    '平时怎么做才能不发生这种事',
+    '日常该注意什么，有哪些隐患要提前排除',
+    '多久检查一次，怎么保养维护',
+    '要不要装一个，装了有没有用',
+    '如何避免以后家里再出这种事',
+    '家里有老人，平时生活上要注意什么',
+    '这样做危不危险，算不算隐患',
+    '怎么提前准备，出事了才不慌'
+  ],
+  off_scope: [
+    '这笔钱怎么交，一共多少钱',
+    '去哪里办理，需要带什么材料',
+    '怎么投诉，找哪个部门反映',
+    '哪个牌子好，买哪个更划算',
+    '陪我说说话，讲个笑话解解闷',
+    '帮我写一份申请，改一下措辞',
+    '今天天气怎么样，适合出门吗',
+    '这个能不能报销，能赔多少钱'
+  ]
+};
+
+async function main() {
+  const t0 = performance.now();
+  env.allowRemoteModels = false;
+  env.allowLocalModels = true;
+  env.localModelPath = '/tools/probe/intent_probe/models';
+  env.useBrowserCache = false;
+  env.backends.onnx.wasm.numThreads = 1;
+  env.backends.onnx.wasm.wasmPaths = '/tools/probe/intent_probe/node_modules/@huggingface/transformers/dist/';
+
+  statusEl.textContent = '加载模型…';
+  let extractor;
+  try {
+    extractor = await pipeline('feature-extraction', 'bge-small-zh-v1.5', { dtype: 'q8', local_files_only: true });
+  } catch (e) {
+    say('模型加载失败: ' + (e && e.message || e)); window.__ERR = String(e && e.stack || e); window.__DONE = true; return;
+  }
+  const loadMs = Math.round(performance.now() - t0);
+  statusEl.textContent = '评测中…';
+
+  const embed = async (texts) => {
+    const out = await extractor(texts, { pooling: 'mean', normalize: true });
+    return out.tolist().map((r) => l2(Float32Array.from(r)));
+  };
+
+  const slots = (await (await fetch('/knowledge/index.json')).json()).slots;
+  const entries = [];
+  for (const s of slots) {
+    let e = null;
+    try { e = await (await fetch(`/knowledge/${s.id}.json`)).json(); } catch (_) { e = null; }
+    if (e) entries.push(e);
+  }
+  const { cases } = await (await fetch('/tools/eval/cases.json')).json();
+
+  const ids = ['ongoing', 'prevention', 'off_scope'];
+  const protoVecs = {};
+  for (const k of ids) protoVecs[k] = await embed(PROTO[k]);
+
+  /* 场景原型 */
+  const sceneDocs = slots.map((s) => {
+    const e = entries.find((x) => x.id === s.id);
+    const parts = [s.name];
+    if (e) {
+      if (Array.isArray(e.aliases)) parts.push(e.aliases.join('、'));
+      if (Array.isArray(e.keywords)) parts.push(e.keywords.join('、'));
+      if (e.daily && e.daily.summary) parts.push(e.daily.summary);
+    }
+    return { id: s.id, text: parts.filter(Boolean).join('｜') };
+  });
+  const sceneVecs = await embed(sceneDocs.map((d) => d.text));
+  const caseVecs = await embed(cases.map((c) => c.text));
+
+  /* 两种打分：max（最像哪一条原型）与 centroid（类中心） */
+  const scoreMax = (v) => {
+    const s = {};
+    for (const k of ids) { let m = -2; for (const p of protoVecs[k]) { const x = cos(v, p); if (x > m) m = x; } s[k] = m; }
+    return s;
+  };
+  const centroids = {}; for (const k of ids) centroids[k] = meanVec(protoVecs[k]);
+  const scoreCent = (v) => { const s = {}; for (const k of ids) s[k] = cos(v, centroids[k]); return s; };
+
+  const top2 = (s) => {
+    const arr = ids.map((k) => [k, s[k]]).sort((a, b) => b[1] - a[1]);
+    return { best: arr[0][0], bestS: arr[0][1], second: arr[1][0], margin: arr[0][1] - arr[1][1] };
+  };
+
+  /* 规则闸：正确入口 */
+  const RET = window.RETRIEVAL || null;
+  const ruleHit = (t) => { try { const r = RET && RET.detectDanger ? RET.detectDanger(t) : null; return r ? r.id : null; } catch (_) { return null; } };
+
+  const rows = cases.map((c, i) => {
+    const v = caseVecs[i];
+    const sMax = scoreMax(v), sCent = scoreCent(v);
+    const tMax = top2(sMax), tCent = top2(sCent);
+    let bi = -1, bs = -2;
+    for (let j = 0; j < sceneVecs.length; j++) { const s = cos(v, sceneVecs[j]); if (s > bs) { bs = s; bi = j; } }
+    return {
+      id: c.id, text: c.text, group: c.group, expect: c.expect_intent, expectScene: c.expect_scene,
+      sMax, sCent, pMax: tMax.best, mMax: tMax.margin, pCent: tCent.best, mCent: tCent.margin,
+      rule: ruleHit(c.text), modelScene: sceneDocs[bi].id, modelSceneScore: +bs.toFixed(3)
+    };
+  });
+
+  const groups = ['emergency', 'prevention', 'off_scope'];
+  const accTable = (predFn) => {
+    const acc = {}; for (const g of groups) acc[g] = { n: 0, hit: 0 };
+    let tot = 0, dec = 0;
+    for (const r of rows) {
+      const p = predFn(r);
+      if (p === null) continue;            // 拒判，不计入准确率也不计入覆盖
+      dec++;
+      acc[r.group].n++;
+      if (p === r.expect) { acc[r.group].hit++; tot++; }
+    }
+    return { acc, tot, dec };
+  };
+
+  say('='.repeat(80));
+  say('探针 V3 · 平衡原型（3×8 条） + 拒判阈值 + 规则闸核对');
+  say('='.repeat(80));
+  say(`模型加载 ${loadMs} ms ｜ 维度 ${sceneVecs[0].length} ｜ 条目 ${entries.length} ｜ 评测 ${cases.length} 条`);
+
+  /* 规则闸现状核对 */
+  const cnt = (arr, f) => arr.filter(f).length;
+  const emg = rows.filter((r) => r.group === 'emergency');
+  const prv = rows.filter((r) => r.group === 'prevention');
+  const off = rows.filter((r) => r.group === 'off_scope');
+  say('');
+  say('--- 规则闸 detectDanger 实测（正确入口 RETRIEVAL） ---');
+  say(`emergency  ${cnt(emg, (r) => !!r.rule)}/${emg.length}`);
+  say(`prevention ${cnt(prv, (r) => !!r.rule)}/${prv.length}`);
+  say(`off_scope  ${cnt(off, (r) => !!r.rule)}/${off.length}`);
+
+  /* 模型：max 与 centroid，无拒判 */
+  for (const [name, f] of [['max 相似度', (r) => r.pMax], ['类中心 centroid', (r) => r.pCent]]) {
+    const t = accTable(f);
+    say('');
+    say(`【模型 ${name}，零拒判】 总 ${t.tot}/100 = ${t.tot}%`);
+    say('   ' + groups.map((g) => `${g} ${t.acc[g].hit}/${t.acc[g].n}`).join('  '));
+  }
+
+  /* 拒判阈值扫描（max 方案） */
+  say('');
+  say('--- 拒判阈值扫描（max 方案：top1-top2 < margin 则拒判，交图标区） ---');
+  say('margin   判出条数   判出内准确率   emergency   prevention   off_scope');
+  for (const mth of [0, 0.01, 0.02, 0.03, 0.05, 0.08, 0.12]) {
+    const t = accTable((r) => (r.mMax < mth ? null : r.pMax));
+    const rate = t.dec ? (t.tot / t.dec * 100).toFixed(1) : '0.0';
+    say(`${String(mth).padEnd(8)} ${String(t.dec).padStart(6)}   ${String(rate).padStart(9)}%   ` +
+        groups.map((g) => `${t.acc[g].hit}/${t.acc[g].n}`.padStart(11)).join('  '));
+  }
+
+  /* 复合：模型 + 规则闸 */
+  say('');
+  say('--- 复合策略（模型 max + 规则闸） ---');
+  const composites = {
+    'A 模型优先（规则不覆盖）': (r) => r.pMax,
+    'B 规则命中即紧急': (r) => (r.rule ? 'ongoing' : r.pMax),
+    'C 只有模型说 off_scope 且规则命中 → 紧急': (r) => (r.pMax === 'off_scope' && r.rule ? 'ongoing' : r.pMax),
+    'D 拒判(margin≥0.03) + 规则命中即紧急': (r) => (r.mMax < 0.03 ? null : (r.rule ? 'ongoing' : r.pMax))
+  };
+  for (const [name, f] of Object.entries(composites)) {
+    const t = accTable(f);
+    const rate = t.dec ? (t.tot / t.dec * 100).toFixed(1) : '0.0';
+    say(`${name}`);
+    say(`   判出 ${t.dec}/100  内准确 ${t.tot}/${t.dec}=${rate}%   ` + groups.map((g) => `${g} ${t.acc[g].hit}/${t.acc[g].n}`).join('  '));
+  }
+
+  /* 场景 */
+  const sRows = rows.filter((r) => r.expectScene);
+  const mHit = sRows.filter((r) => r.modelScene === r.expectScene).length;
+  say('');
+  say(`--- 场景定位（${sRows.length} 条） ---`);
+  say(`模型原型方案 ${mHit}/${sRows.length} = ${(mHit / sRows.length * 100).toFixed(1)}%`);
+
+  /* 判错明细 */
+  const miss = rows.filter((r) => r.pMax !== r.expect);
+  say('');
+  say(`--- max 方案判错 ${miss.length} 条（前 18） ---`);
+  for (const r of miss.slice(0, 18)) {
+    const s = {}; for (const k of ids) s[k] = +r.sMax[k].toFixed(3);
+    say(`  ${r.id} 「${r.text}」 期望 ${r.expect} → ${r.pMax} m=${r.mMax.toFixed(3)} ${JSON.stringify(s)} rule=${r.rule || '-'}`);
+  }
+  const missS = sRows.filter((r) => r.modelScene !== r.expectScene);
+  say('');
+  say(`--- 场景判错 ${missS.length} 条（前 8） ---`);
+  for (const r of missS.slice(0, 8)) say(`  ${r.id} 「${r.text}」 期望 ${r.expectScene} → ${r.modelScene} (${r.modelSceneScore})`);
+
+  window.__RESULT = { loadMs, rows: rows.map((r) => ({ ...r })) };
+  statusEl.textContent = 'DONE';
+  window.__DONE = true;
+}
+
+main().catch((e) => { statusEl.textContent = 'FAIL'; say('异常: ' + (e && e.stack || e)); window.__ERR = String(e && e.stack || e); window.__DONE = true; });
+</script>
+</body>
+</html>
