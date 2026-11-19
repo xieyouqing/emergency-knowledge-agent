@@ -21,9 +21,34 @@
 
 <main id="main">
 
-  <!-- ============ 日常模式 ============ -->
-  <section id="dailyView" class="view">
-    <h1 class="ask-title">有什么想了解的？</h1>
+  <!-- ============ 消息流（2026-11-19 由双视图合并，用户裁决「聊天式」） ============
+       为什么不再有 dailyView / emergencyView 两段：
+         双视图靠 hidden 隐藏旧内容，而聊天式要求「旧内容留在上面可回看」，
+         两者无法共存。模式改由「顶部色带 + 每条消息的 is-emergency 样式」体现。
+       #msgFlow 是滚动内容区，#msgScroll 是外层滚动容器（结构分层，
+       让「滚到底」与「内容追加」互不干扰）。 -->
+  <div id="msgScroll" class="msg-scroll">
+    <div id="msgFlow" class="msg-flow" role="log" aria-live="polite">
+
+      <article class="msg msg-assistant" id="welcomeMsg">
+        <h1 class="ask-title">有什么想了解的？</h1>
+        <!-- 图标区常驻消息流顶部：不占输入区空间，且随流滚动不遮挡内容。
+             无内容的槽位由构建期过滤，这里只渲染拿到的槽位。 -->
+        <nav class="icons" id="msgIcons" aria-label="常见场景"></nav>
+        <p class="section-label">也可以直接说一句话，或点上面的场景</p>
+      </article>
+
+    </div>
+  </div>
+
+  <!-- ============ 输入区（常驻底部，不随消息消失） ============
+       结构说明：
+         - 两个 form 互为显隐，而不是共用一个：测试与既有逻辑按
+           dailyInput / emgInput 分别取输入框（老人切换模式后
+           上一个问题不该留在框里）。隐藏的那个不参与渲染。
+         - 为什么输入区固定在底部：用户裁决「输入区域会永久显示」，
+           若随消息流滚动上去，老人回看时要滚回来才能再问一句。 -->
+  <div class="composer" id="composer">
 
     <form class="ask-row" id="dailyForm" autocomplete="off">
       <label class="sr-only" for="dailyInput">输入你的问题</label>
@@ -32,60 +57,45 @@
       <button class="ask-btn" type="submit">提问</button>
     </form>
 
-    <!-- 按住说话（M2）：pointerdown 开始录、pointerup 发送。
-         放在输入框下方而不是替换输入框 —— 打字仍然是最可靠的路径，
-         语音是给不会打字的老人用的，两条路都要留着。 -->
-    <div class="voicein-row">
-      <button class="talk-btn" id="dailyTalk" type="button">
-        <span class="talk-ico" aria-hidden="true">🎤</span>
-        <span class="talk-label">按住说话</span>
-      </button>
-      <p class="talk-hint" id="dailyTalkHint" hidden></p>
-    </div>
-
-    <p class="section-label">或者直接点下面的场景</p>
-    <nav class="icons" id="dailyIcons" aria-label="常见场景"></nav>
-
-    <div id="dailyAnswer" class="answer-area" aria-live="polite"></div>
-  </section>
-
-  <!-- ============ 紧急模式 ============ -->
-  <section id="emergencyView" class="view" hidden>
-    <h1 class="sos-title">先做这些</h1>
-
-    <form class="ask-row" id="emgForm" autocomplete="off">
+    <form class="ask-row" id="emgForm" autocomplete="off" hidden>
       <label class="sr-only" for="emgInput">说出或输入发生了什么</label>
       <input id="emgInput" class="ask-input" type="text"
              placeholder="比如：煤气漏了" enterkeyhint="search">
       <button class="ask-btn sos-btn" type="submit">确认</button>
     </form>
 
+    <!-- 按住说话（M2）：pointerdown 开始录、pointerup 发送。
+         放在输入框下方而不是替换输入框 —— 打字仍然是最可靠的路径，
+         语音是给不会打字的老人用的，两条路都要留着。
+         两个按钮互为显隐，与上面的 form 同步。 -->
     <div class="voicein-row">
-      <button class="talk-btn sos-talk" id="emgTalk" type="button">
+      <button class="talk-btn" id="dailyTalk" type="button">
         <span class="talk-ico" aria-hidden="true">🎤</span>
         <span class="talk-label">按住说话</span>
       </button>
+      <button class="talk-btn sos-talk" id="emgTalk" type="button" hidden>
+        <span class="talk-ico" aria-hidden="true">🎤</span>
+        <span class="talk-label">按住说话</span>
+      </button>
+      <p class="talk-hint" id="dailyTalkHint" hidden></p>
       <p class="talk-hint" id="emgTalkHint" hidden></p>
     </div>
 
-    <nav class="icons" id="emgIcons" aria-label="常见场景"></nav>
+    <!-- 朗读语速（K3，2026-11-19 补）
+         为什么放在输入区而不是消息流里：老人不需要每次调它，设一次就一直生效
+         （已落盘 localStorage）。放在消息流里会随滚动消失。
+         为什么只有两档：三档以上老人记不住哪档是自己上次选的；
+         「慢」= 0.75（比默认 0.9 更慢，给听不清的人），「正常」= 1.0。
+         注意：默认仍是 0.9（偏慢），用户不碰这个控件也满足「默认偏慢」。 -->
+    <section class="rate-row" id="rateRow" aria-label="朗读语速">
+      <span class="rate-label">朗读速度</span>
+      <div class="rate-opts" role="group">
+        <button class="rate-btn" type="button" data-rate="0.75" aria-pressed="false">慢一点</button>
+        <button class="rate-btn" type="button" data-rate="1" aria-pressed="false">正常</button>
+      </div>
+    </section>
 
-    <div id="emgAnswer" class="answer-area" aria-live="assertive"></div>
-  </section>
-
-  <!-- 朗读语速（K3，2026-11-19 补）
-       为什么放在页面底部而不是顶部：老人不需要每次调它，设一次就一直生效
-       （已落盘 localStorage）。放在显眼位置反而会占掉紧急场景的注意力。
-       为什么只有两档：三档以上老人记不住哪档是自己上次选的；
-       「慢」= 0.75（比默认 0.9 更慢，给听不清的人），「正常」= 1.0。
-       注意：默认仍是 0.9（偏慢），用户不碰这个控件也满足「默认偏慢」。 -->
-  <section class="rate-row" id="rateRow" aria-label="朗读语速">
-    <span class="rate-label">朗读速度</span>
-    <div class="rate-opts" role="group">
-      <button class="rate-btn" type="button" data-rate="0.75" aria-pressed="false">慢一点</button>
-      <button class="rate-btn" type="button" data-rate="1" aria-pressed="false">正常</button>
-    </div>
-  </section>
+  </div>
 
 </main>
 
@@ -95,6 +105,19 @@
 <script src="llm.js"></script>
 <script src="voice.js"></script>
 <script src="asr.js"></script>
+<!-- 2026-11-19 拆分（docs/10 §7）：state 必须最先，其余模块依赖它；
+     chat 在 render 之前：render 不依赖 chat，但 talk/app 都依赖 chat；
+     app.js 必须最后，它消费其余全部模块。
+     ⚠️ 跨模块引用一律「运行时取」（见 render.js 的 speakLayer 注释）：
+        2026-11-19 曾因加载期缓存导致 13 条断言变红、朗读全部静默。 -->
+<script src="state.js"></script>
+<script src="chat.js"></script>
+<!-- 工具表必须在 agent.js 之前：调度器运行时取 window.TOOLS -->
+<script src="tools.js"></script>
+<script src="render.js"></script>
+<script src="speak.js"></script>
+<script src="talk.js"></script>
+<script src="agent.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

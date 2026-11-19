@@ -79,9 +79,106 @@ html,body{
 main{
   max-width: 880px;
   margin: 0 auto;
-  padding: 24px 20px 56px;
+  /* 底部留出固定输入区的高度，否则最后一条消息会被输入区盖住。
+     高度由 .composer 决定（约 240px，含两行按钮与语速），这里多留 20px 余量。 */
+  padding: 24px 20px 280px;
+  /* 让 #msgScroll 能撑满可见高度并独立滚动 */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 .view[hidden]{ display:none; }
+
+/* ---------- 消息流（2026-11-19 聊天式改造） ----------
+   为什么内容区单独滚动而不是整页滚动：
+     输入区固定在底部（用户裁决「永久显示」），若整页滚动，
+     输入区会随页面移动，老人回看时要先滚回来才能再问一句。
+   --composer-h 是输入区实际高度，padding-bottom 引用它可避免被遮挡。 */
+:root{ --composer-h: 280px; }
+
+.msg-scroll{
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.msg-flow{
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 一条消息 = 一个气泡。
+   对齐规则：用户消息靠右（浅底），助手消息靠左（白底 + 边框）。
+   为什么用左右区分而不是头像：老人不需要认头像，位置差异一眼可辨。 */
+.msg{
+  max-width: 100%;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 2px solid transparent;
+}
+.msg-user{
+  align-self: flex-end;
+  max-width: 85%;
+  background: var(--bg-soft);
+  border-color: var(--line);
+  border-bottom-right-radius: 6px;
+}
+.msg-assistant{
+  align-self: stretch;
+  background: var(--bg);
+  border-color: var(--line);
+  border-bottom-left-radius: 6px;
+}
+/* 紧急消息：左侧红条 + 浅红底。
+   为什么不用整块红底：整块红会让长文本对比度下降，老人看不清。
+   红色只做「标记」用，不侵占阅读区。 */
+.msg-assistant.is-emergency{
+  border-left: 10px solid var(--sos);
+  background: #FFF7F6;
+}
+.msg-notice{
+  align-self: stretch;
+  background: #FFF9E6;
+  border-color: #E6C34A;
+  font-size: var(--fs-min);
+}
+.msg-notice.is-warn{
+  background: #FFF1F0;
+  border-color: var(--sos);
+}
+.msg-text{ margin: 0; }
+/* 消息里的标题不再是页面级大标题，降一档，避免每条消息都像首屏 */
+.msg .ask-title{
+  font-size: var(--fs-h2);
+  margin: 0 0 16px;
+}
+
+/* ---------- 输入区（常驻底部） ---------- */
+.composer{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-top: 3px solid var(--line);
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+/* 输入区内容与消息流同宽同边距，视觉上对齐 */
+.composer > *{
+  max-width: 840px;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* 紧急态：输入区顶边变红，与消息红条呼应（S8 的可见性不靠隐藏视图） */
+body.is-emergency .composer{
+  border-top-color: var(--sos);
+  background: #FFF7F6;
+}
+/* 输入区里的间距比消息流小：这块是操作区，不是阅读区 */
+.composer .ask-row{ margin-bottom: 12px; }
+.composer .voicein-row{ margin-bottom: 12px; }
+.composer .rate-row{ margin-bottom: 0; }
+/* hidden 必须真正隐藏：flex 布局下 [hidden] 会被 display:flex 覆盖 */
+.composer [hidden]{ display: none !important; }
 
 .ask-title, .sos-title{
   font-size: var(--fs-h1);

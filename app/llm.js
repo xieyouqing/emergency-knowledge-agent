@@ -157,6 +157,72 @@
   }
 
   /* 健康检查：界面可选用来决定是否显示「语义模式」标记 */
+  /* =========================================================
+     工具选择（/act）—— 2026-11-19 新增，docs/03 §2.5.12 D-12
+     与 judge() 的分工：
+       judge() 回答「这是什么意图」（标签），路由由前端代码定
+       act()   回答「下一步调哪个工具」（动作），循环由 agent.js 执行
+
+     为什么单独一个方法与端点：
+       两者的输出契约、prompt、缓存键都不同；混在一起会让任一方改 prompt
+       时污染另一方的评测基线（docs/03 §6 要求对照组稳定）。
+
+     ⚠️ 本方法**不做合法性校验**（白名单、前置条件）。
+        那归 app/tools.js 的 checkGate —— 门只能有一处实现，
+        否则「测的」与「用的」会分叉（2026-11-18 评测脚本踩过）。
+     ========================================================= */
+  /* ⚠️ 必须在**运行时**从 cfg.endpoint 推导，不能在加载期算成常量。
+     2026-11-19 踩过：写成 `var actEndpoint = DEFAULT_ENDPOINT.replace(...)`，
+     结果 configure({endpoint}) 改了 judge 地址，act 仍打默认地址 ——
+     e2e 的「代理不可用时回落」用例因此测不到 fallback（act 打的是真实代理）。
+     将来 M3 把 endpoint 指向云端中继时，这个 bug 会让循环继续打本机旧地址。 */
+  function actUrl() {
+    return String(cfg.endpoint || DEFAULT_ENDPOINT).replace(/\/judge$/, '/act');
+  }
+
+  function act(text, history) {
+    var t = String(text || '').trim();
+    if (!cfg.enabled || !t) {
+      return Promise.resolve({ ok: false, error: 'disabled' });
+    }
+    stats.calls++;
+    var trace = LOG ? LOG.getTrace() : null;
+    return fetchWithTimeout(actUrl(), { text: t, history: history || [], trace: trace }, cfg.timeout)
+      .then(function (d) {
+        if (!d || typeof d.act !== 'string') {
+          throw new Error('代理 /act 返回结构不合法');
+        }
+        cfg.lastError = null;
+        if (LOG && LOG.always) {
+          LOG.always('llm', 'act 决策', {
+            act: d.act,
+            args: d.args || null,
+            reason: d.reason || null,
+            latency: d.latency_ms || 0,
+            cached: !!d.cached
+          });
+        }
+        return {
+          ok: true,
+          act: d.act,
+          args: d.args || {},
+          reason: d.reason || '',
+          latency: d.latency_ms || 0,
+          cached: !!d.cached
+        };
+      })
+      .catch(function (e) {
+        var isTimeout = e && (e.name === 'AbortError' || /abort/i.test(String(e.message)));
+        if (isTimeout) stats.timeouts++;
+        else stats.failed++;
+        stats.fallbacks++;
+        cfg.lastError = isTimeout ? 'timeout' : String((e && e.message) || e);
+        lg('info', 'act 不可用，调用方应回落单次判定', { error: cfg.lastError });
+        // 与 judge 同一立场：永不 reject，让调用方决定怎么降级
+        return { ok: false, error: cfg.lastError };
+      });
+  }
+
   function health() {
     return fetch(cfg.endpoint.replace(/\/judge$/, '/health'), { method: 'GET' })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -258,6 +324,7 @@
 
   global.LLM = {
     judge: judge,
+    act: act,
     health: health,
     configure: configure,
     config: cfg,
