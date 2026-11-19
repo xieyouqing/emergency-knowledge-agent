@@ -98,20 +98,54 @@ const store = new Map();
 const mk = id => ({
   id, innerHTML: '', hidden: false, value: '', textContent: '',
   addEventListener() {}, querySelectorAll: () => [], querySelector: () => null,
-  scrollIntoView() {}, getAttribute: () => null, setAttribute() {}, closest: () => null
+  scrollIntoView() {}, getAttribute: () => null, setAttribute() {}, closest: () => null,
+  /* 2026-11-19 补：客户端 DOM 组装需要这些（拆分后 app.js 会真去 appendChild） */
+  children: [], appendChild(c) { this.children.push(c); c.parentNode = this; return c; },
+  removeChild(c) { this.children = this.children.filter(x => x !== c); return c; },
+  insertBefore(c) { this.children.unshift(c); c.parentNode = this; return c; },
+  parentNode: null,
+  classList: { add() {}, remove() {}, contains: () => false, toggle() {} }
 });
 const document = {
   getElementById: id => (store.has(id) || store.set(id, mk(id)), store.get(id)),
+  createElement: tag => mk('#' + tag),
+  body: mk('body'),
   querySelectorAll: () => [], addEventListener() {}
 };
-const window = { document, scrollTo() {} };
+/* ⚠️ window 必须带 addEventListener / removeEventListener：
+   拆分后 talk.js 会挂 window 级 pointerup 监听，缺了就直接 TypeError。 */
+const window = {
+  document,
+  scrollTo() {},
+  addEventListener() {},
+  removeEventListener() {},
+  navigator: { onLine: true }
+};
 const sandbox = { window, document, console, Math, String, Number, Object, Array, JSON };
+/* app.js 里读的是裸 navigator（非 window.navigator），两处都要给 */
+sandbox.navigator = window.navigator;
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'knowledge.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'llm.js'), 'utf8'), sandbox);
-vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
+/* ⚠️ 2026-11-19 修：app.js 拆分后（docs/10 §9）这里漏加新模块，
+   导致 `render.js 未加载` 直接崩 —— 拆分时更新了 selftest 与 e2e_*，
+   唯独漏了这个评测脚本。**评测脚本崩了会让人以为「引擎不可用」**，
+   比报错更危险的是它静默退出、没人再跑 l3 基线。
+   顺序必须与 app/index.html 一致（state → chat → tools → render → speak → talk → agent → app）。 */
+for (const f of [
+  'state.js',
+  'chat.js',
+  'tools.js',
+  'render.js',
+  'speak.js',
+  'talk.js',
+  'agent.js',
+  'app.js',
+]) {
+  vm.runInContext(fs.readFileSync(path.join(APP, f), 'utf8'), sandbox);
+}
 const M = sandbox.window.__M1__;
 if (!M) {
   console.error('FAIL: app.js 未导出 __M1__');

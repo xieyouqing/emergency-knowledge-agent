@@ -1,0 +1,482 @@
+{
+ "generated": "2026-11-19T10:54:53.450Z",
+ "endpoint": "http://127.0.0.1:8787/act",
+ "results": {
+  "none": [
+   {
+    "id": "MT01",
+    "group": "分批说症状",
+    "turns": [
+     "老人倒在地上了，叫不醒",
+     "她还有呼吸，但是没反应"
+    ],
+    "input": "她还有呼吸，但是没反应",
+    "expect": "steps",
+    "expectScene": "fall_elderly",
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 1834,
+    "error": null
+   },
+   {
+    "id": "MT02",
+    "group": "分批说症状",
+    "turns": [
+     "厨房有股味道",
+     "现在我妈说头晕恶心"
+    ],
+    "input": "现在我妈说头晕恶心",
+    "expect": "steps",
+    "expectScene": "co_poisoning",
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 2140,
+    "error": null
+   },
+   {
+    "id": "MT03",
+    "group": "代词指代",
+    "turns": [
+     "我爸被开水烫了胳膊",
+     "他皮肤现在发白，不疼了"
+    ],
+    "input": "他皮肤现在发白，不疼了",
+    "expect": "steps",
+    "expectScene": "scald_burn",
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 937,
+    "error": null
+   },
+   {
+    "id": "MT04",
+    "group": "代词指代",
+    "turns": [
+     "我老伴摔了",
+     "他胳膊动不了"
+    ],
+    "input": "他胳膊动不了",
+    "expect": "steps",
+    "expectScene": "fall_elderly",
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 2452,
+    "error": null
+   },
+   {
+    "id": "MT05",
+    "group": "追问后续",
+    "turns": [
+     "有人倒地了",
+     "没有呼吸"
+    ],
+    "input": "没有呼吸",
+    "expect": "steps",
+    "expectScene": "airway_obstruction",
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 8523,
+    "error": null
+   },
+   {
+    "id": "MT06",
+    "group": "追问后续",
+    "turns": [
+     "燃气灶打不着火",
+     "没有味道，就是打不着"
+    ],
+    "input": "没有味道，就是打不着",
+    "expect": "refuse",
+    "expectScene": null,
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 1072,
+    "error": null
+   },
+   {
+    "id": "MT07",
+    "group": "修正上文",
+    "turns": [
+     "煤气漏了",
+     "不是煤气，是楼下饭店的油烟味"
+    ],
+    "input": "不是煤气，是楼下饭店的油烟味",
+    "expect": "refuse",
+    "expectScene": null,
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 960,
+    "error": null
+   },
+   {
+    "id": "MT08",
+    "group": "修正上文",
+    "turns": [
+     "我老伴摔了",
+     "不是他，是孩子从床上掉下来了"
+    ],
+    "input": "不是他，是孩子从床上掉下来了",
+    "expect": "steps",
+    "expectScene": "fall_elderly",
+    "got": "refuse",
+    "acts": [
+     "lookup_scene",
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 2282,
+    "error": null
+   },
+   {
+    "id": "MT09",
+    "group": "时态推进",
+    "turns": [
+     "刚才闻到很浓的煤气味",
+     "现在味道散了，但头还是晕"
+    ],
+    "input": "现在味道散了，但头还是晕",
+    "expect": "steps",
+    "expectScene": "co_poisoning",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 2000,
+    "error": null
+   },
+   {
+    "id": "MT10",
+    "group": "时态推进",
+    "turns": [
+     "电梯突然停了，我被困在里面",
+     "现在电梯动了，门开了"
+    ],
+    "input": "现在电梯动了，门开了",
+    "expect": "daily",
+    "expectScene": "elevator_trapped",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 1814,
+    "error": null
+   },
+   {
+    "id": "MT11",
+    "group": "主体切换",
+    "turns": [
+     "我孙子把纽扣吞下去了",
+     "我自己也咳嗽，嗓子卡了鱼刺"
+    ],
+    "input": "我自己也咳嗽，嗓子卡了鱼刺",
+    "expect": "steps",
+    "expectScene": "airway_obstruction",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 2328,
+    "error": null
+   },
+   {
+    "id": "MT12",
+    "group": "无上文依赖（对照）",
+    "turns": [
+     "煤气漏了",
+     "怎么预防煤气泄漏"
+    ],
+    "input": "怎么预防煤气泄漏",
+    "expect": "daily",
+    "expectScene": "gas_leak",
+    "got": "daily",
+    "acts": [
+     "lookup_scene",
+     "get_daily"
+    ],
+    "needsContext": false,
+    "ok": true,
+    "ms": 4,
+    "error": null
+   }
+  ],
+  "concat": [
+   {
+    "id": "MT01",
+    "group": "分批说症状",
+    "turns": [
+     "老人倒在地上了，叫不醒",
+     "她还有呼吸，但是没反应"
+    ],
+    "input": "老人倒在地上了，叫不醒。她还有呼吸，但是没反应",
+    "expect": "steps",
+    "expectScene": "fall_elderly",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 2032,
+    "error": null
+   },
+   {
+    "id": "MT02",
+    "group": "分批说症状",
+    "turns": [
+     "厨房有股味道",
+     "现在我妈说头晕恶心"
+    ],
+    "input": "厨房有股味道。现在我妈说头晕恶心",
+    "expect": "steps",
+    "expectScene": "co_poisoning",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 1792,
+    "error": null
+   },
+   {
+    "id": "MT03",
+    "group": "代词指代",
+    "turns": [
+     "我爸被开水烫了胳膊",
+     "他皮肤现在发白，不疼了"
+    ],
+    "input": "我爸被开水烫了胳膊。他皮肤现在发白，不疼了",
+    "expect": "steps",
+    "expectScene": "scald_burn",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 1622,
+    "error": null
+   },
+   {
+    "id": "MT04",
+    "group": "代词指代",
+    "turns": [
+     "我老伴摔了",
+     "他胳膊动不了"
+    ],
+    "input": "我老伴摔了。他胳膊动不了",
+    "expect": "steps",
+    "expectScene": "fall_elderly",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 1610,
+    "error": null
+   },
+   {
+    "id": "MT05",
+    "group": "追问后续",
+    "turns": [
+     "有人倒地了",
+     "没有呼吸"
+    ],
+    "input": "有人倒地了。没有呼吸",
+    "expect": "steps",
+    "expectScene": "airway_obstruction",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 1986,
+    "error": null
+   },
+   {
+    "id": "MT06",
+    "group": "追问后续",
+    "turns": [
+     "燃气灶打不着火",
+     "没有味道，就是打不着"
+    ],
+    "input": "燃气灶打不着火。没有味道，就是打不着",
+    "expect": "refuse",
+    "expectScene": null,
+    "got": "refuse",
+    "acts": [
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 674,
+    "error": null
+   },
+   {
+    "id": "MT07",
+    "group": "修正上文",
+    "turns": [
+     "煤气漏了",
+     "不是煤气，是楼下饭店的油烟味"
+    ],
+    "input": "煤气漏了。不是煤气，是楼下饭店的油烟味",
+    "expect": "refuse",
+    "expectScene": null,
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 2013,
+    "error": null
+   },
+   {
+    "id": "MT08",
+    "group": "修正上文",
+    "turns": [
+     "我老伴摔了",
+     "不是他，是孩子从床上掉下来了"
+    ],
+    "input": "我老伴摔了。不是他，是孩子从床上掉下来了",
+    "expect": "steps",
+    "expectScene": "fall_elderly",
+    "got": "refuse",
+    "acts": [
+     "lookup_scene",
+     "refuse"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 2212,
+    "error": null
+   },
+   {
+    "id": "MT09",
+    "group": "时态推进",
+    "turns": [
+     "刚才闻到很浓的煤气味",
+     "现在味道散了，但头还是晕"
+    ],
+    "input": "刚才闻到很浓的煤气味。现在味道散了，但头还是晕",
+    "expect": "steps",
+    "expectScene": "co_poisoning",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 1665,
+    "error": null
+   },
+   {
+    "id": "MT10",
+    "group": "时态推进",
+    "turns": [
+     "电梯突然停了，我被困在里面",
+     "现在电梯动了，门开了"
+    ],
+    "input": "电梯突然停了，我被困在里面。现在电梯动了，门开了",
+    "expect": "daily",
+    "expectScene": "elevator_trapped",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": false,
+    "ms": 1766,
+    "error": null
+   },
+   {
+    "id": "MT11",
+    "group": "主体切换",
+    "turns": [
+     "我孙子把纽扣吞下去了",
+     "我自己也咳嗽，嗓子卡了鱼刺"
+    ],
+    "input": "我孙子把纽扣吞下去了。我自己也咳嗽，嗓子卡了鱼刺",
+    "expect": "steps",
+    "expectScene": "airway_obstruction",
+    "got": "steps",
+    "acts": [
+     "lookup_scene",
+     "get_steps"
+    ],
+    "needsContext": true,
+    "ok": true,
+    "ms": 1835,
+    "error": null
+   },
+   {
+    "id": "MT12",
+    "group": "无上文依赖（对照）",
+    "turns": [
+     "煤气漏了",
+     "怎么预防煤气泄漏"
+    ],
+    "input": "煤气漏了。怎么预防煤气泄漏",
+    "expect": "daily",
+    "expectScene": "gas_leak",
+    "got": "daily",
+    "acts": [
+     "lookup_scene",
+     "get_daily"
+    ],
+    "needsContext": false,
+    "ok": true,
+    "ms": 1860,
+    "error": null
+   }
+  ]
+ }
+}

@@ -30,24 +30,95 @@ function makeEl(id) {
     className: '',
     handlers: {},
     classList: {
-      add(c) { cls.add(c); },
-      remove(c) { cls.delete(c); },
-      contains(c) { return cls.has(c); },
-      toggle(c, on) { if (on === undefined) { cls.has(c) ? cls.delete(c) : cls.add(c); } else if (on) cls.add(c); else cls.delete(c); }
+      add(c) {
+        cls.add(c);
+      },
+      remove(c) {
+        cls.delete(c);
+      },
+      contains(c) {
+        return cls.has(c);
+      },
+      toggle(c, on) {
+        if (on === undefined) {
+          cls.has(c) ? cls.delete(c) : cls.add(c);
+        } else if (on) cls.add(c);
+        else cls.delete(c);
+      },
     },
     _classes: cls,
     children: [],
-    addEventListener(type, fn) { (this.handlers[type] ||= []).push(fn); },
-    querySelectorAll() { return []; },
-    querySelector() { return null; },
+    addEventListener(type, fn) {
+      (this.handlers[type] ||= []).push(fn);
+    },
+    /* 2026-11-19 补：只解析两种选择器，够用即止，不做通用实现。
+       —— 这里补的是 **stub 能力**，断言口径未变。
+
+       为什么必须补：`renderAsk` 的点击链路（点选项 → handleQuery）此前
+       完全没有覆盖，而它是「追问」唯一的出口。stub 永远返回空数组时，
+       forEach 一次都不执行，handler 从未装上 —— 测试全绿但功能可能是死的。
+       这与 docs/10 §9.3 记的那类「界面正常、行为静默失效」是同一个陷阱。
+
+       ⚠️ 只认 `.ask-choice` 与 `[data-act="x"]` 两种，是因为业务代码里
+       只有这两处用选择器查 DOM。新增第三种时必须同步扩这里，
+       否则新代码会拿到空数组（症状：断言通过但行为未覆盖）。 */
+    querySelectorAll(sel) {
+      if (sel !== '.ask-choice') return [];
+      /* 必须缓存：每次新建元素会导致「renderAsk 挂 handler 的那批元素」
+         与「测试后面拿到的那批元素」不是同一批 —— handlers 永远是空的。
+         实测踩过：断言报「每个选项应挂 1 个 click 处理」失败，
+         而真实浏览器里 handler 是装上的（同一个 DOM 节点）。
+         按 innerHTML 内容做键：重新渲染后自动失效。 */
+      const html = String(this.innerHTML || '');
+      if (this._askCache && this._askCache.html === html) return this._askCache.els;
+      const out = [];
+      const re = /class="ask-choice"[^>]*data-i="(\d+)"/g;
+      let m;
+      while ((m = re.exec(html))) {
+        const btn = makeEl('#ask-choice-' + m[1]);
+        btn._attrs = { 'data-i': m[1] };
+        btn.getAttribute = function (k) {
+          return (this._attrs || {})[k] ?? null;
+        };
+        out.push(btn);
+      }
+      this._askCache = { html, els: out };
+      return out;
+    },
+    querySelector(sel) {
+      const m = /^\[data-act="([a-z-]+)"\]$/.exec(sel || '');
+      if (!m) return null;
+      if (String(this.innerHTML || '').indexOf('data-act="' + m[1] + '"') < 0) return null;
+      const el = makeEl('#data-act-' + m[1]);
+      el._attrs = { 'data-act': m[1] };
+      el.getAttribute = function (k) {
+        return (this._attrs || {})[k] ?? null;
+      };
+      return el;
+    },
     scrollIntoView() {},
-    getAttribute() { return null; },
+    getAttribute() {
+      return null;
+    },
     setAttribute() {},
-    closest() { return null; },
-    appendChild(c) { this.children.push(c); c.parentNode = this; return c; },
-    removeChild(c) { this.children = this.children.filter(x => x !== c); return c; },
-    insertBefore(c) { this.children.unshift(c); c.parentNode = this; return c; },
-    parentNode: null
+    closest() {
+      return null;
+    },
+    appendChild(c) {
+      this.children.push(c);
+      c.parentNode = this;
+      return c;
+    },
+    removeChild(c) {
+      this.children = this.children.filter((x) => x !== c);
+      return c;
+    },
+    insertBefore(c) {
+      this.children.unshift(c);
+      c.parentNode = this;
+      return c;
+    },
+    parentNode: null,
   };
   return e;
 }
@@ -56,31 +127,82 @@ const document = {
     if (!store.has(id)) store.set(id, makeEl(id));
     return store.get(id);
   },
-  querySelectorAll() { return []; },
-  addEventListener() {}
+  /* 2026-11-19 聊天式改造新增：消息流每条回答都会 createElement 新容器，
+     并动态接管 dailyAnswer / emgAnswer 这两个 id。
+     因此 stub 必须支持：
+       - createElement(tag)          → 造一个空元素
+       - setAttribute('id', v)       → 把该元素注册进 store（getElementById 能拿到「最新那条」）
+       - removeAttribute('id')       → 从 store 注销（旧消息保留 DOM，但不再是「最新」）
+     这是 stub 能力增强，**没有改任何断言口径**：623 条断言仍按
+     getElementById('dailyAnswer').innerHTML 取「最新回答」，语义不变。 */
+  createElement(tag) {
+    const n = makeEl('#' + tag);
+    // 覆写 setAttribute / removeAttribute，让 id 能真正影响 store
+    n.setAttribute = function (k, v) {
+      this._attrs = this._attrs || {};
+      this._attrs[k] = v;
+      if (k === 'id') {
+        store.set(String(v), this);
+        this.id = String(v);
+      }
+    };
+    n.removeAttribute = function (k) {
+      if (k === 'id') {
+        for (const [key, val] of store.entries()) {
+          if (val === this) store.delete(key);
+        }
+        this.id = '';
+      }
+    };
+    n.textContent = '';
+    n.tagName = String(tag).toUpperCase();
+    return n;
+  },
+  querySelectorAll() {
+    return [];
+  },
+  addEventListener() {},
+  /* 2026-11-19 聊天式改造：紧急态靠 body 上的 is-emergency 类做样式，
+     不再靠隐藏视图。stub 补一个 body 节点即可（makeEl 已提供 classList）。 */
+  body: makeEl('body'),
 };
 const window = { document, scrollTo() {}, addEventListener() {}, removeEventListener() {} };
 /* ---------- speechSynthesis stub：让 voice.js 能跑，且能断言「说了什么」 ---------- */
 const spoken = [];
-function SpeechSynthesisUtteranceStub(text) { this.text = text; this.lang = ''; this.rate = 1; }
+function SpeechSynthesisUtteranceStub(text) {
+  this.text = text;
+  this.lang = '';
+  this.rate = 1;
+}
 const speechSynthesisStub = {
   getVoices() {
     return [
       { name: 'Microsoft Huihui', lang: 'zh-CN' },
       { name: 'Google 普通话', lang: 'zh-CN' },
-      { name: 'Alex', lang: 'en-US' }
+      { name: 'Alex', lang: 'en-US' },
     ];
   },
-  speak(u) { spoken.push({ text: u.text, lang: u.lang, rate: u.rate }); if (u.onend) u.onend(); },
+  speak(u) {
+    spoken.push({ text: u.text, lang: u.lang, rate: u.rate });
+    if (u.onend) u.onend();
+  },
   cancel() {},
-  addEventListener() {}
+  addEventListener() {},
 };
 
 const sandbox = {
-  window, document, console, Math, String, Number, Object, Array, JSON,
+  window,
+  document,
+  console,
+  Math,
+  String,
+  Number,
+  Object,
+  Array,
+  JSON,
   speechSynthesis: speechSynthesisStub,
   SpeechSynthesisUtterance: SpeechSynthesisUtteranceStub,
-  localStorage: null
+  localStorage: null,
 };
 // voice.js 用 `typeof window !== 'undefined' ? window : globalThis` 取全局，
 // 所以 stub 的 window 上必须也有这两个 API，否则它会走到「不支持」分支。
@@ -95,6 +217,15 @@ vm.runInContext(fs.readFileSync(path.join(APP, 'retrieval.js'), 'utf8'), sandbox
 vm.runInContext(fs.readFileSync(path.join(APP, 'llm.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'voice.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'asr.js'), 'utf8'), sandbox);
+/* 2026-11-19 拆分（docs/10 §7）：顺序必须与 app/index.html 一致。
+   state → render → speak → talk → app，缺一个就会让 app.js 的 throw 触发。 */
+vm.runInContext(fs.readFileSync(path.join(APP, 'state.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'chat.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'tools.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'render.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'speak.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'talk.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(APP, 'agent.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(APP, 'app.js'), 'utf8'), sandbox);
 
 /* 离线自测不该写盘：关掉远端，只验内存缓冲与格式。
@@ -108,19 +239,31 @@ if (!M) {
 }
 
 /* ---------- 断言框架 ---------- */
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 const failures = [];
 function ok(cond, msg) {
-  if (cond) { pass++; }
-  else { fail++; failures.push(msg); }
+  if (cond) {
+    pass++;
+  } else {
+    fail++;
+    failures.push(msg);
+  }
 }
 
 /* ---------- 1. 构建产物只含 published 条目 ----------
    2026-11-18 起新增 6 条，total 9（drowning 因 §3.8 禁令不写，槽位仍为 slot） */
 const meta = M.kbMeta;
 const allowed = [
-  'airway_obstruction', 'co_poisoning', 'earthquake', 'electric_shock',
-  'elevator_trapped', 'fall_elderly', 'fire_home', 'gas_leak', 'scald_burn'
+  'airway_obstruction',
+  'co_poisoning',
+  'earthquake',
+  'electric_shock',
+  'elevator_trapped',
+  'fall_elderly',
+  'fire_home',
+  'gas_leak',
+  'scald_burn',
 ];
 ok(meta.slots === 9, `图标槽位应为 9 个（实际 ${meta.slots}）`);
 ok(meta.entries === 9, `条目应为 9 条（实际 ${meta.entries}）`);
@@ -164,24 +307,42 @@ const IN_CASES = [
   ['电梯不动了', 'elevator_trapped'],
   ['关在电梯里面', 'elevator_trapped'],
   ['电梯停了', 'elevator_trapped'],
-  ['被困在电梯里了', 'elevator_trapped']
+  ['被困在电梯里了', 'elevator_trapped'],
 ];
 let hit = 0;
 for (const [text, expect] of IN_CASES) {
   const r = M.routeOf(text);
   if (r.entryId === expect) hit++;
-  else failures.push(`命中失败: 「${text}」期望 ${expect}，实际 ${r.entryId || 'null'}（danger=${r.dangerId}）`);
+  else
+    failures.push(
+      `命中失败: 「${text}」期望 ${expect}，实际 ${r.entryId || 'null'}（danger=${r.dangerId}）`
+    );
 }
 ok(hit >= 17, `库内命中率 ${hit}/20，应 ≥ 17`);
 console.log(`  库内命中: ${hit}/${IN_CASES.length}`);
 
 /* ---------- 3. 库外拒答（20 条，必须 20/20） ---------- */
 const OUT_CASES = [
-  '今天天气怎么样', '帮我写个请假条', '红烧肉怎么做', '股票会涨吗',
-  '我睡眠不好怎么办', '怎么减肥', '电脑开不了机', '帮我订机票',
-  '你叫什么名字', '明天要下雨吗', '推荐一部电影', '怎么学英语',
-  '手机没电了', '我想聊天', '讲个笑话', '汽车打不着火',
-  '水管冻裂了', '门锁坏了打不开', '邻居太吵怎么办', '怎么办理身份证'
+  '今天天气怎么样',
+  '帮我写个请假条',
+  '红烧肉怎么做',
+  '股票会涨吗',
+  '我睡眠不好怎么办',
+  '怎么减肥',
+  '电脑开不了机',
+  '帮我订机票',
+  '你叫什么名字',
+  '明天要下雨吗',
+  '推荐一部电影',
+  '怎么学英语',
+  '手机没电了',
+  '我想聊天',
+  '讲个笑话',
+  '汽车打不着火',
+  '水管冻裂了',
+  '门锁坏了打不开',
+  '邻居太吵怎么办',
+  '怎么办理身份证',
 ];
 let refused = 0;
 for (const text of OUT_CASES) {
@@ -203,7 +364,7 @@ const DANGER_CASES = [
   ['老人噎住了', 'airway_obstruction'],
   ['有人落水了', 'drowning'],
   ['地震了', 'earthquake'],
-  ['烫伤了怎么办', 'scald_burn']
+  ['烫伤了怎么办', 'scald_burn'],
 ];
 for (const [text, expect] of DANGER_CASES) {
   const r = M.routeOf(text);
@@ -228,10 +389,13 @@ for (const [text, expect] of [
   ['地震了', 'earthquake'],
   ['老人噎住了', 'airway_obstruction'],
   ['烫伤了怎么办', 'scald_burn'],
-  ['一氧化碳中毒', 'co_poisoning']
+  ['一氧化碳中毒', 'co_poisoning'],
 ]) {
   const r = M.routeOf(text);
-  ok(r.entryId === expect, `「${text}」应给出 ${expect} 的步骤卡（实际 entryId=${r.entryId}, dialOnly=${r.dialOnly}）`);
+  ok(
+    r.entryId === expect,
+    `「${text}」应给出 ${expect} 的步骤卡（实际 entryId=${r.entryId}, dialOnly=${r.dialOnly}）`
+  );
   ok(r.dialOnly === false, `「${text}」已发布场景不应走拨号卡`);
 }
 
@@ -295,9 +459,15 @@ for (const id of Object.keys(M.entries)) {
 {
   const css = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
   const tap = css.match(/\.step\{[^}]*min-height:\s*(\d+)px/s);
-  ok(!!tap && Number(tap[1]) >= 48, `打勾点击区 min-height 应 ≥ 48px，实际 ${tap ? tap[1] + 'px' : '未找到'}`);
+  ok(
+    !!tap && Number(tap[1]) >= 48,
+    `打勾点击区 min-height 应 ≥ 48px，实际 ${tap ? tap[1] + 'px' : '未找到'}`
+  );
   const fsMin = css.match(/--fs-min:\s*(\d+)px/);
-  ok(!!fsMin && Number(fsMin[1]) >= 32, `最小字号应 ≥ 32px（=24pt），实际 ${fsMin ? fsMin[1] + 'px' : '未找到'}`);
+  ok(
+    !!fsMin && Number(fsMin[1]) >= 32,
+    `最小字号应 ≥ 32px（=24pt），实际 ${fsMin ? fsMin[1] + 'px' : '未找到'}`
+  );
   const box = css.match(/\.step \.box\{[^}]*width:\s*(\d+)px/s);
   ok(!!box && Number(box[1]) >= 48, `复选框尺寸应 ≥ 48px，实际 ${box ? box[1] + 'px' : '未找到'}`);
 }
@@ -322,17 +492,28 @@ for (const id of Object.keys(M.entries)) {
 {
   const R = sandbox.window.RETRIEVAL;
   ok(!!R, 'retrieval.js 应导出 window.RETRIEVAL');
-  ok(R.defaultEngine() === 'l3',
-    `生产默认引擎必须仍是 l3（实际 ${R.defaultEngine()}）。改成别的须先提案（D-3）`);
-  ok(R.engines().join(',') === 'l3,bm25,hybrid', `引擎清单应为 l3,bm25,hybrid（实际 ${R.engines().join(',')}）`);
+  ok(
+    R.defaultEngine() === 'l3',
+    `生产默认引擎必须仍是 l3（实际 ${R.defaultEngine()}）。改成别的须先提案（D-3）`
+  );
+  ok(
+    R.engines().join(',') === 'l3,bm25,hybrid',
+    `引擎清单应为 l3,bm25,hybrid（实际 ${R.engines().join(',')}）`
+  );
 
   const ENT = M.entries;
   const probe = '被困电梯和摔倒';
   for (const eng of R.engines()) {
     const r = R.retrieve(ENT, probe, { engine: eng });
     ok(r && typeof r === 'object', `${eng} 应返回对象`);
-    ok('entryId' in r && 'score' in r && 'layer' in r && 'matchedBy' in r && Array.isArray(r.candidates),
-      `${eng} 返回结构须含 entryId/score/layer/matchedBy/candidates（五个字段缺一不可，评测脚本依赖同形）`);
+    ok(
+      'entryId' in r &&
+        'score' in r &&
+        'layer' in r &&
+        'matchedBy' in r &&
+        Array.isArray(r.candidates),
+      `${eng} 返回结构须含 entryId/score/layer/matchedBy/candidates（五个字段缺一不可，评测脚本依赖同形）`
+    );
     ok(r.layer === eng, `${eng} 返回的 layer 应等于请求的引擎名（实际 ${r.layer}）`);
   }
 
@@ -352,7 +533,10 @@ for (const id of Object.keys(M.entries)) {
 
   // BM25 分词：中文 bigram + ASCII 整段
   const tk = R._internals.tokenize('煤气泄漏 120');
-  ok(tk.includes('煤气') && tk.includes('气泄') && tk.includes('泄漏'), `BM25 应对中文做 bigram（实际 ${tk.join('/')}）`);
+  ok(
+    tk.includes('煤气') && tk.includes('气泄') && tk.includes('泄漏'),
+    `BM25 应对中文做 bigram（实际 ${tk.join('/')}）`
+  );
   ok(tk.includes('120'), `BM25 应把连续 ASCII 当整词（实际 ${tk.join('/')}）`);
 
   // 索引规模断言：只在 N=3 时成立（df 全为 1 → IDF 失效，见 docs/03 §6.6）
@@ -360,11 +544,16 @@ for (const id of Object.keys(M.entries)) {
   // 硬编码 N 会让每次加条目都误报，那不是判据，是噪音。
   const idx = R._internals.buildIndex(Object.values(ENT));
   const dfVals = Object.values(idx.df);
-  const ratio = dfVals.filter(d => d === 1).length / dfVals.length;
-  ok(idx.N === Object.keys(ENT).length, `BM25 索引文档数应等于条目数（${idx.N} vs ${Object.keys(ENT).length}）`);
+  const ratio = dfVals.filter((d) => d === 1).length / dfVals.length;
+  ok(
+    idx.N === Object.keys(ENT).length,
+    `BM25 索引文档数应等于条目数（${idx.N} vs ${Object.keys(ENT).length}）`
+  );
   ok(dfVals.length > 0, 'BM25 索引不应为空');
-  console.log(`  BM25 索引: N=${idx.N}, 词项=${dfVals.length}, df=1 占比=${(ratio * 100).toFixed(1)}%`
-    + (ratio >= 1 ? ' ← 仍为 100%，IDF 依然失效，引擎对照仍无区分度' : ' ← IDF 已部分恢复区分度'));
+  console.log(
+    `  BM25 索引: N=${idx.N}, 词项=${dfVals.length}, df=1 占比=${(ratio * 100).toFixed(1)}%` +
+      (ratio >= 1 ? ' ← 仍为 100%，IDF 依然失效，引擎对照仍无区分度' : ' ← IDF 已部分恢复区分度')
+  );
 }
 
 /* ---------- 11.7 LLM 路由映射（v1.0 新增，全部离线可测） ----------
@@ -381,31 +570,52 @@ for (const id of Object.keys(M.entries)) {
 
   // ① 失败/空判定 → 返回 null（交回 l3），不是「拒答」
   for (const bad of [null, {}, { ok: false }, undefined]) {
-    ok(L.routeByVerdict(bad, E, noDanger, '任意') === null,
-      `判定为 ${JSON.stringify(bad)} 时应返回 null 让调用方回落 l3，而不是直接拒答`);
+    ok(
+      L.routeByVerdict(bad, E, noDanger, '任意') === null,
+      `判定为 ${JSON.stringify(bad)} 时应返回 null 让调用方回落 l3，而不是直接拒答`
+    );
   }
 
   // ② ongoing + 已发布场景 → steps
-  ok(L.routeByVerdict({ ok: true, intent: 'ongoing', scene: 'gas_leak' }, E, noDanger, 'x').action === 'steps',
-    'ongoing + 已发布场景 应给 steps');
+  ok(
+    L.routeByVerdict({ ok: true, intent: 'ongoing', scene: 'gas_leak' }, E, noDanger, 'x')
+      .action === 'steps',
+    'ongoing + 已发布场景 应给 steps'
+  );
 
   // ③ ongoing + 未发布场景 → dialonly（S1：不给步骤）
   {
-    const r = L.routeByVerdict({ ok: true, intent: 'ongoing', scene: 'drowning' }, E, noDanger, 'x');
+    const r = L.routeByVerdict(
+      { ok: true, intent: 'ongoing', scene: 'drowning' },
+      E,
+      noDanger,
+      'x'
+    );
     ok(r.action === 'dialonly', 'ongoing + 未发布场景 应给 dialonly，不得给步骤（S1）');
   }
 
   // ④ ongoing 但无场景 → refuse
-  ok(L.routeByVerdict({ ok: true, intent: 'ongoing', scene: null }, E, noDanger, 'x').action === 'refuse',
-    'ongoing 但判不出场景 应 refuse');
+  ok(
+    L.routeByVerdict({ ok: true, intent: 'ongoing', scene: null }, E, noDanger, 'x').action ===
+      'refuse',
+    'ongoing 但判不出场景 应 refuse'
+  );
 
   // ⑤ prevention + 已发布 → daily
-  ok(L.routeByVerdict({ ok: true, intent: 'prevention', scene: 'fire_home' }, E, noDanger, 'x').action === 'daily',
-    'prevention + 已发布场景 应给日常解释');
+  ok(
+    L.routeByVerdict({ ok: true, intent: 'prevention', scene: 'fire_home' }, E, noDanger, 'x')
+      .action === 'daily',
+    'prevention + 已发布场景 应给日常解释'
+  );
 
   // ⑥ off_scope → refuse，即使模型误带了场景
   {
-    const r = L.routeByVerdict({ ok: true, intent: 'off_scope', scene: 'gas_leak' }, E, noDanger, 'x');
+    const r = L.routeByVerdict(
+      { ok: true, intent: 'off_scope', scene: 'gas_leak' },
+      E,
+      noDanger,
+      'x'
+    );
     ok(r.action === 'refuse', 'off_scope 必须 refuse，模型误带场景也不得给内容');
   }
 
@@ -413,40 +623,68 @@ for (const id of Object.keys(M.entries)) {
      （2026-11-18 修 bug 后收紧；off_scope 时不得兜底，见下面 ⑩） */
   {
     const dangerFn = () => ({ id: 'gas_leak', number: '119' });
-    const r = L.routeByVerdict({ ok: true, intent: 'ongoing', scene: null, confidence: 0.9 }, E, dangerFn, '有股怪味');
-    ok(r.action === 'steps' && r.entryId === 'gas_leak',
-      'ongoing 但归不出场景时，应由关键词兜底给出步骤',
+    const r = L.routeByVerdict(
+      { ok: true, intent: 'ongoing', scene: null, confidence: 0.9 },
+      E,
+      dangerFn,
+      '有股怪味'
+    );
+    ok(
+      r.action === 'steps' && r.entryId === 'gas_leak',
+      'ongoing 但归不出场景时，应由关键词兜底给出步骤'
     );
     ok(r.reason === 'danger-override', `该分支 reason 应为 danger-override，实际 ${r.reason}`);
   }
 
   // ⑧ 未知 intent 一律 refuse（不猜）
-  ok(L.routeByVerdict({ ok: true, intent: 'whatever', scene: 'gas_leak' }, E, noDanger, 'x').action === 'refuse',
-    '未知 intent 必须 refuse');
+  ok(
+    L.routeByVerdict({ ok: true, intent: 'whatever', scene: 'gas_leak' }, E, noDanger, 'x')
+      .action === 'refuse',
+    '未知 intent 必须 refuse'
+  );
 
   /* ⑨ 置信度门槛（docs/03 §2.2「低于阈值不猜」）
      这是让 ④ 库外误纳率归零的机制，掉了就说明安全项会破。 */
   {
     const dangerFn = () => ({ id: 'gas_leak', number: '119' });
     const low = L.routeByVerdict(
-      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.55 }, E, dangerFn, '燃气灶打不着火');
+      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.55 },
+      E,
+      dangerFn,
+      '燃气灶打不着火'
+    );
     ok(low.action === 'refuse', `置信度 0.55 < 0.60 时必须 refuse，实际 ${low.action}`);
-    ok(low.reason === 'low-confidence', `低置信度分支 reason 应为 low-confidence，实际 ${low.reason}`);
+    ok(
+      low.reason === 'low-confidence',
+      `低置信度分支 reason 应为 low-confidence，实际 ${low.reason}`
+    );
     ok(low.entryId === null, '低置信度不得给出任何条目');
 
     // 边界：恰好 0.60 应当放行（用 < 比较，不是 <=）
     const edge = L.routeByVerdict(
-      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.60 }, E, noDanger, '煤气漏了');
+      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.6 },
+      E,
+      noDanger,
+      '煤气漏了'
+    );
     ok(edge.action === 'steps', `置信度恰好 0.60 应放行，实际 ${edge.action}`);
 
     // 高置信度正常走
     const high = L.routeByVerdict(
-      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.95 }, E, noDanger, '煤气漏了');
+      { ok: true, intent: 'ongoing', scene: 'gas_leak', confidence: 0.95 },
+      E,
+      noDanger,
+      '煤气漏了'
+    );
     ok(high.action === 'steps', '高置信度应正常给步骤');
 
     // confidence 缺失时不得误伤（不能把 undefined 当 0）
     const noConf = L.routeByVerdict(
-      { ok: true, intent: 'ongoing', scene: 'gas_leak' }, E, noDanger, '煤气漏了');
+      { ok: true, intent: 'ongoing', scene: 'gas_leak' },
+      E,
+      noDanger,
+      '煤气漏了'
+    );
     ok(noConf.action === 'steps', 'confidence 缺失时不应触发降级（undefined 不等于 0）');
   }
 
@@ -455,7 +693,11 @@ for (const id of Object.keys(M.entries)) {
     const dangerFn = () => ({ id: 'elevator_trapped', number: '119' });
     // LLM 正确判 off_scope，但关键词命中「电梯」——不得因此给步骤
     const r = L.routeByVerdict(
-      { ok: true, intent: 'off_scope', scene: null, confidence: 0.95 }, E, dangerFn, '电梯广告怎么投诉');
+      { ok: true, intent: 'off_scope', scene: null, confidence: 0.95 },
+      E,
+      dangerFn,
+      '电梯广告怎么投诉'
+    );
     ok(r.action === 'refuse', `off_scope 时即使关键词命中危险信号也必须 refuse，实际 ${r.action}`);
     ok(r.entryId === null, 'off_scope 不得给出条目');
   }
@@ -474,8 +716,10 @@ for (const id of Object.keys(M.entries)) {
   await T.detect();
   ok(T.state.engine === 'web', `有 speechSynthesis 时应选 web 引擎（实际 ${T.state.engine}）`);
   ok(T.state.supported === true, '有中文音色时 supported 应为 true');
-  ok(T.state.voiceName && /Huihui|普通话/.test(T.state.voiceName),
-    `应优先选中文音色（实际 ${T.state.voiceName}）`);
+  ok(
+    T.state.voiceName && /Huihui|普通话/.test(T.state.voiceName),
+    `应优先选中文音色（实际 ${T.state.voiceName}）`
+  );
 
   // ② 朗读稿 = 条目字段的拼接，一个字都不许改（S1）
   for (const id of Object.keys(M.entries)) {
@@ -503,8 +747,10 @@ for (const id of Object.keys(M.entries)) {
     }
     const callSentence = T.composeEmergencyCallSentence(e);
     if (callSentence) stripped = stripped.split(callSentence).join('');
-    ok(stripped.replace(/[。，！？：；\s]/g, '') === '',
-      `${id} 朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
+    ok(
+      stripped.replace(/[。，！？：；\s]/g, '') === '',
+      `${id} 朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`
+    );
   }
 
   /* ②-b S5：生命危险场景的播报必须含「同时拨打 N」，缺一即失败。
@@ -525,8 +771,10 @@ for (const id of Object.keys(M.entries)) {
 
       if (e.life_threatening) {
         ok(call.length > 0, `${id} 是生命危险条目，必须生成安全句（S5）`);
-        ok(call.includes(String(e.emergency_number)),
-          `${id} 安全句应含本条号码 ${e.emergency_number}，实际「${call}」`);
+        ok(
+          call.includes(String(e.emergency_number)),
+          `${id} 安全句应含本条号码 ${e.emergency_number}，实际「${call}」`
+        );
         ok(stepScript.includes(call), `${id} 步骤朗读稿必须含安全句（S5：播报须含该句）`);
 
         // 分诊卡是这类场景的首屏，同样要有
@@ -544,7 +792,10 @@ for (const id of Object.keys(M.entries)) {
         ok(!stepScript.includes('同时拨打'), `${id} 非生命危险条目不应念「同时拨打」`);
       }
     }
-    ok(withCall.length === 6, `应有 6 条生命危险条目带安全句，实际 ${withCall.length}（${withCall.join(',')}）`);
+    ok(
+      withCall.length === 6,
+      `应有 6 条生命危险条目带安全句，实际 ${withCall.length}（${withCall.join(',')}）`
+    );
     // 号码必须真实区分：不能全是同一个号（那就是硬写 120 的症状）
     const nums = new Set(withCall.map((x) => x.split(':')[1]));
     ok(nums.size >= 2, `生命危险条目的号码应至少有两种（119/120），实际 ${[...nums].join('/')}`);
@@ -553,14 +804,16 @@ for (const id of Object.keys(M.entries)) {
   // ③ 分诊覆盖：选了「还有很浓的味」应读 override 的步骤，不是默认步骤
   {
     const e = M.entries.gas_leak;
-    const opt = e.triage.options.find(o => o.override && o.override.immediate);
+    const opt = e.triage.options.find((o) => o.override && o.override.immediate);
     ok(!!opt, 'gas_leak 应有带 override 的分诊选项');
     const script = T.composeStepsScript(e, opt.override.immediate);
     for (const s of opt.override.immediate) {
       ok(script.includes(s.text), `分诊后朗读稿应包含 override 步骤「${s.text}」`);
     }
-    ok(!script.includes(e.steps.immediate[0].text),
-      '分诊后朗读稿不应再包含默认 immediate 步骤（否则会读错指导）');
+    ok(
+      !script.includes(e.steps.immediate[0].text),
+      '分诊后朗读稿不应再包含默认 immediate 步骤（否则会读错指导）'
+    );
   }
 
   // ④ 不可用时必须给明确原因，且 speak 返回 reason 而不是假装成功
@@ -622,12 +875,17 @@ for (const id of Object.keys(M.entries)) {
   {
     const css = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
     const btn = css.match(/\.voice-btn\{[^}]*min-height:\s*(\d+)px/s);
-    ok(!!btn && Number(btn[1]) >= 48, `语音按钮 min-height 应 ≥ 48px，实际 ${btn ? btn[1] + 'px' : '未找到'}`);
+    ok(
+      !!btn && Number(btn[1]) >= 48,
+      `语音按钮 min-height 应 ≥ 48px，实际 ${btn ? btn[1] + 'px' : '未找到'}`
+    );
     const fsMin = css.match(/\.voice-btn\{[^}]*font-size:\s*var\(--fs-min\)/s);
     ok(!!fsMin, '语音按钮字号须用 var(--fs-min)，不得小于 24pt');
     const stopFlex = css.match(/\.voice-btn\.is-stop\{[^}]*flex:\s*0 0 (\d+)%/s);
-    ok(!!stopFlex && Number(stopFlex[1]) >= 30,
-      `停止按钮宽度应 ≥30%（老人要能一把按到），实际 ${stopFlex ? stopFlex[1] + '%' : '未找到'}`);
+    ok(
+      !!stopFlex && Number(stopFlex[1]) >= 30,
+      `停止按钮宽度应 ≥30%（老人要能一把按到），实际 ${stopFlex ? stopFlex[1] + '%' : '未找到'}`
+    );
   }
 
   /* ---------- 自动朗读（M2，用户裁决 B）----------
@@ -640,8 +898,8 @@ for (const id of Object.keys(M.entries)) {
     function resetCards() {
       M2.state.mode = 'daily';
       M2.state.locked = false;
-      store.get('dailyAnswer').innerHTML = '';
-      store.get('emgAnswer').innerHTML = '';
+      document.getElementById('dailyAnswer').innerHTML = '';
+      document.getElementById('emgAnswer').innerHTML = '';
       M2.autoReadState.muted = false;
     }
 
@@ -654,8 +912,10 @@ for (const id of Object.keys(M.entries)) {
       const box = makeEl('auto1');
       M2.renderStepsCard(M2.entries.fire_home, box);
       ok(spoken.length === before + 1, '紧急模式下出步骤卡应自动朗读一次');
-      ok(spoken[spoken.length - 1].text.includes(M2.entries.fire_home.steps.immediate[0].text),
-        '自动朗读内容应包含第一条步骤');
+      ok(
+        spoken[spoken.length - 1].text.includes(M2.entries.fire_home.steps.immediate[0].text),
+        '自动朗读内容应包含第一条步骤'
+      );
     }
 
     // ② 日常模式下**步骤卡**不自动读（老人可能只是想看看，不要求听）
@@ -683,7 +943,8 @@ for (const id of Object.keys(M.entries)) {
       const said = spoken[spoken.length - 1].text;
       ok(said.includes(e.name), '日常卡自动朗读应包含场景名');
       ok(said.includes(e.daily.summary), '日常卡自动朗读应包含摘要');
-      if (e.daily.why) ok(!said.includes(e.daily.why), '日常卡自动朗读不应念「原因」全文（念长了会被按停止）');
+      if (e.daily.why)
+        ok(!said.includes(e.daily.why), '日常卡自动朗读不应念「原因」全文（念长了会被按停止）');
       const p0 = (e.daily.prevention || [])[0];
       if (p0) ok(!said.includes(p0), '日常卡自动朗读不应念「平时怎么做」清单');
       ok(box.innerHTML.includes('data-act="read"'), '日常卡应有朗读按钮');
@@ -707,11 +968,15 @@ for (const id of Object.keys(M.entries)) {
       e.triage.options.forEach(function (o) {
         ok(said.includes(o.label), `自动朗读应包含分诊选项「${o.label}」`);
       });
-      ok(!said.includes(e.steps.immediate[0].text),
-        '分诊阶段不应读出步骤（用户还没选，读默认步骤会误导）');
+      ok(
+        !said.includes(e.steps.immediate[0].text),
+        '分诊阶段不应读出步骤（用户还没选，读默认步骤会误导）'
+      );
       // S5：分诊是这三条场景的首屏，必须听到「同时拨打 N」
-      ok(said.includes('同时拨打' + e.emergency_number),
-        `分诊朗读应含 S5 安全句（同时拨打${e.emergency_number}），实际「${said.slice(-30)}」`);
+      ok(
+        said.includes('同时拨打' + e.emergency_number),
+        `分诊朗读应含 S5 安全句（同时拨打${e.emergency_number}），实际「${said.slice(-30)}」`
+      );
 
       /* K2：分诊卡必须有「再听一遍 / 停止」两个按钮。
          分诊卡是 gas_leak / earthquake / fall_elderly 的首屏，没有按钮就
@@ -727,8 +992,10 @@ for (const id of Object.keys(M.entries)) {
         if (!en || !en.triage) return;
         const b2 = makeEl('triage-' + id);
         M2.renderStepsCard(en, b2);
-        ok(b2.innerHTML.includes('data-act="read"') && b2.innerHTML.includes('data-act="stop"'),
-          `${id} 的分诊卡应同时有重播与停止按钮`);
+        ok(
+          b2.innerHTML.includes('data-act="read"') && b2.innerHTML.includes('data-act="stop"'),
+          `${id} 的分诊卡应同时有重播与停止按钮`
+        );
       });
     }
 
@@ -764,7 +1031,10 @@ for (const id of Object.keys(M.entries)) {
     {
       // handleQuery 会 unmute；这里用同步路径避免联网
       M2.handleQuerySync('怎么预防煤气泄漏');
-      ok(M2.autoReadState.muted === false, '新一次提问应解除静默（否则老人永远听不到声音且不知原因）');
+      ok(
+        M2.autoReadState.muted === false,
+        '新一次提问应解除静默（否则老人永远听不到声音且不知原因）'
+      );
     }
 
     // ⑦ 组合朗读稿同样受 S1 约束：分诊稿剥掉字段后只剩标点
@@ -778,8 +1048,10 @@ for (const id of Object.keys(M.entries)) {
       // S5 安全句是唯一允许的例外（同 ② 的理由），先剔除
       const call7 = sandbox.window.TTS.composeEmergencyCallSentence(e);
       if (call7) stripped = stripped.split(call7).join('');
-      ok(stripped.replace(/[。，！？：；\s]/g, '') === '',
-        `分诊朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
+      ok(
+        stripped.replace(/[。，！？：；\s]/g, '') === '',
+        `分诊朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`
+      );
     }
 
     // ⑦-b 日常摘要稿同样受 S1 约束：剥掉名称与摘要后只剩标点
@@ -787,8 +1059,10 @@ for (const id of Object.keys(M.entries)) {
       const e = M2.entries.co_poisoning;
       const script = sandbox.window.TTS.composeDailyBriefScript(e);
       let stripped = script.replace(e.name + '。', '').replace(e.daily.summary, '');
-      ok(stripped.replace(/[。，、！？：；\s]/g, '') === '',
-        `日常摘要稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`);
+      ok(
+        stripped.replace(/[。，、！？：；\s]/g, '') === '',
+        `日常摘要稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`
+      );
     }
 
     // ⑦-c 按停止后日常卡也不自动读（静默是全局的，不是只管紧急卡）
@@ -806,8 +1080,10 @@ for (const id of Object.keys(M.entries)) {
       M2.speakDaily(M2.entries.gas_leak);
       ok(spoken.length === before + 1, '静默期间手动朗读日常卡仍应发声');
       const said = spoken[spoken.length - 1].text;
-      ok(said.includes(M2.entries.gas_leak.daily.why || M2.entries.gas_leak.daily.summary),
-        '手动「朗读一遍」应读全文（含原因），不是只读摘要');
+      ok(
+        said.includes(M2.entries.gas_leak.daily.why || M2.entries.gas_leak.daily.summary),
+        '手动「朗读一遍」应读全文（含原因），不是只读摘要'
+      );
     }
 
     resetCards();
@@ -850,7 +1126,11 @@ for (const id of Object.keys(M.entries)) {
 
   // ③ 对象字段里的密钥也要脱，包括藏在字段名里的
   {
-    const r = L.scrub({ api_key: 'abcdef123456', nested: { token: 'xyz987654' }, text: 'sk-zzzzzzzz9999' });
+    const r = L.scrub({
+      api_key: 'abcdef123456',
+      nested: { token: 'xyz987654' },
+      text: 'sk-zzzzzzzz9999',
+    });
     ok(r.api_key === '***', '字段名是 api_key 时应整条替换');
     ok(r.nested.token === '***', '嵌套对象里的 token 也应替换');
     ok(!/zzzzzzzz/.test(String(r.text)), '字符串里的 sk- 也应脱敏');
@@ -864,14 +1144,14 @@ for (const id of Object.keys(M.entries)) {
   //       所以断言里必须区分这两种路径，否则测的是不存在的路径。
   {
     L.reset();
-    L.config.level = 'debug';   // 打开全量，才能看到各模块 debug 明细
+    L.config.level = 'debug'; // 打开全量，才能看到各模块 debug 明细
     M.state.mode = 'daily';
     M.state.locked = false;
     M.autoReadState.muted = false;
-    store.get('dailyAnswer').innerHTML = '';
-    store.get('emgAnswer').innerHTML = '';
+    document.getElementById('dailyAnswer').innerHTML = '';
+    document.getElementById('emgAnswer').innerHTML = '';
     const before = spoken.length;
-    M.handleQuerySync('家里老人腿脚不好');   // 无危险词、靠检索层命中 fall_elderly
+    M.handleQuerySync('家里老人腿脚不好'); // 无危险词、靠检索层命中 fall_elderly
 
     const t = L.getTrace();
     ok(!!t, '一次提问后应有 traceId');
@@ -887,22 +1167,34 @@ for (const id of Object.keys(M.entries)) {
     ok(spoken.length === before + 1, '（前置）该次提问应发声一次');
 
     // 摘要行必须落到 buffer 里且带结果字段
-    const summary = L.buffer.find(r => r.module === 'app' && r.msg === '路由决策' && r.trace === t);
+    const summary = L.buffer.find(
+      (r) => r.module === 'app' && r.msg === '路由决策' && r.trace === t
+    );
     ok(!!summary, '缺少「路由决策」摘要行');
     if (summary) {
-      ok(summary.kind === 'steps' || summary.kind === 'dialonly' || summary.kind === 'daily' || summary.kind === 'refuse',
-        `路由摘要的 kind 应是四种落点之一，实际 ${summary.kind}`);
+      ok(
+        summary.kind === 'steps' ||
+          summary.kind === 'dialonly' ||
+          summary.kind === 'daily' ||
+          summary.kind === 'refuse',
+        `路由摘要的 kind 应是四种落点之一，实际 ${summary.kind}`
+      );
       ok(summary.path === 'l3', `同步路径应标 path=l3，实际 ${summary.path}`);
       ok(summary.kind === 'daily', `「家里老人腿脚不好」应落 daily，实际 ${summary.kind}`);
       ok(summary.entryId === 'fall_elderly', `应落 fall_elderly，实际 ${summary.entryId}`);
     }
-    const rs = L.buffer.find(r => r.module === 'retrieval' && r.msg === '检索完成' && r.trace === t);
+    const rs = L.buffer.find(
+      (r) => r.module === 'retrieval' && r.msg === '检索完成' && r.trace === t
+    );
     ok(!!rs, '缺少「检索完成」摘要行');
     if (rs) {
       ok(typeof rs.entryId === 'string', '检索摘要应带 entryId');
       ok(typeof rs.candidateCount === 'number', '检索摘要应带候选数');
       ok(typeof rs.score === 'number' && rs.score > 0, '检索摘要应带分数');
-      ok(typeof rs.why === 'string' && rs.why.length > 0, '检索摘要应带命中依据（why），否则无法解释为何命中');
+      ok(
+        typeof rs.why === 'string' && rs.why.length > 0,
+        '检索摘要应带命中依据（why），否则无法解释为何命中'
+      );
     }
 
     // 危险信号命中时走 danger 分支，不经过检索层 —— 日志要能看出区别
@@ -910,9 +1202,11 @@ for (const id of Object.keys(M.entries)) {
     M.handleQuerySync('煤气漏了');
     const t2 = L.getTrace();
     ok(t2 !== t, '第二次提问应换新 trace（否则多条提问混在一根线上）');
-    const rs2 = L.buffer.find(r => r.module === 'retrieval' && r.msg === '检索完成');
+    const rs2 = L.buffer.find((r) => r.module === 'retrieval' && r.msg === '检索完成');
     ok(!rs2, '命中危险信号的句子不经过场景检索，不应有「检索完成」日志');
-    const dg = L.buffer.find(r => r.module === 'retrieval' && String(r.msg).indexOf('危险信号命中') === 0);
+    const dg = L.buffer.find(
+      (r) => r.module === 'retrieval' && String(r.msg).indexOf('危险信号命中') === 0
+    );
     ok(!!dg, '危险信号命中应留 debug 日志（含命中词）');
     if (dg) ok(typeof dg.word === 'string', '危险信号日志应带命中词（否定前缀误判只能靠它定位）');
 
@@ -924,7 +1218,10 @@ for (const id of Object.keys(M.entries)) {
   {
     const long = '煤气漏了'.repeat(20); // 80 字
     const clipped = L.clipText(long);
-    ok(clipped.length <= L.config.textMax + 12, `截断后长度应接近 ${L.config.textMax}，实际 ${clipped.length}`);
+    ok(
+      clipped.length <= L.config.textMax + 12,
+      `截断后长度应接近 ${L.config.textMax}，实际 ${clipped.length}`
+    );
     ok(clipped.includes('…'), '截断后应有省略标记');
     ok(clipped.includes('字)'), '截断后应带原始字数（便于判断是不是长输入）');
     ok(L.clipText('短句') === '短句', '短文本不应被截断');
@@ -941,7 +1238,7 @@ for (const id of Object.keys(M.entries)) {
     const before = spoken.length;
     M.renderStepsCard(M.entries.fire_home, box); // 日常模式出步骤卡 → 按设计不读
     ok(spoken.length === before, '（前置）日常模式步骤卡不应发声');
-    const rec = L.buffer.find(r => r.msg && r.msg.indexOf('自动朗读跳过') === 0);
+    const rec = L.buffer.find((r) => r.msg && r.msg.indexOf('自动朗读跳过') === 0);
     ok(!!rec, '「没读」必须留下日志（否则无法区分没触发与被浏览器拦截）');
     if (rec) ok(rec.reason === 'daily-mode-steps-card', `跳过原因应写明，实际 ${rec.reason}`);
     L.config.level = 'warn';
@@ -953,11 +1250,28 @@ for (const id of Object.keys(M.entries)) {
     const savedConsole = L.config.console;
     L.config.console = true;
     // 用一个会抛的 console 打一次，确认不抛到调用方
-    const badConsole = { log() { throw new Error('console 坏了'); }, info() { throw new Error('x'); }, warn() { throw new Error('x'); }, error() { throw new Error('x'); } };
+    const badConsole = {
+      log() {
+        throw new Error('console 坏了');
+      },
+      info() {
+        throw new Error('x');
+      },
+      warn() {
+        throw new Error('x');
+      },
+      error() {
+        throw new Error('x');
+      },
+    };
     const realConsole = sandbox.console;
     sandbox.console = badConsole;
     let threw = false;
-    try { L.emit('warn', 'selftest', 'console 抛错时不应冒泡'); } catch (e) { threw = true; }
+    try {
+      L.emit('warn', 'selftest', 'console 抛错时不应冒泡');
+    } catch (e) {
+      threw = true;
+    }
     sandbox.console = realConsole;
     L.config.console = savedConsole;
     ok(!threw, '日志内部异常不得抛给调用方（日志挂了不能白屏）');
@@ -975,7 +1289,10 @@ for (const id of Object.keys(M.entries)) {
 
   // ① 采样率常量与端点：16k 是实测可用的目标率，改了要重测识别质量
   {
-    ok(A.config.TARGET_RATE === 16000, `目标采样率应为 16000（实测可用），实际 ${A.config.TARGET_RATE}`);
+    ok(
+      A.config.TARGET_RATE === 16000,
+      `目标采样率应为 16000（实测可用），实际 ${A.config.TARGET_RATE}`
+    );
     ok(/\/asr$/.test(A.config.ENDPOINT), `ASR 端点应指向代理 /asr，实际 ${A.config.ENDPOINT}`);
     ok(A.config.MIN_MS >= 300, '应有最短录音阈值（防误触）');
     ok(A.config.MAX_MS <= 20000, '应有最长录音上限（防按住不放）');
@@ -1006,7 +1323,13 @@ for (const id of Object.keys(M.entries)) {
     for (let i = 0; i < samples.length; i++) samples[i] = Math.sin(i / 8) * 0.5;
     const buf = encodeWav(samples, 16000);
     const dv = new DataView(buf);
-    const tag = (o) => String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3));
+    const tag = (o) =>
+      String.fromCharCode(
+        dv.getUint8(o),
+        dv.getUint8(o + 1),
+        dv.getUint8(o + 2),
+        dv.getUint8(o + 3)
+      );
     ok(tag(0) === 'RIFF', `WAV 头应为 RIFF，实际 ${tag(0)}`);
     ok(tag(8) === 'WAVE', `格式应为 WAVE，实际 ${tag(8)}`);
     ok(tag(12) === 'fmt ', `应有 fmt 块，实际 ${tag(12)}`);
@@ -1074,7 +1397,10 @@ for (const id of Object.keys(M.entries)) {
     ok(html.includes('id="rateRow"'), '应有语速控件容器（K3）');
     ok(html.includes('data-rate="0.75"'), '应有「慢一点」档（0.75）');
     ok(html.includes('data-rate="1"') || html.includes('data-rate="1.0"'), '应有「正常」档（1.0）');
-    ok(html.indexOf('rateRow') < html.indexOf('app.js'), '语速控件须在 app.js 之前存在（启动时初始化）');
+    ok(
+      html.indexOf('rateRow') < html.indexOf('app.js'),
+      '语速控件须在 app.js 之前存在（启动时初始化）'
+    );
 
     // 行为：setRate 真的改 state.rate，且越界值被拒
     const T2 = sandbox.window.TTS;
@@ -1096,14 +1422,19 @@ for (const id of Object.keys(M.entries)) {
     const before = spoken.length;
     await T2.speak('语速测试', { force: true });
     ok(spoken.length === before + 1, '应触发发声');
-    ok(spoken[spoken.length - 1].rate === 0.75,
-      `发声应使用新语速 0.75，实际 ${spoken[spoken.length - 1].rate}`);
+    ok(
+      spoken[spoken.length - 1].rate === 0.75,
+      `发声应使用新语速 0.75，实际 ${spoken[spoken.length - 1].rate}`
+    );
     T2.setRate(saved);
 
     // CSS：按钮高度与字号达标
     const css2 = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
     const m2 = css2.match(/\.rate-btn\{[^}]*min-height:\s*(\d+)px/s);
-    ok(!!m2 && Number(m2[1]) >= 48, `.rate-btn 高度应 >=48px，实际 ${m2 ? m2[1] + 'px' : '未找到'}`);
+    ok(
+      !!m2 && Number(m2[1]) >= 48,
+      `.rate-btn 高度应 >=48px，实际 ${m2 ? m2[1] + 'px' : '未找到'}`
+    );
     const m3 = css2.match(/\.rate-btn\{[^}]*font-size:\s*var\(--fs-min\)/s);
     ok(!!m3, '语速按钮字号须走 var(--fs-min)');
   }
@@ -1136,7 +1467,10 @@ for (const id of Object.keys(M.entries)) {
       const fakeInput = makeEl('fakeInput');
       const wrote = T.fill(fakeInput, '煤气漏了怎么办');
       ok(wrote === true, 'fillInput 应返回 true');
-      ok(fakeInput.value === '煤气漏了怎么办', `fillInput 应写入 input.value，实际「${fakeInput.value}」`);
+      ok(
+        fakeInput.value === '煤气漏了怎么办',
+        `fillInput 应写入 input.value，实际「${fakeInput.value}」`
+      );
       ok(T.fill(null, 'x') === false, '没有输入框时 fillInput 应返回 false（由调用方降级）');
       ok(T.fill(fakeInput, '') === false, '空文本不应写入');
     }
@@ -1146,7 +1480,8 @@ for (const id of Object.keys(M.entries)) {
       // 把 ASR.stop 换成返回固定文本，模拟识别成功
       const A2 = sandbox.window.ASR;
       const savedStop = A2.stop;
-      A2.stop = () => Promise.resolve({ ok: true, text: '煤气漏了怎么办', duration_ms: 1600, latency_ms: 900 });
+      A2.stop = () =>
+        Promise.resolve({ ok: true, text: '煤气漏了怎么办', duration_ms: 1600, latency_ms: 900 });
 
       /* 关掉 LLM：本断言只关心「文本去哪了 / 有没有出卡」，不该依赖网络。
          若不关，会走到 fetch → 沙箱无网络 → 抛错崩溃，
@@ -1157,30 +1492,36 @@ for (const id of Object.keys(M.entries)) {
 
       M.state.mode = 'daily';
       M.state.locked = false;
-      store.get('dailyAnswer').innerHTML = '';
-      store.get('emgAnswer').innerHTML = '';
-      store.get('dailyInput').value = '';
-      store.get('emgInput').value = '';
+      document.getElementById('dailyAnswer').innerHTML = '';
+      document.getElementById('emgAnswer').innerHTML = '';
+      document.getElementById('dailyInput').value = '';
+      document.getElementById('emgInput').value = '';
 
       // 伪造「正在录音」状态后再松手
       T.ctl.active = true;
       T.ctl.listening = true;
       T.ctl.btn = makeEl('talkBtn');
       T.ctl.hint = makeEl('talkHint');
-      T.ctl.input = store.get('dailyInput');
+      T.ctl.input = document.getElementById('dailyInput');
       // up() 返回 Promise，直接 await 到「整条链走完」
       await T.up();
 
-      ok(store.get('dailyInput').value === '煤气漏了怎么办',
-        `识别结果应写进日常输入框（老人要看得见自己说了什么），实际「${store.get('dailyInput').value}」`);
+      ok(
+        document.getElementById('dailyInput').value === '煤气漏了怎么办',
+        `识别结果应写进日常输入框（老人要看得见自己说了什么），实际「${document.getElementById('dailyInput').value}」`
+      );
       /* 两个答案区都要查：「煤气漏了怎么办」含危险词，会切紧急模式并渲染到
          emgAnswer —— 只查 dailyAnswer 会漏过。 */
-      const dAns = store.get('dailyAnswer').innerHTML;
-      const eAns = store.get('emgAnswer').innerHTML;
-      ok(dAns.length > 0 || eAns.length > 0,
-        `识别后应立即出答案（用户裁决不需要再点确认），实际两区都为空`);
-      ok(M.state.locked === true && M.state.mode === 'emergency',
-        '「煤气漏了怎么办」含危险信号，出答案时应已切紧急模式并锁定');
+      const dAns = document.getElementById('dailyAnswer').innerHTML;
+      const eAns = document.getElementById('emgAnswer').innerHTML;
+      ok(
+        dAns.length > 0 || eAns.length > 0,
+        `识别后应立即出答案（用户裁决不需要再点确认），实际两区都为空`
+      );
+      ok(
+        M.state.locked === true && M.state.mode === 'emergency',
+        '「煤气漏了怎么办」含危险信号，出答案时应已切紧急模式并锁定'
+      );
 
       A2.stop = savedStop;
       if (L2) L2.configure({ enabled: savedEnabled });
@@ -1206,12 +1547,17 @@ for (const id of Object.keys(M.entries)) {
     const { pathToFileURL } = await import('node:url');
     const sel = await import(pathToFileURL(path.join(APP, '..', 'tools', 'asr', 'index.mjs')).href);
     ok(typeof sel.pickProvider === 'function', 'tools/asr/index.mjs 应导出 pickProvider');
-    ok(sel.DEFAULT_PROVIDER === 'deepseek',
-      `默认 provider 必须是 deepseek（改它等于改产品行为），实际 ${sel.DEFAULT_PROVIDER}`);
+    ok(
+      sel.DEFAULT_PROVIDER === 'deepseek',
+      `默认 provider 必须是 deepseek（改它等于改产品行为），实际 ${sel.DEFAULT_PROVIDER}`
+    );
 
     const envFull = {
-      API_KEY: 'sk-test-not-real', BASE_URL: 'https://api.deepseek.com',
-      XFYUN_APPID: 'a', XFYUN_APIKEY: 'b', XFYUN_APISECRET: 'c'
+      API_KEY: 'sk-test-not-real',
+      BASE_URL: 'https://api.deepseek.com',
+      XFYUN_APPID: 'a',
+      XFYUN_APIKEY: 'b',
+      XFYUN_APISECRET: 'c',
     };
 
     // ① 不配 ASR_PROVIDER → 必须选 deepseek
@@ -1226,15 +1572,22 @@ for (const id of Object.keys(M.entries)) {
 
     // ③ 大小写与空格容错（人写 .env 时经常随手写）
     const p3 = sel.pickProvider({ ...envFull, ASR_PROVIDER: '  XFYUN  ' });
-    ok(p3.ok === true && p3.id === 'xfyun', `应容忍大小写与空格，实际 ${p3.ok ? p3.id : p3.reason}`);
+    ok(
+      p3.ok === true && p3.id === 'xfyun',
+      `应容忍大小写与空格，实际 ${p3.ok ? p3.id : p3.reason}`
+    );
 
     // ④ 配错名字 → 必须报错，不许静默回落
     const p4 = sel.pickProvider({ ...envFull, ASR_PROVIDER: 'xunfei' });
     ok(p4.ok === false, '拼错 provider 名字时必须报错，不能静默回落（否则会误以为测了另一家）');
-    ok(typeof p4.reason === 'string' && p4.reason.includes('xunfei'),
-      `错误信息应回显写错的名称，实际「${p4.reason}」`);
-    ok(typeof p4.reason === 'string' && p4.reason.includes('deepseek'),
-      '错误信息应列出可选 provider');
+    ok(
+      typeof p4.reason === 'string' && p4.reason.includes('xunfei'),
+      `错误信息应回显写错的名称，实际「${p4.reason}」`
+    );
+    ok(
+      typeof p4.reason === 'string' && p4.reason.includes('deepseek'),
+      '错误信息应列出可选 provider'
+    );
 
     // ⑤ 缺凭证时明确说缺什么
     const p5 = sel.pickProvider({ ASR_PROVIDER: 'xfyun' });
@@ -1250,7 +1603,10 @@ for (const id of Object.keys(M.entries)) {
     const xf = list.find((x) => x.id === 'xfyun');
     ok(ds && ds.isDefault === true, 'deepseek 应标记为默认');
     ok(xf && xf.isDefault === false, 'xfyun 不应标记为默认');
-    ok(ds && xf && typeof ds.label === 'string' && typeof xf.label === 'string', '两个 provider 都应有 label');
+    ok(
+      ds && xf && typeof ds.label === 'string' && typeof xf.label === 'string',
+      '两个 provider 都应有 label'
+    );
 
     // ⑦ 接口约定：provider 暴露 id / label / available / transcribe
     for (const name of ['deepseek', 'xfyun']) {
@@ -1265,16 +1621,20 @@ for (const id of Object.keys(M.entries)) {
     //    （重采样是前端 asr.js 的职责；两处各转一次会让排查极难）
     const xfMod = sel.getProvider('xfyun');
     const badWav = Buffer.alloc(100);
-    badWav.write('RIFF', 0); badWav.write('WAVE', 8);
+    badWav.write('RIFF', 0);
+    badWav.write('WAVE', 8);
     const dvw = new DataView(badWav.buffer, badWav.byteOffset, badWav.byteLength);
-    dvw.setUint32(24, 24000, true);   // 24k
-    dvw.setUint16(22, 1, true);       // 单声道
-    dvw.setUint16(34, 16, true);      // 16bit
-    const badRes = await xfMod.transcribe(badWav, {}, { XFYUN_APPID: 'a', XFYUN_APIKEY: 'b', XFYUN_APISECRET: 'c' });
+    dvw.setUint32(24, 24000, true); // 24k
+    dvw.setUint16(22, 1, true); // 单声道
+    dvw.setUint16(34, 16, true); // 16bit
+    const badRes = await xfMod.transcribe(
+      badWav,
+      {},
+      { XFYUN_APPID: 'a', XFYUN_APIKEY: 'b', XFYUN_APISECRET: 'c' }
+    );
     ok(badRes.ok === false, '讯飞 provider 收到 24k 音频应返回失败');
     ok(/16k/.test(String(badRes.error)), `错误信息应说明要求 16k，实际「${badRes.error}」`);
   }
-
 
   /* ⑫ onTalkUp 必须返回 Promise，否则测试只能等固定毫秒数。
 
@@ -1294,31 +1654,34 @@ for (const id of Object.keys(M.entries)) {
     // 真实驱动一次：await 之后必须已经出卡（不靠 sleep）
     const A3 = sandbox.window.ASR;
     const savedStop = A3.stop;
-    A3.stop = () => Promise.resolve({ ok: true, text: '着火了', duration_ms: 1500, latency_ms: 800 });
+    A3.stop = () =>
+      Promise.resolve({ ok: true, text: '着火了', duration_ms: 1500, latency_ms: 800 });
 
     const L3 = sandbox.window.LLM;
     const savedEnabled3 = L3 ? L3.config.enabled : null;
-    if (L3) L3.configure({ enabled: false });   // 离线断言，不依赖网络
+    if (L3) L3.configure({ enabled: false }); // 离线断言，不依赖网络
 
     M.state.mode = 'daily';
     M.state.locked = false;
     M.autoReadState.muted = false;
-    store.get('dailyAnswer').innerHTML = '';
-    store.get('emgAnswer').innerHTML = '';
-    store.get('emgInput').value = '';
+    document.getElementById('dailyAnswer').innerHTML = '';
+    document.getElementById('emgAnswer').innerHTML = '';
+    document.getElementById('emgInput').value = '';
 
     T.ctl.active = true;
     T.ctl.listening = true;
     T.ctl.btn = makeEl('talkBtn12');
     T.ctl.hint = makeEl('talkHint12');
-    T.ctl.input = store.get('emgInput');
+    T.ctl.input = document.getElementById('emgInput');
 
     const ret = T.up();
     ok(ret && typeof ret.then === 'function', 'onTalkUp 必须返回 Promise（测试才能 await 到出卡）');
     const result = await ret;
     ok(result === 'done', `完成时应 resolve('done')，实际 ${result}`);
     // await 结束后答案区必须已经有内容 —— 这才叫「等到了完成信号」
-    const html = store.get('dailyAnswer').innerHTML || store.get('emgAnswer').innerHTML;
+    const html =
+      document.getElementById('dailyAnswer').innerHTML ||
+      document.getElementById('emgAnswer').innerHTML;
     ok(html.length > 0, 'await onTalkUp() 之后答案区应已出卡（若为空说明 Promise 提前 resolve）');
 
     A3.stop = savedStop;
@@ -1327,17 +1690,19 @@ for (const id of Object.keys(M.entries)) {
     M.state.locked = false;
   }
 
-
   /* ⑪ 松手监听只能挂一次：两个按钮各挂一次 → 一次松手触发两次 stop
      （实测后果：第二次拿到 not-recording 被当成失败提示）。 */
   {
+    /* 2026-11-19 拆分后：监听绑定留在 app.js，录音控制器在 talk.js。
+       两处都要读——只看 app.js 会漏掉 downAt/onAutoStop（它们已迁走）。 */
     const src = fs.readFileSync(path.join(APP, 'app.js'), 'utf8');
+    const talkSrc = fs.readFileSync(path.join(APP, 'talk.js'), 'utf8');
     const ups = (src.match(/window\.addEventListener\('pointerup'/g) || []).length;
     ok(ups === 1, `window 的 pointerup 监听应只挂 1 次，实际 ${ups} 次`);
     const downs = (src.match(/window\.addEventListener\('pointerdown'/g) || []).length;
     ok(downs === 0, 'window 上不应挂 pointerdown（会与按钮上的重复触发）');
-    ok(/downAt/.test(src), '应有 downAt 去重，防 pointerdown 与 keydown 同时触发');
-    ok(/onAutoStop/.test(src), '录音到上限时必须有界面接管（否则识别结果无人接收）');
+    ok(/downAt/.test(talkSrc), '应有 downAt 去重，防 pointerdown 与 keydown 同时触发');
+    ok(/onAutoStop/.test(talkSrc), '录音到上限时必须有界面接管（否则识别结果无人接收）');
   }
 }
 
@@ -1367,15 +1732,16 @@ for (const id of Object.keys(M.entries)) {
   ok(typeof T.engines === 'function', 'TTS 应导出 engines()：引擎清单可查，不必读源码');
   if (typeof T.engines === 'function') {
     const list = T.engines();
-    ok(Array.isArray(list) && list.length >= 2,
-      `引擎清单应至少含 tauri 与 web，实际 ${JSON.stringify(list)}`);
+    ok(
+      Array.isArray(list) && list.length >= 2,
+      `引擎清单应至少含 tauri 与 web，实际 ${JSON.stringify(list)}`
+    );
     ok(list[0] === 'tauri', `顺序必须是 tauri 优先（01 §2.1），实际第一位 ${list[0]}`);
     ok(list.indexOf('web') > 0, 'web 应排在 tauri 之后');
   }
 
   // ② 当前引擎在非 Tauri 环境应为 web
-  ok(T.activeEngine() === 'web',
-    `普通浏览器环境当前引擎应为 web，实际 ${T.activeEngine()}`);
+  ok(T.activeEngine() === 'web', `普通浏览器环境当前引擎应为 web，实际 ${T.activeEngine()}`);
 
   // ③ 核心：注入适配器后，探针必须被写上，且引擎切到 tauri
   {
@@ -1385,15 +1751,22 @@ for (const id of Object.keys(M.entries)) {
     const savedProbe = W.__TTsProbe;
 
     // 模拟宿主：注入真实实现
-    W.__TAURI_INTERNALS__ = {};          // 让 isTauri() 为真
+    W.__TAURI_INTERNALS__ = {}; // 让 isTauri() 为真
     let spoke = 0;
     T.setTauriAdapter(
-      function () { spoke++; return Promise.resolve(); },
-      function () { /* stop */ }
+      function () {
+        spoke++;
+        return Promise.resolve();
+      },
+      function () {
+        /* stop */
+      }
     );
 
-    ok(typeof W.__TTsProbe === 'function',
-      'setTauriAdapter 必须写 __TTsProbe —— 否则 detect() 判不出 tauri（本次修的 bug）');
+    ok(
+      typeof W.__TTsProbe === 'function',
+      'setTauriAdapter 必须写 __TTsProbe —— 否则 detect() 判不出 tauri（本次修的 bug）'
+    );
     if (typeof W.__TTsProbe === 'function') {
       ok(W.__TTsProbe() === true, '__TTsProbe() 应返回 true（表示引擎可用）');
     }
@@ -1401,8 +1774,10 @@ for (const id of Object.keys(M.entries)) {
     // detect() 是异步的；setTauriAdapter 内部会重探
     await new Promise((r) => setTimeout(r, 30));
 
-    ok(T.state.engine === 'tauri',
-      `注入适配器后引擎应切到 tauri，实际 ${T.state.engine}（若为 web 说明注入被静默忽略）`);
+    ok(
+      T.state.engine === 'tauri',
+      `注入适配器后引擎应切到 tauri，实际 ${T.state.engine}（若为 web 说明注入被静默忽略）`
+    );
     ok(T.state.supported === true, '注入后 supported 应为 true');
 
     // ④ 切到 tauri 后，speak 必须走宿主注入的实现（不是走浏览器层）
@@ -1418,19 +1793,32 @@ for (const id of Object.keys(M.entries)) {
     {
       const savedProbe2 = W.__TTsProbe;
       let customCalled = 0;
-      W.__TTsProbe = function () { customCalled++; return true; };
-      T.setTauriAdapter(function () { return Promise.resolve(); }, function () {});
-      ok(typeof W.__TTsProbe === 'function' && W.__TTsProbe() === true,
-        '宿主自带的 __TTsProbe 不应被 setTauriAdapter 覆盖');
+      W.__TTsProbe = function () {
+        customCalled++;
+        return true;
+      };
+      T.setTauriAdapter(
+        function () {
+          return Promise.resolve();
+        },
+        function () {}
+      );
+      ok(
+        typeof W.__TTsProbe === 'function' && W.__TTsProbe() === true,
+        '宿主自带的 __TTsProbe 不应被 setTauriAdapter 覆盖'
+      );
       ok(customCalled >= 1, '宿主自带探针应仍被调用（未被替换成空壳）');
       void savedProbe2;
     }
 
     // 复原沙箱，避免影响后续断言
     delete W.__TAURI_INTERNALS__;
-    if (savedSpeak === undefined) delete W.__TTsSpeak; else W.__TTsSpeak = savedSpeak;
-    if (savedStop === undefined) delete W.__TTsStop; else W.__TTsStop = savedStop;
-    if (savedProbe === undefined) delete W.__TTsProbe; else W.__TTsProbe = savedProbe;
+    if (savedSpeak === undefined) delete W.__TTsSpeak;
+    else W.__TTsSpeak = savedSpeak;
+    if (savedStop === undefined) delete W.__TTsStop;
+    else W.__TTsStop = savedStop;
+    if (savedProbe === undefined) delete W.__TTsProbe;
+    else W.__TTsProbe = savedProbe;
     T.state.engine = savedEngine;
     T.state.supported = true;
   }
@@ -1443,10 +1831,17 @@ for (const id of Object.keys(M.entries)) {
     const ss = sandbox.speechSynthesis;
     const savedCancel = ss && ss.cancel;
 
-    W.__TTsStop = function () { hostStop++; };
-    W.__TTsProbe = function () { return true; };
+    W.__TTsStop = function () {
+      hostStop++;
+    };
+    W.__TTsProbe = function () {
+      return true;
+    };
     W.__TAURI_INTERNALS__ = {};
-    if (ss) ss.cancel = function () { webCancel++; };
+    if (ss)
+      ss.cancel = function () {
+        webCancel++;
+      };
 
     T.state.engine = 'tauri';
     T.stop();
@@ -1472,19 +1867,257 @@ for (const id of Object.keys(M.entries)) {
     let r = null;
     try {
       r = await T.speak('没有引擎', { force: true });
-    } catch (e) { threw = true; }
+    } catch (e) {
+      threw = true;
+    }
     ok(!threw, '没有引擎时 speak 不许抛异常（上层要结构化错误）');
-    ok(r && r.ok === false && r.reason === 'no-engine',
-      `没有引擎时应返回 reason=no-engine，实际 ${JSON.stringify(r)}`);
+    ok(
+      r && r.ok === false && r.reason === 'no-engine',
+      `没有引擎时应返回 reason=no-engine，实际 ${JSON.stringify(r)}`
+    );
     T.state.engine = savedEngine;
   }
 }
 
-/* ---------- 13. 投毒自检：故意改坏输入，确认断言会红 ---------- */
+/* ---------- 12.5 聊天式消息流（v2.3 新增，2026-11-19） ----------
+   本节补的是「聊天式改造」的核心行为 —— 原来的 623 条断言一条都没覆盖它：
+   旧断言只看「最新回答内容对不对」，看不出「上一条是否被覆盖」。
+
+   ⚠️ 用例选择：不能用「怎么预防煤气泄漏」这类含场景词的句子。
+     本自测不走 LLM（纯 l3），而 l3 没有意图维度，「预防煤气泄漏」会被
+     detectDanger 判成紧急（docs/03 §5.3 已记录的 L3 缺陷 B 组 0/4）。
+     所以这里直接调 RENDER 渲染 + CHAT 追加，专测消息流机制本身。 */
+{
+  const CHAT = sandbox.window.CHAT;
+  const M3 = sandbox.window.__M1__;
+  const R3 = sandbox.window.RENDER;
+  ok(!!CHAT, 'chat.js 应导出 CHAT（消息流缺失则无法回看对话记录）');
+  ok(!!R3, 'render.js 应导出 RENDER');
+
+  if (CHAT && R3 && M3) {
+    CHAT.clear();
+
+    // ① 追加用户消息：逐字保留，不改写
+    CHAT.appendUser('我家煤气漏了');
+    ok(CHAT.messages.length === 1, 'appendUser 后应有 1 条消息');
+    const uMsg = CHAT.messages[0];
+    ok(uMsg.role === 'user', '该条应标记为 user');
+    const uText = (uMsg.el.children[0] && uMsg.el.children[0].textContent) || '';
+    ok(uText === '我家煤气漏了', `用户原话应逐字保留，实际「${uText}」`);
+
+    // ② 第一条回答
+    const h1 = CHAT.answerHost('steps', 'emergency');
+    ok(!!h1, 'answerHost 应返回容器');
+    /* 用 fire_home：它的 triage 为 null，首屏就是三段式步骤卡（gas_leak 走分诊，没有「立刻做」段） */
+    R3.renderStepsCard(M3.entries.fire_home, h1);
+    const n1 = CHAT.messages.length;
+    ok(n1 === 2, `一条回答后应有 2 条消息，实际 ${n1}`);
+    ok(/card-title/.test(h1.innerHTML), '步骤卡应渲染出标题');
+
+    // ③ 第二条回答：不得覆盖第一条
+    const h2 = CHAT.answerHost('daily', 'daily');
+    R3.renderDaily(M3.entries.fire_home, h2);
+    const n2 = CHAT.messages.length;
+    ok(n2 === 3, `第二条回答后应有 3 条消息（覆盖写会仍为 2），实际 ${n2}`);
+    /* 用「步骤卡独有的段落标题」判断，而不是 card-title ——
+       日常卡也有 card-title，用它区分不出两张卡是否被互换/覆盖
+       （投毒实测：复用容器时这条曾经不红）。 */
+    ok(
+      h1.innerHTML.indexOf('立刻做') >= 0,
+      '第一条回答（步骤卡）的「立刻做」段落必须仍在（覆盖写会把它清空）'
+    );
+    ok(h2.innerHTML.indexOf('平时怎么做') >= 0, '第二条回答（日常卡）应含「平时怎么做」');
+    ok(h1 !== h2, '两条回答必须是不同容器（共用容器等于覆盖写）');
+
+    // ④ id 唯一性：dailyAnswer 只属于最新那条
+    ok(document.getElementById('dailyAnswer') === h2, 'dailyAnswer 应指向最新那条的容器');
+
+    // ⑤ 消息的 mode 按条记录，旧消息不被追溯修改（S8 的可见性靠这个）
+    const assistantMsgs = CHAT.messages.filter((m) => m.role === 'assistant');
+    ok(assistantMsgs.length === 2, `应有 2 条助手消息，实际 ${assistantMsgs.length}`);
+    ok(assistantMsgs[0].mode === 'emergency', '第一条应记为 emergency');
+    ok(assistantMsgs[1].mode === 'daily', '第二条应记为 daily');
+    ok(assistantMsgs[0].mode === 'emergency', '后一条变日常后，前一条的 emergency 标记不得被改写');
+
+    // ⑥ host 引用可用（调度器与测试都靠它定位「往哪条追加」）
+    ok(assistantMsgs[0].host === h1, '消息应记录自己的答案容器引用');
+
+    // ⑦ 清空回到初始态
+    CHAT.clear();
+    ok(CHAT.messages.length === 0, '清空消息流后消息数应为 0');
+  }
+}
+
+/* ---------- 12.6 朗读中断规则（v2.4 新增，2026-11-19） ----------
+   用户原话：「朗读每次回答生成后都自动触发，用户有别的动作就中断」。
+
+   本节钉的是**一件事的两种做法不能混**：
+     stopForAction = 只停当前这一条，下一条照常播
+     muteAutoRead  = 本会话不再自动读，只有新提问才解除
+   混用的后果：老人按一次「按住说话」，从此再也听不到任何朗读，
+   而且他不知道原因 —— 这正是 `01` §6.2 禁止的静默失败。
+
+   ⚠️ 打勾、向上滚动**必须不中断**：
+     打勾是「跟着念的步骤做」（`01` §4.1 第 5 条防重复操作的设计），
+     掐断等于不让他跟读。这条比「中断」更容易写错，所以单独断言。 */
+{
+  const S = sandbox.window.SPEAK;
+  const TT = sandbox.window.TTS;
+  const W = sandbox.window;
+
+  ok(!!S, 'speak.js 应导出 SPEAK');
+  ok(
+    !!S && typeof S.stopForAction === 'function',
+    'SPEAK 应提供 stopForAction（中断语义独立于 mute）'
+  );
+
+  if (S && TT && typeof S.stopForAction === 'function') {
+    const savedEngine = TT.state.engine;
+    const savedSupported = TT.state.supported;
+    TT.state.engine = 'web';
+    TT.state.supported = true;
+
+    // ① stopForAction 必须真的调引擎 stop，且**不置静默位**
+    {
+      const ss = sandbox.speechSynthesis;
+      let cancelled = 0;
+      const saved = ss && ss.cancel;
+      if (ss)
+        ss.cancel = function () {
+          cancelled++;
+        };
+      const mutedBefore = !!W.APP_STATE.autoRead.muted;
+
+      S.stopForAction('test');
+
+      ok(cancelled === 1, `stopForAction 应调引擎 stop 1 次，实际 ${cancelled}`);
+      ok(
+        !!W.APP_STATE.autoRead.muted === mutedBefore,
+        'stopForAction 不得改动静默位（改了就等于「以后都别念」，与用户意图不符）'
+      );
+      if (ss && saved) ss.cancel = saved;
+    }
+
+    // ② 对照组：muteAutoRead 必须置静默位并停声
+    {
+      W.APP_STATE.autoRead.muted = false;
+      S.muteAutoRead();
+      ok(W.APP_STATE.autoRead.muted === true, 'muteAutoRead 应置静默位（按停止的语义）');
+      S.unmuteAutoRead();
+      ok(W.APP_STATE.autoRead.muted === false, 'unmuteAutoRead 应解除静默位');
+    }
+
+    // ③ 中断后下一条仍会自动读：stopForAction 不阻断自动朗读
+    {
+      W.APP_STATE.mode = 'emergency';
+      W.APP_STATE.autoRead.muted = false;
+      S.stopForAction('before-emergency');
+      ok(
+        S.canAutoRead() === true,
+        '中断一条朗读后，下一条回答仍应允许自动朗读（否则老人以为坏了）'
+      );
+      W.APP_STATE.mode = 'daily';
+    }
+
+    TT.state.engine = savedEngine;
+    TT.state.supported = savedSupported;
+  }
+}
+
+/* ---------- 12.7 追问卡（ask）渲染与点选（v2.4 新增，2026-11-19） ----------
+   上一轮明确记过：「ask 分支已实现，但无断言覆盖」。它是整条链路里
+   唯一没有测试兜住的一环 —— 而追问恰恰是「用户自己说不确定」时唯一的出口。
+
+   本节盯四件事，每件都能失败：
+     ① 两个选项各渲染成一个按钮（少一个 → 单选，多一个 → 多选，都不合契约）
+     ② 选项文本必须转义（选项来自模型，模型输出是外部输入）
+     ③ 点选项后用户的选择进入消息流（否则循环拿不到这次回答）
+     ④ 点选项会中断正在朗读的上一条（用户裁决：有别的动作就中断） */
+{
+  const M4 = sandbox.window.__M1__;
+  const CH4 = sandbox.window.CHAT;
+  const S4 = sandbox.window.SPEAK;
+
+  ok(!!M4 && typeof M4.renderAsk === 'function', '__M1__ 应导出 renderAsk（追问链路要能被断言）');
+
+  if (M4 && typeof M4.renderAsk === 'function' && CH4) {
+    CH4.clear();
+    const host = CH4.answerHost('ask', 'daily');
+
+    // ② 选项含尖括号：必须被转义，不能变成标签
+    M4.renderAsk({ scene: 'gas_leak', options: ['闻到燃气味', '<b>只是打不着火</b>'] }, host);
+
+    // ① 渲染结构
+    ok(host.innerHTML.indexOf('ask-card') >= 0, '追问卡应有 ask-card 类');
+    const btnCount = (host.innerHTML.match(/class="ask-choice"/g) || []).length;
+    ok(btnCount === 2, `应渲染 2 个选项按钮，实际 ${btnCount}`);
+    ok(host.innerHTML.indexOf('先确认一下') >= 0, '追问卡应有固定标题');
+
+    // ② 转义
+    ok(
+      host.innerHTML.indexOf('<b>只是打不着火</b>') < 0,
+      '选项文本必须转义（模型输出是外部输入，不许当 HTML）'
+    );
+    ok(host.innerHTML.indexOf('&lt;b&gt;') >= 0, '转义后的标签应以实体形式出现');
+
+    // ③ 点选 → 选择进消息流
+    const btns = host.querySelectorAll('.ask-choice');
+    ok(btns.length === 2, `stub 应解析出 2 个按钮，实际 ${btns.length}`);
+    if (btns.length === 2) {
+      const before = CH4.messages.length;
+      const h = btns[0].handlers.click;
+      ok(Array.isArray(h) && h.length === 1, '每个选项应挂 1 个 click 处理');
+
+      if (Array.isArray(h) && h.length) {
+        // ④ 顺便验证中断：把 stopForAction 换成计数器
+        const savedStop = S4 && S4.stopForAction;
+        let stopCalls = 0;
+        if (S4)
+          S4.stopForAction = function () {
+            stopCalls++;
+          };
+
+        /* 点选项会真的调 handleQuery → 需要 LLM。本自测不联网，
+           临时摘掉 LLM.judge 让它走纯离线同步路径（handleQuerySync）。
+           这是**隔离变量**，不是绕过：本节要验的是「点选→进消息流」，
+           不是模型判定（那由 e2e_llm 与 probe_loop 覆盖）。 */
+        const wLLM = sandbox.window.LLM;
+        const savedJudge = wLLM && wLLM.judge;
+        if (wLLM) wLLM.judge = null;
+
+        try {
+          h[0]();
+        } catch (e) {
+          ok(false, `点选项不应抛错，实际 ${e && e.message}`);
+        } finally {
+          if (wLLM) wLLM.judge = savedJudge;
+          if (S4) S4.stopForAction = savedStop;
+        }
+
+        const after = CH4.messages.length;
+        ok(after > before, `点选项后应新增消息，实际 ${before} → ${after}`);
+        /* 取最后一条 **user** 消息，不能取 messages 末尾：
+           点选后 handleQuery 会继续渲染回答，末尾那条是 assistant。 */
+        const userMsgs = CH4.messages.filter((x) => x.role === 'user');
+        const lastUser = userMsgs[userMsgs.length - 1];
+        const lastText =
+          (lastUser && lastUser.el.children[0] && lastUser.el.children[0].textContent) || '';
+        ok(lastText === '闻到燃气味', `消息流里应是用户点选的那一项，实际「${lastText}」`);
+        ok(stopCalls >= 1, `点选项应中断正在朗读的内容，实际调用 ${stopCalls} 次`);
+      }
+    }
+
+    CH4.clear();
+  }
+}
+
 {
   const before = fail;
   // 用一条明显库外的句子当库内期望，应当失败
-  ok(M.routeOf('今天天气怎么样').entryId === 'gas_leak', '【投毒】这条断言本应失败，若通过说明断言框架失灵');
+  ok(
+    M.routeOf('今天天气怎么样').entryId === 'gas_leak',
+    '【投毒】这条断言本应失败，若通过说明断言框架失灵'
+  );
   const poisoned = fail > before;
   if (poisoned) {
     // 撤销这次故意失败，不计入总分
@@ -1501,7 +2134,7 @@ for (const id of Object.keys(M.entries)) {
 console.log('');
 if (failures.length) {
   console.log('──────── 失败明细 ────────');
-  failures.forEach(f => console.log('  ✗ ' + f));
+  failures.forEach((f) => console.log('  ✗ ' + f));
 }
 console.log(`断言 ${pass + fail} 条：通过 ${pass}，失败 ${fail}`);
 if (fail === 0) {

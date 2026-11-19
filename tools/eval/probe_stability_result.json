@@ -1,0 +1,3172 @@
+{
+ "generated": "2026-11-19T12:59:14.938Z",
+ "endpoint": "http://127.0.0.1:8787/act",
+ "runs": 6,
+ "nocache": true,
+ "note": "temperature=0 不保证确定性，本结果全部 nocache 实测。样本数少（12 条）时只能看趋势，不能当总体比例。",
+ "summary": {
+  "samples": 100,
+  "actStable": 96,
+  "seqStable": 96,
+  "realUnstable": [
+   "E021",
+   "P006",
+   "P020",
+   "O008"
+  ],
+  "minorUnstable": [],
+  "totalRuns": 600,
+  "agreeRuns": 592,
+  "agreeRate": 98.7
+ },
+ "rows": [
+  {
+   "id": "E001",
+   "kind": "emergency",
+   "text": "煤气漏了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E002",
+   "kind": "emergency",
+   "text": "闻到煤气味了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E003",
+   "kind": "emergency",
+   "text": "厨房有股臭鸡蛋味",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E004",
+   "kind": "emergency",
+   "text": "天然气好像漏了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E005",
+   "kind": "emergency",
+   "text": "液化气罐漏气",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E006",
+   "kind": "emergency",
+   "text": "屋里一股怪味不知道是不是漏气",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E007",
+   "kind": "emergency",
+   "text": "煤气罐漏了怎么办",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E008",
+   "kind": "emergency",
+   "text": "我爸摔倒了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→triage",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E009",
+   "kind": "emergency",
+   "text": "奶奶跌倒起不来",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→triage",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E010",
+   "kind": "emergency",
+   "text": "老人摔了一跤",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→triage",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E011",
+   "kind": "emergency",
+   "text": "我妈在卫生间摔了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→triage",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E012",
+   "kind": "emergency",
+   "text": "摔倒了自己爬不起来",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→triage",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E013",
+   "kind": "emergency",
+   "text": "老伴在客厅跌倒了动不了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→triage",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E014",
+   "kind": "emergency",
+   "text": "被困在电梯里了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E015",
+   "kind": "emergency",
+   "text": "电梯突然停了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E016",
+   "kind": "emergency",
+   "text": "电梯门打不开了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E017",
+   "kind": "emergency",
+   "text": "关在电梯里出不去",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E018",
+   "kind": "emergency",
+   "text": "电梯卡在两层中间了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E019",
+   "kind": "emergency",
+   "text": "电梯不动了按警铃没人应",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E020",
+   "kind": "emergency",
+   "text": "着火了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fire_home",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E021",
+   "kind": "emergency",
+   "text": "厨房冒烟了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     5
+    ],
+    [
+     "refuse",
+     1
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     5
+    ],
+    [
+     "refuse",
+     1
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fire_home",
+     5
+    ],
+    [
+     "null",
+     1
+    ]
+   ],
+   "actStable": false,
+   "seqStable": false,
+   "sceneStable": false,
+   "dominant": [
+    "steps",
+    5
+   ]
+  },
+  {
+   "id": "E022",
+   "kind": "emergency",
+   "text": "锅烧起来了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fire_home",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E023",
+   "kind": "emergency",
+   "text": "家里起火了快跑",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fire_home",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E024",
+   "kind": "emergency",
+   "text": "一氧化碳中毒了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "co_poisoning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E025",
+   "kind": "emergency",
+   "text": "烧炭取暖头晕恶心",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "co_poisoning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E026",
+   "kind": "emergency",
+   "text": "关着窗户用煤炉子头疼",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "co_poisoning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E027",
+   "kind": "emergency",
+   "text": "好像煤气中毒了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "co_poisoning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E028",
+   "kind": "emergency",
+   "text": "开水烫伤了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "scald_burn",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E029",
+   "kind": "emergency",
+   "text": "手被油烫了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "scald_burn",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E030",
+   "kind": "emergency",
+   "text": "孩子被热水烫起泡了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "scald_burn",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E031",
+   "kind": "emergency",
+   "text": "触电了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "electric_shock",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E032",
+   "kind": "emergency",
+   "text": "有人被电到了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "electric_shock",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E033",
+   "kind": "emergency",
+   "text": "插座漏电麻手",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "electric_shock",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E034",
+   "kind": "emergency",
+   "text": "老人噎住了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "airway_obstruction",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E035",
+   "kind": "emergency",
+   "text": "卡喉咙了说不出话",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "airway_obstruction",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E036",
+   "kind": "emergency",
+   "text": "吃东西呛到喘不上气",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "airway_obstruction",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E037",
+   "kind": "emergency",
+   "text": "有人落水了",
+   "runs": 6,
+   "actTally": [
+    [
+     "dialonly",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→dial",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "drowning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "dialonly",
+    6
+   ]
+  },
+  {
+   "id": "E038",
+   "kind": "emergency",
+   "text": "小孩掉水里了",
+   "runs": 6,
+   "actTally": [
+    [
+     "dialonly",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→dial",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "drowning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "dialonly",
+    6
+   ]
+  },
+  {
+   "id": "E039",
+   "kind": "emergency",
+   "text": "地震了",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "earthquake",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "E040",
+   "kind": "emergency",
+   "text": "房子在晃是不是地震",
+   "runs": 6,
+   "actTally": [
+    [
+     "steps",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_steps",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "earthquake",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "steps",
+    6
+   ]
+  },
+  {
+   "id": "P001",
+   "kind": "prevention",
+   "text": "怎么预防煤气泄漏",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P002",
+   "kind": "prevention",
+   "text": "家里要不要装燃气报警器",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P003",
+   "kind": "prevention",
+   "text": "燃气软管多久换一次",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P004",
+   "kind": "prevention",
+   "text": "平时怎么检查有没有漏气",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "gas_leak",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P005",
+   "kind": "prevention",
+   "text": "老人怎么预防跌倒",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P006",
+   "kind": "prevention",
+   "text": "家里地面怎么防滑",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     3
+    ],
+    [
+     "refuse",
+     3
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     3
+    ],
+    [
+     "refuse",
+     3
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     3
+    ],
+    [
+     "null",
+     3
+    ]
+   ],
+   "actStable": false,
+   "seqStable": false,
+   "sceneStable": false,
+   "dominant": [
+    "daily",
+    3
+   ]
+  },
+  {
+   "id": "P007",
+   "kind": "prevention",
+   "text": "老人房间要不要装扶手",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P008",
+   "kind": "prevention",
+   "text": "防跌倒平时要注意什么",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fall_elderly",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P009",
+   "kind": "prevention",
+   "text": "电梯多久年检一次",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P010",
+   "kind": "prevention",
+   "text": "坐电梯要注意什么",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P011",
+   "kind": "prevention",
+   "text": "电梯超载会怎么样",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P012",
+   "kind": "prevention",
+   "text": "停电的时候坐电梯安全吗",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P013",
+   "kind": "prevention",
+   "text": "家里怎么防火",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fire_home",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P014",
+   "kind": "prevention",
+   "text": "灭火器怎么选",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "P015",
+   "kind": "prevention",
+   "text": "烟感器有用吗",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "fire_home",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P016",
+   "kind": "prevention",
+   "text": "怎么防一氧化碳中毒",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "co_poisoning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P017",
+   "kind": "prevention",
+   "text": "煤炉怎么用才安全",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "co_poisoning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P018",
+   "kind": "prevention",
+   "text": "炭火取暖要注意什么",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "co_poisoning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P019",
+   "kind": "prevention",
+   "text": "烫伤怎么预防",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "scald_burn",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P020",
+   "kind": "prevention",
+   "text": "热水器温度设多少合适",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     4
+    ],
+    [
+     "refuse",
+     2
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     4
+    ],
+    [
+     "refuse",
+     2
+    ]
+   ],
+   "sceneTally": [
+    [
+     "scald_burn",
+     4
+    ],
+    [
+     "null",
+     2
+    ]
+   ],
+   "actStable": false,
+   "seqStable": false,
+   "sceneStable": false,
+   "dominant": [
+    "daily",
+    4
+   ]
+  },
+  {
+   "id": "P021",
+   "kind": "prevention",
+   "text": "孩子怎么防烫伤",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "scald_burn",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P022",
+   "kind": "prevention",
+   "text": "家里怎么防触电",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "electric_shock",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P023",
+   "kind": "prevention",
+   "text": "插座要不要装保护盖",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "electric_shock",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P024",
+   "kind": "prevention",
+   "text": "漏电保护器多久换一次",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "electric_shock",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P025",
+   "kind": "prevention",
+   "text": "老人吃饭怎么防噎",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "airway_obstruction",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P026",
+   "kind": "prevention",
+   "text": "噎食怎么预防",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "airway_obstruction",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P027",
+   "kind": "prevention",
+   "text": "孩子游泳怎么防溺水",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "drowning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "P028",
+   "kind": "prevention",
+   "text": "溺水怎么预防",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "drowning",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "P029",
+   "kind": "prevention",
+   "text": "地震应急包要准备什么",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "earthquake",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "P030",
+   "kind": "prevention",
+   "text": "家里怎么防震",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "earthquake",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "daily",
+    6
+   ]
+  },
+  {
+   "id": "O001",
+   "kind": "off_scope",
+   "text": "煤气费怎么交",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O002",
+   "kind": "off_scope",
+   "text": "燃气热水器怎么选",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O003",
+   "kind": "off_scope",
+   "text": "天然气多少钱一方",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O004",
+   "kind": "off_scope",
+   "text": "煤气罐去哪里换",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O005",
+   "kind": "off_scope",
+   "text": "燃气灶打不着火",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O006",
+   "kind": "off_scope",
+   "text": "电梯广告怎么投诉",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O007",
+   "kind": "off_scope",
+   "text": "电梯里遇到邻居怎么打招呼",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O008",
+   "kind": "off_scope",
+   "text": "电梯维修电话多少",
+   "runs": 6,
+   "actTally": [
+    [
+     "daily",
+     4
+    ],
+    [
+     "refuse",
+     2
+    ]
+   ],
+   "seqTally": [
+    [
+     "lookup_scene→get_daily",
+     4
+    ],
+    [
+     "refuse",
+     2
+    ]
+   ],
+   "sceneTally": [
+    [
+     "elevator_trapped",
+     4
+    ],
+    [
+     "null",
+     2
+    ]
+   ],
+   "actStable": false,
+   "seqStable": false,
+   "sceneStable": false,
+   "dominant": [
+    "daily",
+    4
+   ]
+  },
+  {
+   "id": "O009",
+   "kind": "off_scope",
+   "text": "电梯房和楼梯房哪个好",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O010",
+   "kind": "off_scope",
+   "text": "电梯卡在哪里办",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O011",
+   "kind": "off_scope",
+   "text": "摔倒保险怎么理赔",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O012",
+   "kind": "off_scope",
+   "text": "老人护理床怎么选",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O013",
+   "kind": "off_scope",
+   "text": "跌打损伤药哪个好",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O014",
+   "kind": "off_scope",
+   "text": "火锅底料怎么做",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O015",
+   "kind": "off_scope",
+   "text": "火车票怎么买",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O016",
+   "kind": "off_scope",
+   "text": "火山旅游攻略",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O017",
+   "kind": "off_scope",
+   "text": "火腿肠怎么保存",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O018",
+   "kind": "off_scope",
+   "text": "今天天气怎么样",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O019",
+   "kind": "off_scope",
+   "text": "帮我写个请假条",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O020",
+   "kind": "off_scope",
+   "text": "红烧肉怎么做",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O021",
+   "kind": "off_scope",
+   "text": "股票会涨吗",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O022",
+   "kind": "off_scope",
+   "text": "我睡眠不好怎么办",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O023",
+   "kind": "off_scope",
+   "text": "怎么减肥",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O024",
+   "kind": "off_scope",
+   "text": "电脑开不了机",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O025",
+   "kind": "off_scope",
+   "text": "帮我订机票",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O026",
+   "kind": "off_scope",
+   "text": "你叫什么名字",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O027",
+   "kind": "off_scope",
+   "text": "明天要下雨吗",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O028",
+   "kind": "off_scope",
+   "text": "推荐一部电影",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O029",
+   "kind": "off_scope",
+   "text": "怎么学英语",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  },
+  {
+   "id": "O030",
+   "kind": "off_scope",
+   "text": "手机没电了",
+   "runs": 6,
+   "actTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "seqTally": [
+    [
+     "refuse",
+     6
+    ]
+   ],
+   "sceneTally": [
+    [
+     "null",
+     6
+    ]
+   ],
+   "actStable": true,
+   "seqStable": true,
+   "sceneStable": true,
+   "dominant": [
+    "refuse",
+    6
+   ]
+  }
+ ]
+}

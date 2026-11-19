@@ -33,16 +33,32 @@ try {
 /* ---------- DOM stub ---------- */
 const store = new Map();
 function makeEl(id) {
+  const cls = new Set();
   return {
     id, innerHTML: '', hidden: false, value: '', textContent: '',
     handlers: {},
+    className: '',
+    /* 2026-11-19 聊天式改造：紧急态靠 body.classList 标记（不再隐藏视图） */
+    _classes: cls,
+    classList: {
+      add(c) { cls.add(c); },
+      remove(c) { cls.delete(c); },
+      contains(c) { return cls.has(c); },
+      toggle(c, on) { if (on === undefined) { cls.has(c) ? cls.delete(c) : cls.add(c); } else if (on) cls.add(c); else cls.delete(c); }
+    },
     addEventListener(type, fn) { (this.handlers[type] ||= []).push(fn); },
     querySelectorAll() { return []; },
     querySelector() { return null; },
     scrollIntoView() {},
     getAttribute() { return null; },
     setAttribute() {},
-    closest() { return null; }
+    closest() { return null; },
+    /* 2026-11-19 聊天式改造：消息气泡需要 appendChild 组装 DOM */
+    children: [],
+    appendChild(c) { this.children = this.children || []; this.children.push(c); c.parentNode = this; return c; },
+    removeChild(c) { this.children = (this.children || []).filter((x) => x !== c); return c; },
+    insertBefore(c) { this.children = this.children || []; this.children.unshift(c); c.parentNode = this; return c; },
+    parentNode: null,
   };
 }
 const document = {
@@ -50,6 +66,23 @@ const document = {
     if (!store.has(id)) store.set(id, makeEl(id));
     return store.get(id);
   },
+  /* 2026-11-19 聊天式改造：消息流每条回答 createElement 新容器并动态接管 id。
+     stub 必须支持 createElement / setAttribute('id') 注册 / removeAttribute('id') 注销，
+     否则 app.js 拿不到容器。这是 stub 能力增强，断言口径未改。 */
+  createElement(tag) {
+    const n = makeEl('#' + tag);
+    n.setAttribute = function (k, v) {
+      this._attrs = this._attrs || {};
+      this._attrs[k] = v;
+      if (k === 'id') { store.set(String(v), this); this.id = String(v); }
+    };
+    n.removeAttribute = function (k) {
+      if (k === 'id') { for (const [key, val] of store.entries()) if (val === this) store.delete(key); this.id = ''; }
+    };
+    n.tagName = String(tag).toUpperCase();
+    return n;
+  },
+  body: makeEl('body'),
   querySelectorAll() { return []; },
   addEventListener() {}
 };
@@ -74,7 +107,7 @@ const sandbox = {
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'voice.js', 'app.js']) {
+for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'voice.js', 'state.js', 'chat.js', 'tools.js', 'render.js', 'speak.js', 'talk.js', 'agent.js', 'app.js']) {
   vm.runInContext(fs.readFileSync(path.join(APP, f), 'utf8'), sandbox);
 }
 const M = sandbox.window.__M1__;
@@ -110,13 +143,13 @@ for (const c of CASES) {
   M.state.mode = 'daily';
   M.state.locked = false;
   M.autoReadState.muted = false;
-  store.get('dailyAnswer').innerHTML = '';
-  store.get('emgAnswer').innerHTML = '';
+  document.getElementById('dailyAnswer').innerHTML = '';
+  document.getElementById('emgAnswer').innerHTML = '';
 
   const before = spoken.length;
   await M.handleQuery(c.text);
   const n = spoken.length - before;
-  const html = store.get('emgAnswer').innerHTML || store.get('dailyAnswer').innerHTML;
+  const html = document.getElementById('emgAnswer').innerHTML || document.getElementById('dailyAnswer').innerHTML;
   const card = classify(html);
   const said = n ? spoken[spoken.length - 1].text : '';
 

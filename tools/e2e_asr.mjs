@@ -59,7 +59,23 @@ function makeEl(id) {
 }
 const document = {
   getElementById(id) { if (!store.has(id)) store.set(id, makeEl(id)); return store.get(id); },
-  createElement(tag) { return makeEl('new-' + tag); },
+  /* 2026-11-19 聊天式改造：消息流每条回答 createElement 新容器并动态接管 id。
+     stub 必须支持 createElement / setAttribute('id') 注册 / removeAttribute('id') 注销，
+     否则 app.js 拿不到容器。这是 stub 能力增强，断言口径未改。 */
+  createElement(tag) {
+    const n = makeEl('#' + tag);
+    n.setAttribute = function (k, v) {
+      this._attrs = this._attrs || {};
+      this._attrs[k] = v;
+      if (k === 'id') { store.set(String(v), this); this.id = String(v); }
+    };
+    n.removeAttribute = function (k) {
+      if (k === 'id') { for (const [key, val] of store.entries()) if (val === this) store.delete(key); this.id = ''; }
+    };
+    n.tagName = String(tag).toUpperCase();
+    return n;
+  },
+  body: makeEl('body'),
   querySelectorAll() { return []; },
   addEventListener() {}
 };
@@ -110,7 +126,7 @@ const sandbox = {
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'voice.js', 'asr.js', 'app.js']) {
+for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'voice.js', 'asr.js', 'state.js', 'chat.js', 'tools.js', 'render.js', 'speak.js', 'talk.js', 'agent.js', 'app.js']) {
   vm.runInContext(fs.readFileSync(path.join(APP, f), 'utf8'), sandbox);
 }
 const M = sandbox.window.__M1__;
@@ -213,9 +229,9 @@ for (const c of CASES) {
   M.state.mode = 'daily';
   M.state.locked = false;
   M.autoReadState.muted = false;
-  store.get('dailyAnswer').innerHTML = '';
-  store.get('emgAnswer').innerHTML = '';
-  store.get('dailyInput').value = '';
+  document.getElementById('dailyAnswer').innerHTML = '';
+  document.getElementById('emgAnswer').innerHTML = '';
+  document.getElementById('dailyInput').value = '';
 
   /* 按**产品真实流程**走一步：识别 → 填框 + 立即出答案（用户裁决不需要再确认）。
      2026-11-19 两次修正的合并结论：
@@ -246,7 +262,7 @@ for (const c of CASES) {
   ok(String(inputBox.value || '').trim() === text,
     `输入框应留着识别文本供核对，实际「${inputBox.value}」`);
 
-  const html = store.get('emgAnswer').innerHTML || store.get('dailyAnswer').innerHTML;
+  const html = document.getElementById('emgAnswer').innerHTML || document.getElementById('dailyAnswer').innerHTML;
   const card = classify(html);
   console.log(`  出卡: ${card} ｜ 模式 ${M.state.mode}（未点任何按钮）`);
   console.log('');

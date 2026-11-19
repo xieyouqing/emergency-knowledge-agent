@@ -1,0 +1,436 @@
+{
+  "meta": {
+    "purpose": "**留出集 v2**：v1（cases_heldout.json）因 2026-11-19 修 P18 改过 ACT_PROMPT 而**已污染**，本集用来替代它。",
+    "created": "2026-11-19",
+    "supersedes": "cases_heldout.json（v1，42 条）",
+    "contamination_note": [
+      "v1 只跑了一次（39/42），跑完按结果改了 ACT_PROMPT（P18：紧急不许 ask + 未覆盖急症 dial）。",
+      "★ 因此 v1 不能再叫留出集。它的历史结果保留在 probe_heldout_result.json，作为「改前基线」引用，但**不许再用来报泛化能力**。",
+      "★ v2 是新的留出集。纪律同 v1：只跑一次，跑完不许据它改 prompt。"
+    ],
+    "honest_limitation": [
+      "★★ 本集题目**没有真实老人语料支撑** —— `01` §9 的 V3/V5 老人实测至今未做（原因：找不到人反复配合）。",
+      "所以每一条都是按「语言现象」构造的，不是从真实对话里摘的。",
+      "这决定了本集只能回答「换说法后还行不行」，**回答不了「真实老人说的话能不能听懂」**。后者必须等 V3/V5。"
+    ],
+    "how_designed_vs_v1": [
+      "v1 侧重：方言词、同音字、纯症状描述、事务性边界。",
+      "v2 侧重（刻意错开，避免同质化）：① 极短输入（2–4 字，老人在紧急时说不完整）",
+      "  ② 语气词/口头禅（哎呀、咋办、坏了）③ 用户误判场景（说错东西，真实高频）",
+      "  ④ 多症状叠加 ⑤ 否定式/更正 ⑥ 第三人称转述（替邻居问） ⑦ 反问式求助",
+      "  ⑧ 含具体数字与时间 ⑨ 与 v1 不同的方言/土话。"
+    ],
+    "scoring_note": "须同时报：全部条目准确率 + 剔除 debatable 后准确率。只报一个会掩盖标注分歧。",
+    "fields": {
+      "id": "H2 前缀，与 v1 的 H 前缀区分，防止混引",
+      "group": "emergency / prevention / off_scope",
+      "expect_intent": "ongoing / prevention / off_scope",
+      "expect_scene": "场景 id 或 null",
+      "expect_action": "steps / daily / dialonly / refuse",
+      "phenomenon": "本条测的语言现象",
+      "debatable": "可选。true 表示标注有争议，评分时单独剔除"
+    },
+    "prompt_version_note": {
+      "scored_against": "ACT_PROMPT v3.5（2026-11-19 20:0x）",
+      "result": "41/42 = 97.6%；剔除 7 条 debatable 后 35/35 = 100%",
+      "changed_after": "2026-11-19 22:1x，v3.6 改了 ACT_PROMPT 与 SYSTEM_PROMPT 的「选购」规则（08 P28）",
+      "decision": "**不重跑**。理由：本集的价值是「改 prompt 前的独立读数」，它已完成这个任务——97.6% 对应的是当时那版 prompt。",
+      "why_not_rerun": "若为验证 v3.6 而重跑，它就变成「回归测试」而不是「泛化估计」了；而且会诱导按结果再调 prompt，那才是真污染。回归有 probe_loop（100 条开发集）与 e2e_* 覆盖，不需要动用留出集。",
+      "consequence": "**引用本集数字时必须同时引用 prompt_version_note**，否则会误以为 97.6% 是当前版本的成绩。当前版本的开发集成绩见 probe_loop（99/100）。"
+    }
+  },
+  "cases": [
+    {
+      "id": "H2-01",
+      "group": "emergency",
+      "phenomenon": "★ 极短输入（2 字），紧急时说不完整",
+      "text": "漏了",
+      "expect_intent": "ongoing",
+      "expect_scene": "gas_leak",
+      "expect_action": "steps",
+      "debatable": true,
+      "debatable_reason": "只有两字，脱离语境信息严重不足。「漏了」可能是漏水、漏气、漏电。取 gas_leak 是因为本产品只覆盖这个「漏」；但判 refuse 也不算错。这条主要在测「极短输入会不会崩」。"
+    },
+    {
+      "id": "H2-02",
+      "group": "emergency",
+      "phenomenon": "★ 极短输入（3 字）+ 口头禅",
+      "text": "着火了咋办",
+      "expect_intent": "ongoing",
+      "expect_scene": "fire_home",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-03",
+      "group": "emergency",
+      "phenomenon": "★ 极短输入（3 字），无任何场景词",
+      "text": "冒烟了",
+      "expect_intent": "ongoing",
+      "expect_scene": "fire_home",
+      "expect_action": "steps",
+      "debatable": true,
+      "debatable_reason": "「冒烟」可能是厨房油烟、电器短路、还是真着火。取 fire_home 偏保守（宁可多给），但也可能被判 refuse。"
+    },
+    {
+      "id": "H2-04",
+      "group": "emergency",
+      "phenomenon": "语气词开头（哎呀妈呀）",
+      "text": "哎呀妈呀我家厨房着起来了",
+      "expect_intent": "ongoing",
+      "expect_scene": "fire_home",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-05",
+      "group": "emergency",
+      "phenomenon": "★ 用户误判场景（说成漏水，实际是漏气）",
+      "text": "管子漏水了还有一股味道",
+      "expect_intent": "ongoing",
+      "expect_scene": "gas_leak",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-06",
+      "group": "emergency",
+      "phenomenon": "★ 用户误判场景（把 CO 说成煤气）",
+      "text": "是不是煤气中毒了我妈一直说头疼想睡",
+      "expect_intent": "ongoing",
+      "expect_scene": "co_poisoning",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-07",
+      "group": "emergency",
+      "phenomenon": "多症状叠加（两个症状同时说）",
+      "text": "我爸摔了以后胳膊抬不起来还说胸口闷",
+      "expect_intent": "ongoing",
+      "expect_scene": "fall_elderly",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-08",
+      "group": "emergency",
+      "phenomenon": "含具体时间（已经多久了）",
+      "text": "我妈在浴室滑倒了躺了十几分钟了",
+      "expect_intent": "ongoing",
+      "expect_scene": "fall_elderly",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-09",
+      "group": "emergency",
+      "phenomenon": "★ 否定式 + 更正（先否认再确认）",
+      "text": "不是摔的，是突然就倒地上了",
+      "expect_intent": "ongoing",
+      "expect_scene": "fall_elderly",
+      "expect_action": "steps",
+      "debatable": true,
+      "debatable_reason": "「突然倒地」可能是晕厥/卒中/心梗，而库内只有 fall_elderly。给 fall_elderly 的分诊（能不能动）对晕厥者不完全对症，但比拒答好。这条也暴露了库内缺「晕厥/卒中」条目。"
+    },
+    {
+      "id": "H2-10",
+      "group": "emergency",
+      "phenomenon": "第三人称转述（替邻居问）",
+      "text": "我邻居家好像漏气了要不要去敲门",
+      "expect_intent": "ongoing",
+      "expect_scene": "gas_leak",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-11",
+      "group": "emergency",
+      "phenomenon": "反问式求助（这可怎么办）",
+      "text": "电梯坏了我在里面这可怎么办啊",
+      "expect_intent": "ongoing",
+      "expect_scene": "elevator_trapped",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-12",
+      "group": "emergency",
+      "phenomenon": "★ 含具体数字（几层楼）",
+      "text": "被困在电梯里了显示停在 12 楼",
+      "expect_intent": "ongoing",
+      "expect_scene": "elevator_trapped",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-13",
+      "group": "emergency",
+      "phenomenon": "土话（电打了）",
+      "text": "插座漏电把我电打了",
+      "expect_intent": "ongoing",
+      "expect_scene": "electric_shock",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-14",
+      "group": "emergency",
+      "phenomenon": "★ 描述伤口状态（起泡脱皮）",
+      "text": "手被开水烫得起泡脱皮了",
+      "expect_intent": "ongoing",
+      "expect_scene": "scald_burn",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-15",
+      "group": "emergency",
+      "phenomenon": "★ 明确说无呼吸（库内无 CPR，应拨号）",
+      "text": "老伴倒地上没气了怎么办",
+      "expect_intent": "ongoing",
+      "expect_scene": null,
+      "expect_action": "dialonly",
+      "debatable": true,
+      "debatable_reason": "库内**没有 CPR 条目**（已核实：airway_obstruction 只有海姆立克，fall_elderly 分诊问「能不能动胳膊腿」）。所以正确做法是 dial，而非给不适用的步骤。这条同时是「内容缺口」的证据。"
+    },
+    {
+      "id": "H2-16",
+      "group": "emergency",
+      "phenomenon": "★ 明确说大出血（库内无对应条目）",
+      "text": "胳膊划破了大出血止不住",
+      "expect_intent": "ongoing",
+      "expect_scene": null,
+      "expect_action": "dialonly",
+      "debatable": true,
+      "debatable_reason": "库内无「大出血」条目。按 P18 规则 7 应 dial。但也可以认为应给「按压止血」的通用指导 —— 库内没有，所以只能拨号。"
+    },
+    {
+      "id": "H2-17",
+      "group": "emergency",
+      "phenomenon": "儿童溺水（场景未发布）",
+      "text": "孩子掉河里了快来人",
+      "expect_intent": "ongoing",
+      "expect_scene": "drowning",
+      "expect_action": "dialonly"
+    },
+    {
+      "id": "H2-18",
+      "group": "emergency",
+      "phenomenon": "★ 含具体食物 + 面色描述",
+      "text": "吃花生卡住了脸都发紫了",
+      "expect_intent": "ongoing",
+      "expect_scene": "airway_obstruction",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-19",
+      "group": "emergency",
+      "phenomenon": "★ 强震中的即时求助（含时间压力）",
+      "text": "地在晃现在就要跑吗",
+      "expect_intent": "ongoing",
+      "expect_scene": "earthquake",
+      "expect_action": "steps"
+    },
+    {
+      "id": "H2-20",
+      "group": "prevention",
+      "phenomenon": "★ 口语（那股味儿老有）",
+      "text": "厨房那股味儿老有是不是该查查",
+      "expect_intent": "prevention",
+      "expect_scene": "gas_leak",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-21",
+      "group": "prevention",
+      "phenomenon": "★ 反问式（怎么知道有没有事）",
+      "text": "怎么知道家里的燃气有没有问题",
+      "expect_intent": "prevention",
+      "expect_scene": "gas_leak",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-22",
+      "group": "prevention",
+      "phenomenon": "含具体数字 + 时间跨度",
+      "text": "报警器用了五年了还管用吗",
+      "expect_intent": "prevention",
+      "expect_scene": "gas_leak",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-23",
+      "group": "prevention",
+      "phenomenon": "★ 描述家人状况（我妈腿脚不好）",
+      "text": "我妈腿脚不好家里该怎么弄才不摔",
+      "expect_intent": "prevention",
+      "expect_scene": "fall_elderly",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-24",
+      "group": "prevention",
+      "phenomenon": "★ 具体场所（浴室）",
+      "text": "浴室里最容易摔要怎么改",
+      "expect_intent": "prevention",
+      "expect_scene": "fall_elderly",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-25",
+      "group": "prevention",
+      "phenomenon": "★ 问设备而不是问方法（监控/呼叫器）",
+      "text": "一个人住的老人要不要装个呼叫器",
+      "expect_intent": "prevention",
+      "expect_scene": "fall_elderly",
+      "expect_action": "daily",
+      "debatable": true,
+      "debatable_reason": "「要不要装呼叫器」可能被判 off_scope（选购咨询），与 O012「老人护理床怎么选」同类。但呼叫器属跌倒求助设备，与防跌倒直接相关。边界本身模糊。"
+    },
+    {
+      "id": "H2-26",
+      "group": "prevention",
+      "phenomenon": "★ 问「多久」但主语是行为不是物件",
+      "text": "家里的插线板用多久该扔",
+      "expect_intent": "prevention",
+      "expect_scene": "electric_shock",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-27",
+      "group": "prevention",
+      "phenomenon": "★ 儿童安全（小孩乱摸插座）",
+      "text": "小孩老想摸插座怎么办",
+      "expect_intent": "prevention",
+      "expect_scene": "electric_shock",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-28",
+      "group": "prevention",
+      "phenomenon": "★ 含具体化学品（酒精炉/炭盆）",
+      "text": "冬天在屋里用炭盆取暖危险吗",
+      "expect_intent": "prevention",
+      "expect_scene": "co_poisoning",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-29",
+      "group": "prevention",
+      "phenomenon": "★ 问识别信号（怎么早发现）",
+      "text": "怎么能早点发现有人一氧化碳中毒",
+      "expect_intent": "prevention",
+      "expect_scene": "co_poisoning",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-30",
+      "group": "prevention",
+      "phenomenon": "★ 老人自己问（我腿脚不便）",
+      "text": "我腿脚不便洗澡怎么才安全",
+      "expect_intent": "prevention",
+      "expect_scene": "fall_elderly",
+      "expect_action": "daily"
+    },
+    {
+      "id": "H2-31",
+      "group": "prevention",
+      "phenomenon": "★ 问「几楼以下」这类具体知识",
+      "text": "地震住几楼以下比较安全",
+      "expect_intent": "prevention",
+      "expect_scene": "earthquake",
+      "expect_action": "daily",
+      "debatable": true,
+      "debatable_reason": "「住几楼安全」其实没有标准答案（取决于建筑结构），给 daily 会让模型硬答。判 refuse 也有道理。这条在测「会不会编」。"
+    },
+    {
+      "id": "H2-32",
+      "group": "off_scope",
+      "phenomenon": "★ 问发票/报销（事务）",
+      "text": "燃气费发票在哪开",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-33",
+      "group": "off_scope",
+      "phenomenon": "★ 问安装服务（含「装」字，易与预防混淆）",
+      "text": "燃气灶安装师傅电话有吗",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-34",
+      "group": "off_scope",
+      "phenomenon": "★ 含「跌倒」但是保险条款咨询",
+      "text": "意外险跌倒骨折赔多少",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-35",
+      "group": "off_scope",
+      "phenomenon": "★ 含「电梯」但是房产问题",
+      "text": "老楼加装电梯要多少钱",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-36",
+      "group": "off_scope",
+      "phenomenon": "★ 含「着火」但是菜谱用语（锅气/着火候）",
+      "text": "炒菜怎么掌握火候",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-37",
+      "group": "off_scope",
+      "phenomenon": "★ 含「烫」但是饮食话题",
+      "text": "烫面饺子怎么做",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-38",
+      "group": "off_scope",
+      "phenomenon": "★ 含「煤气」但是菜谱（煤气灶炒菜）",
+      "text": "用煤气灶炖排骨要多久",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-39",
+      "group": "off_scope",
+      "phenomenon": "★ 闲聊（拉家常）",
+      "text": "你今年多大了",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-40",
+      "group": "off_scope",
+      "phenomenon": "★ 情感倾诉（无具体诉求）",
+      "text": "我一个人在家挺没意思的",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-41",
+      "group": "off_scope",
+      "phenomenon": "★ 要求执行操作（设闹钟）",
+      "text": "帮我定个明早六点的闹钟",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    },
+    {
+      "id": "H2-42",
+      "group": "off_scope",
+      "phenomenon": "★ 问健康养生（高频，但不属急救）",
+      "text": "血压高吃什么好",
+      "expect_intent": "off_scope",
+      "expect_scene": null,
+      "expect_action": "refuse"
+    }
+  ]
+}

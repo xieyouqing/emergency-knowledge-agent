@@ -36,16 +36,70 @@ try {
 /* ---------- DOM stub：要能取到 innerHTML，也要支持事件绑定 ---------- */
 const store = new Map();
 function makeEl(id) {
+  const cls = new Set();
   return {
-    id, innerHTML: '', hidden: false, value: '', textContent: '',
+    id,
+    innerHTML: '',
+    hidden: false,
+    value: '',
+    textContent: '',
     handlers: {},
-    addEventListener(type, fn) { (this.handlers[type] ||= []).push(fn); },
-    querySelectorAll() { return []; },
-    querySelector() { return null; },
+    className: '',
+    /* 2026-11-19 聊天式改造：紧急态靠 body.classList 标记（不再隐藏视图） */
+    _classes: cls,
+    classList: {
+      add(c) {
+        cls.add(c);
+      },
+      remove(c) {
+        cls.delete(c);
+      },
+      contains(c) {
+        return cls.has(c);
+      },
+      toggle(c, on) {
+        if (on === undefined) {
+          cls.has(c) ? cls.delete(c) : cls.add(c);
+        } else if (on) cls.add(c);
+        else cls.delete(c);
+      },
+    },
+    addEventListener(type, fn) {
+      (this.handlers[type] ||= []).push(fn);
+    },
+    querySelectorAll() {
+      return [];
+    },
+    querySelector() {
+      return null;
+    },
     scrollIntoView() {},
-    getAttribute() { return null; },
+    getAttribute() {
+      return null;
+    },
     setAttribute() {},
-    closest() { return null; }
+    closest() {
+      return null;
+    },
+    /* 2026-11-19 聊天式改造：消息气泡需要 appendChild 组装 DOM */
+    children: [],
+    appendChild(c) {
+      this.children = this.children || [];
+      this.children.push(c);
+      c.parentNode = this;
+      return c;
+    },
+    removeChild(c) {
+      this.children = (this.children || []).filter((x) => x !== c);
+      return c;
+    },
+    insertBefore(c) {
+      this.children = this.children || [];
+      this.children.unshift(c);
+      c.parentNode = this;
+      return c;
+    },
+    parentNode: null,
   };
 }
 const document = {
@@ -53,34 +107,93 @@ const document = {
     if (!store.has(id)) store.set(id, makeEl(id));
     return store.get(id);
   },
-  querySelectorAll() { return []; },
-  addEventListener() {}
+  /* 2026-11-19 聊天式改造：消息流每条回答 createElement 新容器并动态接管 id。
+     stub 必须支持 createElement / setAttribute('id') 注册 / removeAttribute('id') 注销，
+     否则 app.js 拿不到容器。这是 stub 能力增强，断言口径未改。 */
+  createElement(tag) {
+    const n = makeEl('#' + tag);
+    n.setAttribute = function (k, v) {
+      this._attrs = this._attrs || {};
+      this._attrs[k] = v;
+      if (k === 'id') {
+        store.set(String(v), this);
+        this.id = String(v);
+      }
+    };
+    n.removeAttribute = function (k) {
+      if (k === 'id') {
+        for (const [key, val] of store.entries()) if (val === this) store.delete(key);
+        this.id = '';
+      }
+    };
+    n.tagName = String(tag).toUpperCase();
+    return n;
+  },
+  body: makeEl('body'),
+  querySelectorAll() {
+    return [];
+  },
+  addEventListener() {},
 };
 const window = { document, scrollTo() {}, addEventListener() {}, removeEventListener() {} };
 const sandbox = {
-  window, document, console, Math, String, Number, Object, Array, JSON,
-  fetch, AbortController, setTimeout, clearTimeout, Promise, Error, Date, RegExp
+  window,
+  document,
+  console,
+  Math,
+  String,
+  Number,
+  Object,
+  Array,
+  JSON,
+  fetch,
+  AbortController,
+  setTimeout,
+  clearTimeout,
+  Promise,
+  Error,
+  Date,
+  RegExp,
 };
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'app.js']) {
+for (const f of [
+  'log.js',
+  'knowledge.js',
+  'retrieval.js',
+  'llm.js',
+  'state.js',
+  'chat.js',
+  'tools.js',
+  'render.js',
+  'speak.js',
+  'talk.js',
+  'agent.js',
+  'app.js',
+]) {
   vm.runInContext(fs.readFileSync(path.join(APP, f), 'utf8'), sandbox);
 }
 const M = sandbox.window.__M1__;
-if (!M) { console.error('FAIL: app.js 未导出 __M1__'); process.exit(1); }
-if (!M.LLMAvailable) { console.error('FAIL: app.js 未加载到 LLM（llm.js 未生效）'); process.exit(1); }
+if (!M) {
+  console.error('FAIL: app.js 未导出 __M1__');
+  process.exit(1);
+}
+if (!M.LLMAvailable) {
+  console.error('FAIL: app.js 未加载到 LLM（llm.js 未生效）');
+  process.exit(1);
+}
 
 /* ---------- 用例：每条给出「输入 / 期望落点 / 期望内容特征」 ----------
    注意：含 triage 的场景（gas_leak / earthquake / fall_elderly）首渲染是**分诊卡**，
    不是完整步骤列表。所以内容特征按分诊卡来断言，不硬套步骤文字。 */
 const CASES = [
-  { text: '煤气漏了',            expect: 'steps',    must: ['燃气泄漏', 'triage'] },
-  { text: '着火了',              expect: 'steps',    must: ['家庭火灾', '贴近地面'] },
-  { text: '孩子被热水烫起泡了',  expect: 'steps',    must: ['烧烫伤', '冷水'] },
-  { text: '地震了',              expect: 'steps',    must: ['地震', 'triage'] },
-  { text: '老人噎住了',          expect: 'steps',    must: ['气道梗阻', '拍'] },
-  { text: '怎么预防煤气泄漏',    expect: 'daily',    must: ['查看操作步骤'] },
+  { text: '煤气漏了', expect: 'steps', must: ['燃气泄漏', 'triage'] },
+  { text: '着火了', expect: 'steps', must: ['家庭火灾', '贴近地面'] },
+  { text: '孩子被热水烫起泡了', expect: 'steps', must: ['烧烫伤', '冷水'] },
+  { text: '地震了', expect: 'steps', must: ['地震', 'triage'] },
+  { text: '老人噎住了', expect: 'steps', must: ['气道梗阻', '拍'] },
+  { text: '怎么预防煤气泄漏', expect: 'daily', must: ['查看操作步骤'] },
   /* 这条用例**不能断言固定落点**，原因是实测出来的（2026-11-19）：
 
      同一句话、同一时刻、temperature=0，连测 8 次：
@@ -97,16 +210,31 @@ const CASES = [
        - daily：日常解释卡，不含「立刻做/绝对不要做」段
      这两个都是安全落点；**不安全的落点是 steps（给了电梯困人的急救步骤）**。
      场景判断本身是稳的（8/8 都是 elevator_trapped + prevention），所以这条能稳定断言。 */
-  { text: '电梯多久年检一次',    expect: 'refuse|daily', must: [] },
-  { text: '煤气费怎么交',        expect: 'refuse',   must: ['答不了'] },
-  { text: '电梯广告怎么投诉',    expect: 'refuse',   must: ['答不了'] },   // 曾经误给电梯困人步骤卡
-  { text: '有人落水了',          expect: 'dialonly', must: ['没有可靠的操作步骤', '120'] },
-  { text: '今天天气怎么样',      expect: 'refuse',   must: ['答不了'] }
+  { text: '电梯多久年检一次', expect: 'refuse|daily', must: [] },
+  { text: '煤气费怎么交', expect: 'refuse', must: ['答不了'] },
+  { text: '电梯广告怎么投诉', expect: 'refuse', must: ['答不了'] }, // 曾经误给电梯困人步骤卡
+  /* 溺水给哪个号：119（消防，承担水域救援）或 120（医疗）都合法，
+     白名单里两个都在（tools.js allowedNumbers）。
+
+     ⚠️ 2026-11-19 改：原来写死 must:['120']，但模型实测**稳定给 119**（3/3）。
+     这不是抖动，也不是本轮的回归 —— 溺水场景人还在水里，先要救援力量把人捞上来，
+     119 比 120 更实用。锁死 120 会把这条断言变成「测模型选哪个号」，
+     而它本来要测的是「没有可靠步骤时必须给拨号出口」。
+     所以号码改为「必须在急救号集合内」，仍然能失败（给 110 或不给号都会红）。 */
+  { text: '有人落水了', expect: 'dialonly', must: ['没有可靠的操作步骤'], mustMatch: /119|120/ },
+  { text: '今天天气怎么样', expect: 'refuse', must: ['答不了'] },
 ];
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 const fails = [];
-function ok(cond, msg) { if (cond) pass++; else { fail++; fails.push(msg); } }
+function ok(cond, msg) {
+  if (cond) pass++;
+  else {
+    fail++;
+    fails.push(msg);
+  }
+}
 
 console.log('=== 端到端链路（真实调用 LLM 代理 + 真实主路径 handleQuery）===\n');
 console.log(pad('输入', 24) + pad('期望', 11) + pad('实际', 20) + '耗时');
@@ -124,7 +252,7 @@ function classify(html) {
   if (!html) return 'empty';
   if (html.includes('class="dialonly"')) return 'dialonly';
   if (html.includes('class="refuse"')) return 'refuse';
-  if (html.includes('triage-btn')) return 'steps';     // 分诊卡 = 步骤路径的第一步
+  if (html.includes('triage-btn')) return 'steps'; // 分诊卡 = 步骤路径的第一步
   if (html.includes('seg-immediate')) return 'steps';
   if (html.includes('查看操作步骤')) return 'daily';
   return 'unknown';
@@ -135,15 +263,15 @@ for (const c of CASES) {
   M.state.mode = 'daily';
   M.state.locked = false;
   M.state.choice = null;
-  store.get('dailyAnswer').innerHTML = '';
-  store.get('emgAnswer').innerHTML = '';
+  document.getElementById('dailyAnswer').innerHTML = '';
+  document.getElementById('emgAnswer').innerHTML = '';
 
   const t0 = Date.now();
   await M.handleQuery(c.text);
   const ms = Date.now() - t0;
 
-  const dailyHtml = store.get('dailyAnswer').innerHTML;
-  const emgHtml = store.get('emgAnswer').innerHTML;
+  const dailyHtml = document.getElementById('dailyAnswer').innerHTML;
+  const emgHtml = document.getElementById('emgAnswer').innerHTML;
   const html = emgHtml || dailyHtml;
   const got = classify(html);
 
@@ -156,16 +284,26 @@ for (const c of CASES) {
   /* 安全底色：无论落在哪个允许落点，都绝不能是 steps（那就是给了错误的急救步骤）。
      这条对「不稳定落点」的样本尤其重要——两个允许落点是安全的，steps 不是。 */
   if (allowed.length > 1) {
-    ok(got !== 'steps', `「${c.text}」落点不稳定时可以 refuse 或 daily，但绝不能给急救步骤卡（实际 ${got}）`);
+    ok(
+      got !== 'steps',
+      `「${c.text}」落点不稳定时可以 refuse 或 daily，但绝不能给急救步骤卡（实际 ${got}）`
+    );
   }
   ok(html.length > 0, `「${c.text}」渲染结果为空（白屏）`);
   for (const kw of c.must) {
     ok(html.includes(kw), `「${c.text}」渲染结果缺少「${kw}」`);
   }
+  /* mustMatch：号码类断言用正则表达「在这一组里」，而不是锁死一个数。
+     能失败：给 110 或不给号码都会红。 */
+  if (c.mustMatch) {
+    ok(c.mustMatch.test(html), `「${c.text}」渲染结果未命中 ${c.mustMatch}`);
+  }
   // 安全项：拒答/拨号卡绝不能带出步骤段（S1）
   if (c.expect === 'refuse' || c.expect === 'dialonly') {
-    ok(!html.includes('seg-immediate') && !html.includes('triage-btn'),
-      `「${c.text}」给的是 ${c.expect} 卡，但渲染里出现了步骤/分诊段（违反 S1）`);
+    ok(
+      !html.includes('seg-immediate') && !html.includes('triage-btn'),
+      `「${c.text}」给的是 ${c.expect} 卡，但渲染里出现了步骤/分诊段（违反 S1）`
+    );
   }
 }
 
@@ -178,11 +316,13 @@ console.log('\n=== 降级链路：把 LLM 指向不存在的端口 ===');
 
   M.state.mode = 'daily';
   M.state.locked = false;
-  store.get('dailyAnswer').innerHTML = '';
-  store.get('emgAnswer').innerHTML = '';
+  document.getElementById('dailyAnswer').innerHTML = '';
+  document.getElementById('emgAnswer').innerHTML = '';
 
   await M.handleQuery('煤气漏了');
-  const html = store.get('emgAnswer').innerHTML || store.get('dailyAnswer').innerHTML;
+  const html =
+    document.getElementById('emgAnswer').innerHTML ||
+    document.getElementById('dailyAnswer').innerHTML;
   const cls = classify(html);
   console.log('  代理不可用时「煤气漏了」渲染:', cls, '长度', html.length);
   ok(html.length > 0, '代理不可用时不得白屏');

@@ -1,0 +1,149 @@
+{
+  "meta": {
+    "purpose": "验证跨轮对话（多轮交互）能力。现有 cases.json 100 条全是单轮 —— 每条的 text 都是独立一句话，没有 history / context / turns 字段。",
+    "created": "2026-11-19",
+    "why_needed": "docs/03 §2.6 会话记忆的判据 M1 依赖本文件。没有它，「加记忆有没有用」无法用数据回答。",
+    "how_to_read": {
+      "turns": "用户依次说的每一句。turns[0] 是第一轮，turns[1] 是第二轮。",
+      "expect": "**只看最后一轮（turns[last]）的期望结果**。中间轮次是铺垫，不设期望 —— 因为它们本来就可能拿不到答案。",
+      "expect.final_action": "最后一轮应有的结局，取值与 cases.json 的 expect_action 一致：steps / daily / dialonly / refuse / ask",
+      "expect.needs_context": "true 表示「这句话单独看必然判不出」，必须靠上文。这是本文件的核心字段：它把「记忆的价值」变成可证伪的断言。",
+      "expect.why": "为什么需要上文 —— 写清「单看会怎样错」，便于人工复核标注是否合理"
+    },
+    "warning": "★ 本文件是**标注**，不是结论。标注由人（或经人复核的 AI 提案）给定。用脚本按有利口径重算等于自我授权，docs/02 §4.7 禁止。"
+  },
+  "cases": [
+    {
+      "id": "MT01",
+      "group": "分批说症状",
+      "turns": ["老人倒在地上了，叫不醒", "她还有呼吸，但是没反应"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "fall_elderly",
+        "needs_context": true,
+        "why": "第二句单独看只有「呼吸」「没反应」，无场景词。实测单轮判 stroke conf=0.55 被阈值拦成拒答；拼接上文后判 fall_elderly conf=0.95"
+      }
+    },
+    {
+      "id": "MT02",
+      "group": "分批说症状",
+      "turns": ["厨房有股味道", "现在我妈说头晕恶心"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "co_poisoning",
+        "needs_context": true,
+        "why": "第二句单独看是「头晕恶心」，可能判成中暑/低血糖/卒中。只有结合第一句「厨房有味道」才是 CO 中毒。这是最容易死人的一条"
+      }
+    },
+    {
+      "id": "MT03",
+      "group": "代词指代",
+      "turns": ["我爸被开水烫了胳膊", "他皮肤现在发白，不疼了"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "scald_burn",
+        "needs_context": true,
+        "why": "「他」指谁、「发白不疼」是三度烧伤的危险信号。单看第二句无场景词，且「不疼」容易被判成「没事」"
+      }
+    },
+    {
+      "id": "MT04",
+      "group": "代词指代",
+      "turns": ["我老伴摔了", "他胳膊动不了"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "fall_elderly",
+        "needs_context": true,
+        "why": "「他」必须解析成「老伴」。第二句「胳膊动不了」单看可能被判成骨折但无对应场景，从而 refuse"
+      }
+    },
+    {
+      "id": "MT05",
+      "group": "追问后续",
+      "turns": ["有人倒地了", "没有呼吸"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "airway_obstruction",
+        "needs_context": true,
+        "why": "「没有呼吸」是关键分水岭：有呼吸 = fall_elderly，无呼吸 = 心肺复苏。单看第二句判不出是谁、什么场景"
+      }
+    },
+    {
+      "id": "MT06",
+      "group": "追问后续",
+      "turns": ["燃气灶打不着火", "没有味道，就是打不着"],
+      "expect": {
+        "final_action": "refuse",
+        "final_scene": null,
+        "needs_context": true,
+        "why": "第一轮模型给 ask 二选一（闻到味 vs 只是打不着），第二轮是用户对追问的回答。答「没有味道」= 排除漏气 → 属家电故障，不在本产品范围，应 refuse。★ 标注曾写成 daily，2026-11-19 修正：cases.json 里同类的 O005「燃气灶打不着火」标的就是 refuse，两处必须一致；改成 daily 会更宽松，不是修正方向。实测模型给的是 ask（让用户选「灶具故障 vs 燃气问题」），仍不算对——它把非急救问题纳入了处理范围"
+      }
+    },
+    {
+      "id": "MT07",
+      "group": "修正上文",
+      "turns": ["煤气漏了", "不是煤气，是楼下饭店的油烟味"],
+      "expect": {
+        "final_action": "refuse",
+        "final_scene": null,
+        "needs_context": true,
+        "why": "★ 安全项：第一轮已进紧急锁定（S8），第二轮用户主动更正。若记忆把「煤气漏了」强加进第二轮，会**继续出急救步骤卡**，而实际是油烟。这条判「记忆不得固化成事实」"
+      }
+    },
+    {
+      "id": "MT08",
+      "group": "修正上文",
+      "turns": ["我老伴摔了", "不是他，是孩子从床上掉下来了"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "fall_elderly",
+        "needs_context": true,
+        "why": "主体从老人换成孩子。同为 fall_elderly 但**受众不同**（老人怕骨折、婴儿怕颅内出血）。判「记忆必须能被用户显式改写」"
+      }
+    },
+    {
+      "id": "MT09",
+      "group": "时态推进",
+      "turns": ["刚才闻到很浓的煤气味", "现在味道散了，但头还是晕"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "co_poisoning",
+        "needs_context": true,
+        "why": "「味道散了」不能说没事——CO 无色无味且已吸入。若记忆只强调「闻到味道」会判 gas_leak；结合「头晕」才是 CO。**这条检验记忆不会把最新事实吃掉**"
+      }
+    },
+    {
+      "id": "MT10",
+      "group": "时态推进",
+      "turns": ["电梯突然停了，我被困在里面", "现在电梯动了，门开了"],
+      "expect": {
+        "final_action": "daily",
+        "final_scene": "elevator_trapped",
+        "needs_context": true,
+        "why": "已脱困。第二句单独看完全无场景词。若记忆固化成「被困」，会继续给急救步骤（无用且制造恐慌）"
+      }
+    },
+    {
+      "id": "MT11",
+      "group": "主体切换",
+      "turns": ["我孙子把纽扣吞下去了", "我自己也咳嗽，嗓子卡了鱼刺"],
+      "expect": {
+        "final_action": "steps",
+        "final_scene": "airway_obstruction",
+        "needs_context": true,
+        "why": "同一轮里出现两个主体。最终要处理的是「鱼刺卡喉」（当前说话人）。判「记忆不得把前一主体当成当前主体」"
+      }
+    },
+    {
+      "id": "MT12",
+      "group": "无上文依赖（对照）",
+      "turns": ["煤气漏了", "怎么预防煤气泄漏"],
+      "expect": {
+        "final_action": "daily",
+        "final_scene": "gas_leak",
+        "needs_context": false,
+        "why": "★ 对照组：第二句本身完整，**不需要上文就能判对**。若加上文反而变错（因为第一轮已在紧急锁定态），说明记忆引入了污染。这条判「记忆不该伤害自足句」"
+      }
+    }
+  ]
+}

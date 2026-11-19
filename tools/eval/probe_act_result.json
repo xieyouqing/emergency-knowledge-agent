@@ -1,0 +1,1510 @@
+{
+ "at": "2026-11-19T09:19:33.222Z",
+ "n": 100,
+ "a1": 95,
+ "a2": 100,
+ "p50": 3,
+ "p95": 5,
+ "rows": [
+  {
+   "id": "E001",
+   "text": "煤气漏了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 34
+  },
+  {
+   "id": "E002",
+   "text": "闻到煤气味了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 7
+  },
+  {
+   "id": "E003",
+   "text": "厨房有股臭鸡蛋味",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 5
+  },
+  {
+   "id": "E004",
+   "text": "天然气好像漏了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E005",
+   "text": "液化气罐漏气",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E006",
+   "text": "屋里一股怪味不知道是不是漏气",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E007",
+   "text": "煤气罐漏了怎么办",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 5
+  },
+  {
+   "id": "E008",
+   "text": "我爸摔倒了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E009",
+   "text": "奶奶跌倒起不来",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 5
+  },
+  {
+   "id": "E010",
+   "text": "老人摔了一跤",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E011",
+   "text": "我妈在卫生间摔了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E012",
+   "text": "摔倒了自己爬不起来",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E013",
+   "text": "老伴在客厅跌倒了动不了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E014",
+   "text": "被困在电梯里了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E015",
+   "text": "电梯突然停了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E016",
+   "text": "电梯门打不开了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E017",
+   "text": "关在电梯里出不去",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "E018",
+   "text": "电梯卡在两层中间了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E019",
+   "text": "电梯不动了按警铃没人应",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E020",
+   "text": "着火了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fire_home"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E021",
+   "text": "厨房冒烟了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fire_home"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E022",
+   "text": "锅烧起来了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fire_home"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E023",
+   "text": "家里起火了快跑",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fire_home"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E024",
+   "text": "一氧化碳中毒了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "co_poisoning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E025",
+   "text": "烧炭取暖头晕恶心",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "co_poisoning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "E026",
+   "text": "关着窗户用煤炉子头疼",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "co_poisoning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E027",
+   "text": "好像煤气中毒了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "co_poisoning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E028",
+   "text": "开水烫伤了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "scald_burn"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E029",
+   "text": "手被油烫了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "scald_burn"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E030",
+   "text": "孩子被热水烫起泡了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "scald_burn"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "E031",
+   "text": "触电了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "electric_shock"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E032",
+   "text": "有人被电到了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "electric_shock"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E033",
+   "text": "插座漏电麻手",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "electric_shock"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E034",
+   "text": "老人噎住了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "airway_obstruction"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E035",
+   "text": "卡喉咙了说不出话",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "airway_obstruction"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E036",
+   "text": "吃东西呛到喘不上气",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "airway_obstruction"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E037",
+   "text": "有人落水了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "dialonly",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "drowning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E038",
+   "text": "小孩掉水里了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "dialonly",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "drowning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "E039",
+   "text": "地震了",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "earthquake"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "E040",
+   "text": "房子在晃是不是地震",
+   "group": "emergency",
+   "expect": "lookup_scene",
+   "expectAction": "steps",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "earthquake"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P001",
+   "text": "怎么预防煤气泄漏",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P002",
+   "text": "家里要不要装燃气报警器",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "P003",
+   "text": "燃气软管多久换一次",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P004",
+   "text": "平时怎么检查有没有漏气",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "P005",
+   "text": "老人怎么预防跌倒",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "P006",
+   "text": "家里地面怎么防滑",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "refuse",
+   "args": {
+    "reason": "问题属于居家防滑改造，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": false,
+   "ms": 3
+  },
+  {
+   "id": "P007",
+   "text": "老人房间要不要装扶手",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P008",
+   "text": "防跌倒平时要注意什么",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fall_elderly"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P009",
+   "text": "电梯多久年检一次",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "P010",
+   "text": "坐电梯要注意什么",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "P011",
+   "text": "电梯超载会怎么样",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P012",
+   "text": "停电的时候坐电梯安全吗",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "P013",
+   "text": "家里怎么防火",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fire_home"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P014",
+   "text": "灭火器怎么选",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "refuse",
+   "args": {
+    "reason": "选购灭火器属于商品选购，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": false,
+   "ms": 4
+  },
+  {
+   "id": "P015",
+   "text": "烟感器有用吗",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "fire_home"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "P016",
+   "text": "怎么防一氧化碳中毒",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "co_poisoning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "P017",
+   "text": "煤炉怎么用才安全",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "co_poisoning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P018",
+   "text": "炭火取暖要注意什么",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "co_poisoning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "P019",
+   "text": "烫伤怎么预防",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "scald_burn"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "P020",
+   "text": "热水器温度设多少合适",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "scald_burn"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P021",
+   "text": "孩子怎么防烫伤",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "scald_burn"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P022",
+   "text": "家里怎么防触电",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "electric_shock"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P023",
+   "text": "插座要不要装保护盖",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "electric_shock"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P024",
+   "text": "漏电保护器多久换一次",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "electric_shock"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P025",
+   "text": "老人吃饭怎么防噎",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "airway_obstruction"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P026",
+   "text": "噎食怎么预防",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "airway_obstruction"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P027",
+   "text": "孩子游泳怎么防溺水",
+   "group": "prevention",
+   "expect": "refuse|lookup",
+   "expectAction": "refuse",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "drowning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "P028",
+   "text": "溺水怎么预防",
+   "group": "prevention",
+   "expect": "refuse|lookup",
+   "expectAction": "refuse",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "drowning"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P029",
+   "text": "地震应急包要准备什么",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "earthquake"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "P030",
+   "text": "家里怎么防震",
+   "group": "prevention",
+   "expect": "lookup_scene",
+   "expectAction": "daily",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "earthquake"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O001",
+   "text": "煤气费怎么交",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "缴费问题与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O002",
+   "text": "燃气热水器怎么选",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "选购属于商品购买咨询，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O003",
+   "text": "天然气多少钱一方",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "燃气价格咨询属于缴费/资费类，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O004",
+   "text": "煤气罐去哪里换",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": false,
+   "ms": 2
+  },
+  {
+   "id": "O005",
+   "text": "燃气灶打不着火",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "gas_leak"
+   },
+   "ok": true,
+   "why": "",
+   "hit": false,
+   "ms": 2
+  },
+  {
+   "id": "O006",
+   "text": "电梯广告怎么投诉",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "投诉电梯广告属于邻里/物业事务，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 1
+  },
+  {
+   "id": "O007",
+   "text": "电梯里遇到邻居怎么打招呼",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "邻里社交与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O008",
+   "text": "电梯维修电话多少",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "lookup_scene",
+   "args": {
+    "scene": "elevator_trapped"
+   },
+   "ok": true,
+   "why": "",
+   "hit": false,
+   "ms": 3
+  },
+  {
+   "id": "O009",
+   "text": "电梯房和楼梯房哪个好",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "购房选型与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O010",
+   "text": "电梯卡在哪里办",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "电梯卡办理属于物业事务，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O011",
+   "text": "摔倒保险怎么理赔",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "保险理赔与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "O012",
+   "text": "老人护理床怎么选",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "选购护理床属于商品选购，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O013",
+   "text": "跌打损伤药哪个好",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "选购药品属于商品推荐，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O014",
+   "text": "火锅底料怎么做",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "火锅底料做法与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 1
+  },
+  {
+   "id": "O015",
+   "text": "火车票怎么买",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "购票问题与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 4
+  },
+  {
+   "id": "O016",
+   "text": "火山旅游攻略",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "火山旅游攻略属于旅行规划，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O017",
+   "text": "火腿肠怎么保存",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "食品保存与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "O018",
+   "text": "今天天气怎么样",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "天气查询与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O019",
+   "text": "帮我写个请假条",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "请假条与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "O020",
+   "text": "红烧肉怎么做",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "烹饪菜谱与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O021",
+   "text": "股票会涨吗",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "股票涨跌与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O022",
+   "text": "我睡眠不好怎么办",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "睡眠不好属于日常健康咨询，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O023",
+   "text": "怎么减肥",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "减肥不属于应急急救场景"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O024",
+   "text": "电脑开不了机",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "电脑开不了机不属于应急急救场景"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "O025",
+   "text": "帮我订机票",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "订机票与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O026",
+   "text": "你叫什么名字",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "询问助手名称，与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  },
+  {
+   "id": "O027",
+   "text": "明天要下雨吗",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "天气查询与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O028",
+   "text": "推荐一部电影",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "推荐电影与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O029",
+   "text": "怎么学英语",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "与应急急救无关"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 3
+  },
+  {
+   "id": "O030",
+   "text": "手机没电了",
+   "group": "off_scope",
+   "expect": "refuse",
+   "expectAction": "refuse",
+   "got": "refuse",
+   "args": {
+    "reason": "手机没电不属于应急急救场景，且信息不足无法判断"
+   },
+   "ok": true,
+   "why": "",
+   "hit": true,
+   "ms": 2
+  }
+ ]
+}
