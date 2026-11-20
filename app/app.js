@@ -738,6 +738,15 @@
       '</div>' +
       '</article>';
 
+    /* 追问也是「一次回答」：念问题 + 两个选项，老人不用盯着屏幕找。
+       固定话术，不生成操作动作。 */
+    if (SPEAK && SPEAK.autoReadText) {
+      var labels = opts.map(function (o) {
+        return typeof o === 'string' ? o : o && o.label ? o.label : String(o);
+      });
+      SPEAK.autoReadText('先确认一下：' + labels.join('，还是') + '？');
+    }
+
     container.querySelectorAll('.ask-choice').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var i = Number(btn.getAttribute('data-i'));

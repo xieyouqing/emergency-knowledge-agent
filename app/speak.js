@@ -271,26 +271,34 @@
     });
   }
 
-  /* 用户明确要求拨号：不锁紧急，所以不能走「紧急态才自动读」的 canAutoRead。
-     只念一句固定文案，不生成任何操作步骤（S1）。 */
-  function autoReadCall(number) {
+  /* 通用固定文案朗读：拒答、无条目拨号、拨号请求都用它。
+     不受「仅紧急态自动读」限制，但仍尊重用户按过停止后的静音。 */
+  function autoReadText(text) {
     if (!V) return;
     if (!V.state.supported) {
       showVoiceNotice(V.state.unavailableReason || '语音朗读暂不可用');
       return;
     }
     if (st().autoRead && st().autoRead.muted) {
-      lg('info', '自动朗读跳过（拨号请求）', { reason: 'muted-after-stop' });
+      lg('info', '自动朗读跳过（固定文案）', { reason: 'muted-after-stop' });
       return;
     }
+    if (!text) return;
+    V.speak(String(text), { force: true });
+  }
+
+  /* 用户明确要求拨号：不锁紧急，所以不能走「紧急态才自动读」的 canAutoRead。
+     只念一句固定文案，不生成任何操作步骤（S1）。 */
+  function autoReadCall(number) {
     if (!number) return;
-    V.speak('现在拨打 ' + number + '。', { force: true });
+    autoReadText('现在拨打 ' + number + '。');
   }
 
   global.SPEAK = {
     speakSteps: speakSteps,
     autoReadCard: autoReadCard,
     autoReadCall: autoReadCall,
+    autoReadText: autoReadText,
     autoReadAck: autoReadAck,
     autoReadTriage: autoReadTriage,
     speakTriage: speakTriage,

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>应急助手</title>
-<link rel="stylesheet" href="style.css?v=20261121m26">
+<link rel="stylesheet" href="style.css?v=20261121m28">
 </head>
 <body>
 
@@ -101,25 +101,25 @@
 
 </main>
 
-<script src="log.js?v=20261121m26"></script>
-<script src="knowledge.js?v=20261121m26"></script>
-<script src="retrieval.js?v=20261121m26"></script>
-<script src="llm.js?v=20261121m26"></script>
-<script src="voice.js?v=20261121m26"></script>
-<script src="asr.js?v=20261121m26"></script>
+<script src="log.js?v=20261121m28"></script>
+<script src="knowledge.js?v=20261121m28"></script>
+<script src="retrieval.js?v=20261121m28"></script>
+<script src="llm.js?v=20261121m28"></script>
+<script src="voice.js?v=20261121m28"></script>
+<script src="asr.js?v=20261121m28"></script>
 <!-- 2026-11-19 拆分（docs/10 §7）：state 必须最先，其余模块依赖它；
      chat 在 render 之前：render 不依赖 chat，但 talk/app 都依赖 chat；
      app.js 必须最后，它消费其余全部模块。
      ⚠️ 跨模块引用一律「运行时取」（见 render.js 的 speakLayer 注释）：
         2026-11-19 曾因加载期缓存导致 13 条断言变红、朗读全部静默。 -->
-<script src="state.js?v=20261121m26"></script>
-<script src="chat.js?v=20261121m26"></script>
+<script src="state.js?v=20261121m28"></script>
+<script src="chat.js?v=20261121m28"></script>
 <!-- 工具表必须在 agent.js 之前：调度器运行时取 window.TOOLS -->
-<script src="tools.js?v=20261121m26"></script>
-<script src="render.js?v=20261121m26"></script>
-<script src="speak.js?v=20261121m26"></script>
-<script src="talk.js?v=20261121m26"></script>
-<script src="agent.js?v=20261121m26"></script>
-<script src="app.js?v=20261121m26"></script>
+<script src="tools.js?v=20261121m28"></script>
+<script src="render.js?v=20261121m28"></script>
+<script src="speak.js?v=20261121m28"></script>
+<script src="talk.js?v=20261121m28"></script>
+<script src="agent.js?v=20261121m28"></script>
+<script src="app.js?v=20261121m28"></script>
 </body>
 </html>

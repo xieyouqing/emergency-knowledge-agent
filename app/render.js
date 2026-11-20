@@ -42,6 +42,7 @@
     }
     if (what === 'autoReadCard') S.autoReadCard(entry, extra);
     else if (what === 'autoReadCall') S.autoReadCall(extra);
+    else if (what === 'autoReadText') S.autoReadText(extra);
     else S[what](entry);
   }
 
@@ -267,6 +268,7 @@
       esc(number) +
       '</a></div>' +
       '</article>';
+    speak('autoReadText', null, '这个情况我没有可靠的操作步骤。请先拨打 ' + number + '。');
   }
 
   /* ---------- 已脱困 / 状态更新（ack） ----------
@@ -338,6 +340,8 @@
       '</p>' +
       '<div class="dial-row"><a class="dial-btn" href="tel:120">拨打 120</a></div>' +
       '</article>';
+    /* 拒答卡不自动朗读：它是「没有答案」，不是用户要的日常解释；
+       先把声音留给真正的内容卡，避免老人被一段固定拒答话术拦住。 */
   }
 
   /* ---------- 日常模式只用 daily 四字段拼装 ---------- */
