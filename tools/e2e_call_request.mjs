@@ -169,6 +169,17 @@ if (!M || !LLM) {
 }
 LLM.configure({ timeout: 8000 });
 
+/* 语音层在 Node 里没有 speechSynthesis；用探针记录「是否请求朗读拨号卡」，
+   防止再次出现「卡出来了但没声音」。 */
+const spoken = [];
+if (sandbox.window.SPEAK && sandbox.window.SPEAK.autoReadCall) {
+  const orig = sandbox.window.SPEAK.autoReadCall;
+  sandbox.window.SPEAK.autoReadCall = function (n) {
+    spoken.push(String(n));
+    return orig.call(this, n);
+  };
+}
+
 const CASES = [
   { text: '帮我拨打120', expect: 'call', number: '120' },
   { text: '帮我打119', expect: 'call', number: '119' },
@@ -208,6 +219,7 @@ for (const c of CASES) {
     ok(html.includes('拨打 ' + c.number), `${tag} 应显示拨打 ${c.number}`);
     ok(M.state.mode === 'daily', `${tag} 不得进入紧急模式，实际 ${M.state.mode}`);
     ok(M.state.locked === false, `${tag} 不得锁定，实际 locked=${M.state.locked}`);
+    ok(spoken.includes(c.number), `${tag} 应请求朗读「现在拨打 ${c.number}」`);
   } else if (c.expect === 'emergency') {
     ok(M.state.mode === 'emergency', `${tag} 有现场危险，应进紧急，实际 ${M.state.mode}`);
     ok(!html.includes('call-request'), `${tag} 不应只给 call-request 卡`);

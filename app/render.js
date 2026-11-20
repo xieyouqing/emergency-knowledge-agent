@@ -41,6 +41,7 @@
       return;
     }
     if (what === 'autoReadCard') S.autoReadCard(entry, extra);
+    else if (what === 'autoReadCall') S.autoReadCall(extra);
     else S[what](entry);
   }
 
@@ -251,6 +252,7 @@
       esc(number) +
       '</a></div>' +
       '</article>';
+    speak('autoReadCall', null, number);
   }
 
   /* ---------- 紧急命中但无条目 → 只给号码，不给步骤 ---------- */

@@ -271,9 +271,26 @@
     });
   }
 
+  /* 用户明确要求拨号：不锁紧急，所以不能走「紧急态才自动读」的 canAutoRead。
+     只念一句固定文案，不生成任何操作步骤（S1）。 */
+  function autoReadCall(number) {
+    if (!V) return;
+    if (!V.state.supported) {
+      showVoiceNotice(V.state.unavailableReason || '语音朗读暂不可用');
+      return;
+    }
+    if (st().autoRead && st().autoRead.muted) {
+      lg('info', '自动朗读跳过（拨号请求）', { reason: 'muted-after-stop' });
+      return;
+    }
+    if (!number) return;
+    V.speak('现在拨打 ' + number + '。', { force: true });
+  }
+
   global.SPEAK = {
     speakSteps: speakSteps,
     autoReadCard: autoReadCard,
+    autoReadCall: autoReadCall,
     autoReadAck: autoReadAck,
     autoReadTriage: autoReadTriage,
     speakTriage: speakTriage,
