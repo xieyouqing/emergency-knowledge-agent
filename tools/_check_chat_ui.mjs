@@ -9,7 +9,9 @@ console.log('--fs-min:', m ? m[1] + 'px (需 ≥32)' : '未找到');
    第一版用 includes('dailyView') 把说明性注释也算成「还在」，
    用 indexOf('app.js') 也命中了注释里的文件名，两处都是误报。 */
 const noComments = html.replace(/<!--[\s\S]*?-->/g, '');
-const scriptOrder = [...noComments.matchAll(/<script src="([^"]+)"><\/script>/g)].map((x) => x[1]);
+const scriptOrder = [...noComments.matchAll(/<script src="([^"]+)"><\/script>/g)].map(
+  (x) => x[1].split('?')[0]
+);
 
 const checks = [
   ['有 .msg 气泡样式', /\.msg\s*\{/.test(css)],
@@ -28,19 +30,22 @@ const checks = [
   ['html 仍保留 emgInput', /id="emgInput"/.test(noComments)],
   ['html 仍保留 dailyTalk', /id="dailyTalk"/.test(noComments)],
   ['html 仍保留 emgTalk', /id="emgTalk"/.test(noComments)],
-  ['html 仍保留 rateRow', /id="rateRow"/.test(noComments)],
-  ['state.js 最先（在 chat/render/speak/talk/app 之前）',
+  ['html 已移除 rateRow（语速功能取消）', !/id="rateRow"/.test(noComments)],
+  [
+    'state.js 最先（在 chat/render/speak/talk/app 之前）',
     scriptOrder.indexOf('state.js') < scriptOrder.indexOf('chat.js') &&
-    scriptOrder.indexOf('state.js') < scriptOrder.indexOf('render.js') &&
-    scriptOrder.indexOf('state.js') < scriptOrder.indexOf('app.js')],
-  ['chat.js 在 render/speak/talk/app 之前',
+      scriptOrder.indexOf('state.js') < scriptOrder.indexOf('render.js') &&
+      scriptOrder.indexOf('state.js') < scriptOrder.indexOf('app.js'),
+  ],
+  [
+    'chat.js 在 render/speak/talk/app 之前',
     scriptOrder.indexOf('chat.js') < scriptOrder.indexOf('render.js') &&
-    scriptOrder.indexOf('chat.js') < scriptOrder.indexOf('speak.js') &&
-    scriptOrder.indexOf('chat.js') < scriptOrder.indexOf('talk.js') &&
-    scriptOrder.indexOf('chat.js') < scriptOrder.indexOf('app.js')],
+      scriptOrder.indexOf('chat.js') < scriptOrder.indexOf('speak.js') &&
+      scriptOrder.indexOf('chat.js') < scriptOrder.indexOf('talk.js') &&
+      scriptOrder.indexOf('chat.js') < scriptOrder.indexOf('app.js'),
+  ],
   ['app.js 最后', scriptOrder[scriptOrder.length - 1] === 'app.js'],
-  ['全部 script 都存在于 app/ 目录',
-    scriptOrder.every((f) => fs.existsSync('app/' + f))]
+  ['全部 script 都存在于 app/ 目录', scriptOrder.every((f) => fs.existsSync('app/' + f))],
 ];
 
 let bad = 0;

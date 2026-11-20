@@ -1021,51 +1021,6 @@
   /* ---------- 启动 ---------- */
   renderIcons();
 
-  /* ---------- 朗读语速控件（K3） ----------
-     M2 必做项 2 要求「语速可调慢」。原来只有 TTS.setRate() 这个函数，
-     界面上没有任何入口 —— 只有默认 0.9（偏慢），不满足「可调」。
-
-     两档而不是三档：老人记不住哪档是自己上次选的。
-       慢一点 = 0.75（比默认更慢，给听不清的）
-       正常   = 1.0
-     选择落盘 localStorage，下次打开仍然生效（voice.js 的 savePref 已做）。
-
-     为什么不做成滑块：滑块要精细拖拽，老人手抖拖不准；
-     两个大按钮点一下就定，且能用 aria-pressed 读出当前档位。 */
-  (function initRate() {
-    var row = document.getElementById('rateRow');
-    if (!row) return;
-    if (!V) {
-      row.hidden = true;
-      return;
-    }
-    /* ⚠️ 不能在这里判断 V.state.supported：
-       detect() 是异步的，启动瞬间 supported 还是 false，会把控件误藏。
-       改为先渲染，等探测结果回来再决定（下面的 detect().then 里处理）。 */
-
-    var btns = row.querySelectorAll('.rate-btn');
-    function paint() {
-      var cur = V.state.rate;
-      for (var i = 0; i < btns.length; i++) {
-        var r = Number(btns[i].getAttribute('data-rate'));
-        // 0.75 档：rate < 0.9 即算「慢」；1.0 档：rate >= 0.9
-        var on = r < 0.9 ? cur < 0.9 : cur >= 0.9;
-        btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
-      }
-    }
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].addEventListener('click', function (ev) {
-        var r = Number(ev.currentTarget.getAttribute('data-rate'));
-        V.setRate(r);
-        paint();
-        // 立刻读一句让用户听到差别，否则他不知道按钮生效没有
-        V.speak('朗读速度改好了。', { force: true });
-        logAlways('语速变更', { rate: r });
-      });
-    }
-    paint();
-  })();
-
   if (TALK) {
     TALK.initTalk('dailyTalk', 'dailyTalkHint', 'dailyInput');
     TALK.initTalk('emgTalk', 'emgTalkHint', 'emgInput');
@@ -1102,9 +1057,6 @@
      不支持时按钮仍渲染，点了给明确提示（不许静默失败）。 */
   if (V) {
     V.detect().then(function () {
-      // 探测完才知道能不能读：不能读就把语速控件藏掉（调了也没用）
-      var rateRow = document.getElementById('rateRow');
-      if (rateRow) rateRow.hidden = !V.state.supported;
       if (!V.state.supported && V.state.unavailableReason) {
         // 只在用户已经进到紧急模式时才提示，避免日常首屏就被技术提示干扰
         if (state.mode === 'emergency' && SPEAK) SPEAK.showVoiceNotice(V.state.unavailableReason);

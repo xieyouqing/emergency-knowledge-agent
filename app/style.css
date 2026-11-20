@@ -190,7 +190,6 @@ body.is-emergency .composer{
 /* 输入区里的间距比消息流小：这块是操作区，不是阅读区 */
 .composer .ask-row{ margin-bottom: 12px; }
 .composer .voicein-row{ margin-bottom: 12px; }
-.composer .rate-row{ margin-bottom: 0; }
 /* 每步可见进展（M2.5）：与输入区同宽，字号不低于全局下限 */
 .progress{
   font-size: var(--fs-min);
@@ -237,45 +236,12 @@ body.is-emergency .composer .progress{ background: var(--sos); }
    独立一行放在输入框下方：打字仍是最可靠路径，语音给不会打字的老人。
    尺寸与 .voice-btn 同口径（≥76px 高、字号走 --fs-min），
    老人手指粗、手抖，不能做成小圆钮。 */
-/* ---------- 朗读语速（K3） ----------
-   放页面底部：设一次长期生效，不需要每次碰。
-   按钮仍需 ≥48px 高（老人手指），字号走 --fs-min。 */
-.rate-row{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0 0;
-  padding-top: 12px;
-  border-top: 2px solid var(--line);
-}
-.rate-label{
-  flex: 0 0 auto;
-  font-size: var(--fs-min);
-  font-weight: 700;
-  color: var(--ink-2);
-  margin-bottom: 0;
-}
-.rate-opts{ display: flex; gap: 12px; flex: 1; }
-.rate-btn{
-  flex: 1;
-  min-height: 56px;
-  font-size: var(--fs-min);
-  font-family: inherit;
-  font-weight: 700;
-  color: var(--ink);
-  background: var(--bg-soft);
-  border: 3px solid var(--line);
-  border-radius: 14px;
-  cursor: pointer;
-}
-.rate-btn[aria-pressed="true"]{
-  background: var(--act);
-  border-color: var(--act);
-  color: #fff;
-}
 
 .voicein-row{
-  margin: 0 0 12px;
+  /* 必须保留左右 auto：.composer > * 用 auto 居中，
+     这里若写 margin 简写会把左右重置为 0，麦克风按钮就会左对齐、
+     和下面输入框的边框对不齐（用户 2026-11-21 报的「不会拉长填充」）。 */
+  margin: 0 auto 12px;
 }
 .talk-btn{
   display: flex; align-items: center; justify-content: center; gap: 14px;
@@ -737,7 +703,5 @@ body.is-emergency .composer .progress{ background: var(--sos); }
   main{ padding: 16px 14px 48px; }
   .ask-row{ flex-wrap: nowrap; }
   .ask-btn{ flex: 0 0 96px; min-width: 96px; padding: 14px 10px; }
-  .rate-row{ flex-wrap: nowrap; }
-  .rate-opts{ flex: 1 1 auto; }
   .talk-btn{ padding: 12px; }
 }

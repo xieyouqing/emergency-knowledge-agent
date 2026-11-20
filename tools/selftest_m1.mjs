@@ -1416,54 +1416,14 @@ for (const id of Object.keys(M.entries)) {
     ok(html.indexOf('asr.js') < html.indexOf('app.js'), 'asr.js 必须在 app.js 之前加载');
   }
 
-  /* ⑨-b K3：语速必须可调，且真的改变 state.rate。
-     M2 必做项 2 要求「语速可调慢」。修复前只有 TTS.setRate() 函数、
-     界面上没有任何控件 —— 只满足「默认偏慢」，不满足「可调」。 */
+  /* ⑨-b 语速功能已取消（2026-11-21 用户裁决）。
+     不再要求界面控件；只保留「默认偏慢」这一条老人友好约束。 */
   {
     const html = fs.readFileSync(path.join(APP, 'index.html'), 'utf8');
-    ok(html.includes('id="rateRow"'), '应有语速控件容器（K3）');
-    ok(html.includes('data-rate="0.75"'), '应有「慢一点」档（0.75）');
-    ok(html.includes('data-rate="1"') || html.includes('data-rate="1.0"'), '应有「正常」档（1.0）');
-    ok(
-      html.indexOf('rateRow') < html.indexOf('app.js'),
-      '语速控件须在 app.js 之前存在（启动时初始化）'
-    );
-
-    // 行为：setRate 真的改 state.rate，且越界值被拒
+    ok(!html.includes('id="rateRow"'), '语速控件应已移除（功能取消）');
+    ok(!html.includes('data-rate='), '不应再有语速档位按钮');
     const T2 = sandbox.window.TTS;
-    const saved = T2.state.rate;
-    T2.setRate(0.75);
-    ok(T2.state.rate === 0.75, `setRate(0.75) 后 rate 应为 0.75，实际 ${T2.state.rate}`);
-    T2.setRate(1);
-    ok(T2.state.rate === 1, `setRate(1) 后 rate 应为 1，实际 ${T2.state.rate}`);
-    T2.setRate(0.1);
-    ok(T2.state.rate === 1, `setRate(0.1) 应被拒（范围 0.5-2），实际 ${T2.state.rate}`);
-    T2.setRate(9);
-    ok(T2.state.rate === 1, `setRate(9) 应被拒，实际 ${T2.state.rate}`);
-
-    // 默认仍须偏慢（老人友好），不能因为加了控件就把默认改成 1.0
-    ok(saved <= 0.9, `默认语速应偏慢（≤0.9），实际 ${saved}`);
-
-    // 改档后发声要真的用新速率（不是只改 state）
-    T2.setRate(0.75);
-    const before = spoken.length;
-    await T2.speak('语速测试', { force: true });
-    ok(spoken.length === before + 1, '应触发发声');
-    ok(
-      spoken[spoken.length - 1].rate === 0.75,
-      `发声应使用新语速 0.75，实际 ${spoken[spoken.length - 1].rate}`
-    );
-    T2.setRate(saved);
-
-    // CSS：按钮高度与字号达标
-    const css2 = fs.readFileSync(path.join(APP, 'style.css'), 'utf8');
-    const m2 = css2.match(/\.rate-btn\{[^}]*min-height:\s*(\d+)px/s);
-    ok(
-      !!m2 && Number(m2[1]) >= 48,
-      `.rate-btn 高度应 >=48px，实际 ${m2 ? m2[1] + 'px' : '未找到'}`
-    );
-    const m3 = css2.match(/\.rate-btn\{[^}]*font-size:\s*var\(--fs-min\)/s);
-    ok(!!m3, '语速按钮字号须走 var(--fs-min)');
+    ok(T2.state.rate <= 0.9, `默认语速应偏慢（≤0.9），实际 ${T2.state.rate}`);
   }
 
   // ⑨ 语音按钮尺寸达标（与朗读按钮同口径，老人手指粗）
