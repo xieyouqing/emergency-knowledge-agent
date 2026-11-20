@@ -1,0 +1,760 @@
+{
+  "generated": "2026-11-20T21:48:13.189Z",
+  "file": "tools\\eval\\cases_paraphrase_iter.json",
+  "total": 30,
+  "turnAcc": 29,
+  "actionAcc": 27,
+  "sceneAcc": 20,
+  "sceneTotal": 21,
+  "safetyMiss": 0,
+  "offscopeFalse": 0,
+  "byGroup": {
+    "plan_hypothetical": {
+      "n": 8,
+      "turn": 8,
+      "action": 8
+    },
+    "ongoing": {
+      "n": 8,
+      "turn": 8,
+      "action": 8
+    },
+    "prevention": {
+      "n": 6,
+      "turn": 5,
+      "action": 5
+    },
+    "off_scope": {
+      "n": 4,
+      "turn": 4,
+      "action": 4
+    },
+    "negation": {
+      "n": 4,
+      "turn": 4,
+      "action": 2
+    }
+  },
+  "rows": [
+    {
+      "id": "R01",
+      "group": "plan_hypothetical",
+      "text": "楼上要是半夜烧起来，我们住楼下的往哪边走才对？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fire_home",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fire_home"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R02",
+      "group": "plan_hypothetical",
+      "text": "哪天炒菜油锅自己冒起来了，我这岁数是先关火还是先泼水？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fire_home",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fire_home"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R03",
+      "group": "plan_hypothetical",
+      "text": "真赶上地震，我们这六层老楼是先往下跑还是先钻桌子？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "earthquake",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "earthquake"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R04",
+      "group": "plan_hypothetical",
+      "text": "假设有天晚上煤气灶忘了关，人睡着了，会出什么事？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "gas_leak",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "gas_leak"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R05",
+      "group": "plan_hypothetical",
+      "text": "要是不小心让开水烫了一片，家里又没药，先冲凉水行不行？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "scald_burn",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "scald_burn"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R06",
+      "group": "plan_hypothetical",
+      "text": "我腿脚不好，倘若哪天在卫生间滑一跤起不来，家里就我一人，先干啥？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fall_elderly",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fall_elderly"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R07",
+      "group": "plan_hypothetical",
+      "text": "电梯要是把我关在里头出不来，手机又没信号，我该按哪个？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "elevator_trapped",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "elevator_trapped"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R08",
+      "group": "plan_hypothetical",
+      "text": "在菜市场碰见有人吃鱼让刺卡住了，我能给他拍后背吗？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "airway_obstruction",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "airway_obstruction"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R09",
+      "group": "ongoing",
+      "text": "我爸吃着吃着突然不吭声了，两只手掐着脖子，嘴唇都发紫了",
+      "expect": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "airway_obstruction",
+        "safety": true
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "airway_obstruction"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R10",
+      "group": "ongoing",
+      "text": "我切菜刀滑了，手背上开了个口子，血往外涌，按了半天还在流",
+      "expect": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "severe_bleeding",
+        "safety": true
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "severe_bleeding"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R11",
+      "group": "ongoing",
+      "text": "我老伴倒在地上了，怎么叫都没反应，胸口也不见起伏",
+      "expect": {
+        "turn": "ongoing",
+        "action": "dialonly",
+        "scene": "cpr",
+        "safety": true
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "dialonly",
+        "scene": null
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": false
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R12",
+      "group": "ongoing",
+      "text": "插排那儿啪一下冒了火星，我手到现在还发麻，胳膊抬不起来",
+      "expect": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "electric_shock",
+        "safety": true
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "electric_shock"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R13",
+      "group": "ongoing",
+      "text": "电梯卡在七八层中间了，门也打不开，里面闷得很，我一个人",
+      "expect": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "elevator_trapped",
+        "safety": false
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "elevator_trapped"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R14",
+      "group": "ongoing",
+      "text": "我妈在卫生间摔了，坐在地上说胯骨那儿疼，扶她站也站不起来",
+      "expect": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "fall_elderly",
+        "safety": false
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "fall_elderly"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R15",
+      "group": "ongoing",
+      "text": "刚倒开水溅到手背上，现在红了一大片，火辣辣地疼",
+      "expect": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "scald_burn",
+        "safety": false
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "steps",
+        "scene": "scald_burn"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R16",
+      "group": "ongoing",
+      "text": "我老伴说胸口像被石头压着，出了一身冷汗，坐着不敢动",
+      "expect": {
+        "turn": "ongoing",
+        "action": "dialonly",
+        "scene": null,
+        "safety": true
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "dialonly",
+        "scene": "stroke"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R17",
+      "group": "prevention",
+      "text": "厨房那个闻煤气的小盒子，到底要不要装？装灶台边上还是天花板上？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "gas_leak",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "gas_leak"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R18",
+      "group": "prevention",
+      "text": "想在家里备个灭火器，小瓶的和大的我该买哪个？放哪儿合适？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fire_home",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fire_home"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R19",
+      "group": "prevention",
+      "text": "卫生间铺那种带吸盘的防滑垫有用吗？我老伴摔过一回了",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fall_elderly",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "fall_elderly"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R20",
+      "group": "prevention",
+      "text": "一个插排上插了电视、电饭锅、电水壶，这样是不是太多了？多久该看一眼？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "electric_fire",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "electric_fire"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R21",
+      "group": "prevention",
+      "text": "热水器用了十二年了，冬天洗澡时窗户要不要留条缝？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "co_poisoning",
+        "safety": false
+      },
+      "actual": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": "co_poisoning"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R22",
+      "group": "prevention",
+      "text": "想给家里备个急救箱，纱布、创可贴、碘伏这些，要买哪种？",
+      "expect": {
+        "turn": "plan",
+        "action": "daily",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null
+      },
+      "ok": {
+        "turn": false,
+        "action": false,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R23",
+      "group": "off_scope",
+      "text": "这个月水费比上个月多了三十来块，我去哪儿问一下？",
+      "expect": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R24",
+      "group": "off_scope",
+      "text": "楼下装修天天早上七点就开始砸墙，我找哪个部门说？",
+      "expect": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R25",
+      "group": "off_scope",
+      "text": "菜市场卖鸡蛋的今天一斤涨了八毛钱，这价钱贵不贵？",
+      "expect": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R26",
+      "group": "off_scope",
+      "text": "我孙女下周过生日，你说我送她个什么好？",
+      "expect": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "off_scope",
+        "action": "refuse",
+        "scene": null
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    },
+    {
+      "id": "R27",
+      "group": "negation",
+      "text": "我刚才说他没气了，是我手放偏了——他还有呼吸，胸口一起一伏的",
+      "expect": {
+        "turn": "ongoing",
+        "action": "dialonly",
+        "scene": "cpr",
+        "safety": true
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "dialonly",
+        "scene": "cpr"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R28",
+      "group": "negation",
+      "text": "闻着不像煤气，是隔壁炒菜的油烟味，我是不是自己吓自己",
+      "expect": {
+        "turn": "ongoing",
+        "action": "refuse",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "ack",
+        "scene": "gas_leak"
+      },
+      "ok": {
+        "turn": true,
+        "action": false,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R29",
+      "group": "negation",
+      "text": "别叫120了，我妈缓过来了，现在能说话，脸色也回来了",
+      "expect": {
+        "turn": "ongoing",
+        "action": "refuse",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "ack",
+        "scene": null
+      },
+      "ok": {
+        "turn": true,
+        "action": false,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": true
+    },
+    {
+      "id": "R30",
+      "group": "negation",
+      "text": "不是着火，是我把锅烧糊了，就是冒点烟，没见明火",
+      "expect": {
+        "turn": "ongoing",
+        "action": "refuse",
+        "scene": null,
+        "safety": false
+      },
+      "actual": {
+        "turn": "ongoing",
+        "action": "refuse",
+        "scene": "fire_home"
+      },
+      "ok": {
+        "turn": true,
+        "action": true,
+        "scene": true
+      },
+      "safetyFail": false,
+      "offscopeFail": false,
+      "debatable": false
+    }
+  ]
+}

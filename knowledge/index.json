@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-11-18",
+  "updated_at": "2026-11-21",
   "icon_set_version": "1",
   "说明": "场景注册表。加场景 = 在此加一行 + 新建 <id>.json，前端代码不改。order 决定图标顺序，间隔 10 便于插队。本表是场景集合的唯一真源，条目 category 必须命中此处。",
   "slots": [
@@ -59,6 +59,15 @@
       "note": "候选池。内容待查证，来源未核"
     },
     {
+      "id": "electric_fire",
+      "name": "电器起火",
+      "icon": "electric_fire",
+      "order": 65,
+      "state": "ready",
+      "show_when_empty": false,
+      "note": "2026-11-21 重建（C-1）。源：应急管理部《初期火灾如何救？》第 2 条 +《又到电气火灾高发季节》扑救 1~3 条，5 条摘录实测 pass。status=draft，卡 step_order_ok 人签。"
+    },
+    {
       "id": "airway_obstruction",
       "name": "气道梗阻",
       "icon": "airway_obstruction",
@@ -72,9 +81,9 @@
       "name": "溺水",
       "icon": "drowning",
       "order": 80,
-      "state": "slot",
+      "state": "ready",
       "show_when_empty": false,
-      "note": "⚠️ 阻塞：待验证 3 项——「不要控水」无一手可验源（V12）、CPR 按压通气比两源冲突（V13，15:1 vs 30:2）、人工呼吸与按压先后未定。三项闭环前禁止写条目，详见 06-知识源清单 §3.8 与 01-需求基线 §9"
+      "note": "2026-11-21 发布 v1.0：主源中国红十字会《暑期防淹溺》+ 漳州市红十字会补强（A-B-C、先吹2-5次、30:2、任何情况不控水）；主源+3 补强 source_quote 全 pass；step_order_ok 由 xieyouqing 人工签署。"
     },
     {
       "id": "earthquake",
@@ -93,6 +102,51 @@
       "state": "ready",
       "show_when_empty": false,
       "note": "已发布 v0.3。源：市场监管总局 3·15 特种设备安全提示；机器比对 pass"
+    },
+    {
+      "id": "severe_bleeding",
+      "name": "大出血",
+      "icon": "severe_bleeding",
+      "order": 110,
+      "state": "ready",
+      "show_when_empty": false,
+      "note": "2026-11-20 建立，status=draft 未发布。源：《院前创伤急救止血专家共识（2025年版）》，机器比对 pass。⚠️ 待办三项：① step_order_ok 待人签；② 止血带 2h 时限与宽度规格在源表行131/132 已 pass，但条目 source 为单对象无法承载第二来源，未写入；③ 「不可随意拔出异物」源表无对应来源，never 段缺此项。详见 docs/12 §1 A-2"
+    },
+    {
+      "id": "cpr",
+      "name": "心肺复苏",
+      "icon": "cpr",
+      "order": 105,
+      "state": "ready",
+      "show_when_empty": false,
+      "note": "2026-11-21 新建。成人 only。源：天津市卫健委 2026-07-24 发布会（三步顺序为胸外按压→开放气道→人工呼吸、深度 5-6cm、频率 100-120 次/分）+ 陕西省卫健委（30:2、婴儿禁用成人手法）。status=draft，卡 step_order_ok 人签。"
+    },
+    {
+      "id": "stroke",
+      "name": "卒中（中风）",
+      "icon": "stroke",
+      "order": 120,
+      "state": "ready",
+      "show_when_empty": false,
+      "note": "2026-11-21 新建（第二批）。源：国家医保局《4.5小时，190万个脑细胞》2026-07-26，中风120口诀+院前体位+禁喂+禁自行服药四条实测 pass。status=draft，卡 step_order_ok 人签。"
+    },
+    {
+      "id": "heatstroke",
+      "name": "中暑",
+      "icon": "heatstroke",
+      "order": 130,
+      "state": "ready",
+      "show_when_empty": false,
+      "note": "2026-11-21 新建（第二批）。源：中国疾控中心《科学应对高温中暑，守护劳动者职业健康》2026-07-29，移/降/补/转四步全覆盖，禁酒精擦浴、禁冰敷前胸、禁布洛芬三条实测 pass。status=draft，卡 step_order_ok 人签。"
+    },
+    {
+      "id": "food_poisoning",
+      "name": "食物中毒",
+      "icon": "food_poisoning",
+      "order": 140,
+      "state": "ready",
+      "show_when_empty": false,
+      "note": "2026-11-21 新建（第二批）。源：北京市卫健委《天越热越要当心!警惕盛夏食物中毒》2025-07-22，四步急救法（停食/有条件催吐/留样本/别止泻药）实测 pass。催吐限「意识清醒、没剧烈呕吐」。status=draft，卡 step_order_ok 人签。"
     }
   ]
 }

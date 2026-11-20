@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.0",
+  "id": "cpr",
+  "name": "心肺复苏",
+  "aliases": [
+    "没有呼吸了",
+    "没呼吸了",
+    "呼吸停了",
+    "心跳停了",
+    "没有脉搏",
+    "没气了",
+    "心肺复苏"
+  ],
+  "category": "cpr",
+  "keywords": [
+    "心肺复苏",
+    "CPR",
+    "按压",
+    "人工呼吸",
+    "心跳停",
+    "没呼吸",
+    "没脉搏",
+    "猝死"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "打 120，同时开始按压",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      },
+      {
+        "text": "掌根压两乳头连线中点",
+        "tool": null
+      },
+      {
+        "text": "往下压 5 到 6 厘米深",
+        "tool": null
+      },
+      {
+        "text": "每分钟压 100 到 120 次",
+        "tool": null
+      },
+      {
+        "text": "每压 30 次，吹 2 口气",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "压完让胸口完全弹回来",
+        "tool": null
+      },
+      {
+        "text": "清掉嘴里的东西再吹气",
+        "tool": null
+      },
+      {
+        "text": "头后仰、抬下巴打开气道",
+        "tool": null
+      },
+      {
+        "text": "吹 1 秒，看胸口有没有起伏",
+        "tool": null
+      },
+      {
+        "text": "一直压到急救人员来接手",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "别为用 AED 长时间停按压",
+        "tool": null
+      },
+      {
+        "text": "按压别中断，掌根别离胸",
+        "tool": null
+      },
+      {
+        "text": "吹气别太猛，会过度通气",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "天津市卫生健康委员会《就介绍“季节与健康”月度（7月）有关情况举行新闻发布会（文字实录）》（天津市急救中心演示心肺复苏部分）",
+    "url": "https://wsjk.tj.gov.cn/ZMHD5990/HDFT4691/202607/t20260724_7341425.html",
+    "date": "2026-11-21",
+    "quote": "心肺复苏主要包括三个步骤,依次是胸外按压、开放气道和人工呼吸。 胸外按压:施救者将一只手掌根放在患者两乳头连线中点(即胸骨下半部),四指翘起,另一只手紧扣其上,双上肢绷直,上半身前倾,以髋关节为支点,用上半身的力量垂直向下按压30次。按压深度成人为5-6厘米,儿童约5厘米,婴儿约4厘米,按压频率100-120次/分,保证每次按压后胸廓完全恢复原状。"
+  },
+  "daily": {
+    "summary": "没有呼吸、叫不醒也摸不到脉搏，要一边打 120 一边按压胸口。",
+    "why": "心搏骤停后大脑几分钟内就会受损，等救护车来再救往往来不及。胸外按压是替心脏挤压血液，把血送到脑子里。步骤顺序是胸外按压、开放气道、人工呼吸，按压 30 次配合 2 次人工呼吸循环做，一分钟压 100 到 120 次，成人压下去 5 到 6 厘米。",
+    "prevention": [
+      "全家都学会心肺复苏手法",
+      "家里有人有心脏病要定期复查",
+      "单元楼里先认一下 AED 在哪"
+    ],
+    "misconception": "用了 AED 就不用按压了——错，不可因操作 AED 长时间中断按压。"
+  },
+  "offline": true,
+  "version": "0.1",
+  "status": "published",
+  "review": {
+    "author": "待指派",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-21",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-21",
+      "detail": "原文中逐字定位成功"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-21",
+  "updated_at": "2026-11-21"
+}

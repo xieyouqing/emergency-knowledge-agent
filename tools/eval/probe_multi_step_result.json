@@ -1,0 +1,290 @@
+{
+  "at": "2026-11-20T22:10:22.834Z",
+  "n": 20,
+  "avg": 2,
+  "p95": 2,
+  "max": 2,
+  "multiStep": 20,
+  "rows": [
+    {
+      "id": "M01",
+      "text": "用炭火取暖，现在头晕恶心",
+      "expect": "steps",
+      "expect_scene": "co_poisoning",
+      "got": "steps",
+      "scenes": [
+        "co_poisoning"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M02",
+      "text": "我妈倒了，叫不醒，没呼吸了",
+      "expect": "steps",
+      "expect_scene": "cpr",
+      "got": "steps",
+      "scenes": [
+        "cpr"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M03",
+      "text": "老伴摔倒，说胯骨疼",
+      "expect": "steps",
+      "expect_scene": "fall_elderly",
+      "got": "steps",
+      "scenes": [
+        "fall_elderly"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M04",
+      "text": "手被开水烫了，皮肤发白不疼",
+      "expect": "steps",
+      "expect_scene": "scald_burn",
+      "got": "steps",
+      "scenes": [
+        "scald_burn"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M05",
+      "text": "电梯停了，门打不开",
+      "expect": "steps",
+      "expect_scene": "elevator_trapped",
+      "got": "steps",
+      "scenes": [
+        "elevator_trapped"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M06",
+      "text": "插座冒火星，有焦味",
+      "expect": "steps",
+      "expect_scene": "electric_fire",
+      "got": "steps",
+      "scenes": [
+        "electric_fire"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M07",
+      "text": "洗澡水太烫，皮肤红了",
+      "expect": "steps",
+      "expect_scene": "scald_burn",
+      "got": "steps",
+      "scenes": [
+        "scald_burn"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M08",
+      "text": "我爸嘴歪了，半边身子动不了",
+      "expect": "steps",
+      "expect_scene": "stroke",
+      "got": "steps",
+      "scenes": [
+        "stroke"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M09",
+      "text": "吃了剩菜，又吐又拉",
+      "expect": "steps",
+      "expect_scene": "food_poisoning",
+      "got": "steps",
+      "scenes": [
+        "food_poisoning"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M10",
+      "text": "太阳下站久了，头晕恶心",
+      "expect": "steps",
+      "expect_scene": null,
+      "got": "steps",
+      "scenes": [
+        "heatstroke"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M11",
+      "text": "割了个口子，血止不住",
+      "expect": "steps",
+      "expect_scene": "severe_bleeding",
+      "got": "steps",
+      "scenes": [
+        "severe_bleeding"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M12",
+      "text": "喘不上气，喉咙像堵住",
+      "expect": "steps",
+      "expect_scene": "airway_obstruction",
+      "got": "steps",
+      "scenes": [
+        "airway_obstruction"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M13",
+      "text": "烧炭取暖，味道散了，但头还是晕",
+      "expect": "steps",
+      "expect_scene": "co_poisoning",
+      "got": "steps",
+      "scenes": [
+        "co_poisoning"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M14",
+      "text": "孩子吞了纽扣，一直咳嗽",
+      "expect": "steps",
+      "expect_scene": "airway_obstruction",
+      "got": "steps",
+      "scenes": [
+        "airway_obstruction"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M15",
+      "text": "老人摔倒，胳膊动不了",
+      "expect": "steps",
+      "expect_scene": "fall_elderly",
+      "got": "steps",
+      "scenes": [
+        "fall_elderly"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M16",
+      "text": "厨房着火，火不大",
+      "expect": "steps",
+      "expect_scene": "fire_home",
+      "got": "steps",
+      "scenes": [
+        "fire_home"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M17",
+      "text": "地震停了，房子裂了",
+      "expect": "steps",
+      "expect_scene": "earthquake",
+      "got": "steps",
+      "scenes": [
+        "earthquake"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M18",
+      "text": "有人触电，手麻",
+      "expect": "steps",
+      "expect_scene": "electric_shock",
+      "got": "steps",
+      "scenes": [
+        "electric_shock"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M19",
+      "text": "煤气漏了，只是报警器响",
+      "expect": "steps",
+      "expect_scene": "gas_leak",
+      "got": "steps",
+      "scenes": [
+        "gas_leak"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    },
+    {
+      "id": "M20",
+      "text": "厨房油锅起火",
+      "expect": "steps",
+      "expect_scene": "fire_home",
+      "got": "steps",
+      "scenes": [
+        "fire_home"
+      ],
+      "steps": 2,
+      "okAction": true,
+      "okScene": true,
+      "err": null
+    }
+  ]
+}

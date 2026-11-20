@@ -21,7 +21,43 @@
     "头晕恶心"
   ],
   "life_threatening": true,
-  "triage": null,
+  "triage": {
+    "question": "人现在是清醒的，还是叫不醒？",
+    "options": [
+      {
+        "value": "unresponsive",
+        "label": "叫不醒，但还有呼吸",
+        "override": {
+          "immediate": [
+            {
+              "text": "马上打 120",
+              "tool": {
+                "name": "dial",
+                "number": "120"
+              }
+            },
+            {
+              "text": "先把人抬到室外通风处",
+              "tool": null
+            },
+            {
+              "text": "摆成侧卧位，保持气道通",
+              "tool": null
+            },
+            {
+              "text": "解开衣领，注意保暖",
+              "tool": null
+            }
+          ]
+        }
+      },
+      {
+        "value": "awake",
+        "label": "清醒能说话",
+        "override": null
+      }
+    ]
+  },
   "steps": {
     "immediate": [
       {
@@ -82,7 +118,23 @@
     "name": "国家卫生健康委员会 2025-01-05 新闻发布会（中国疾控中心职业卫生与中毒控制所所长 孙新）",
     "url": "https://www.ndcpa.gov.cn/jbkzzx/c100009/common/content/content_1876073112178118656.html",
     "date": "2026-11-18",
-    "quote": "一氧化碳比空气比重稍微轻一点，所以救助人员进入一氧化碳中毒现场，匍匐行动比站立要更安全。进入一氧化碳中毒的现场，要严禁明火，室内一旦一氧化碳浓度比较高，开闭电灯造成的火花往往引起爆炸。"
+    "quote": "一氧化碳比空气比重稍微轻一点，所以救助人员进入一氧化碳中毒现场，匍匐行动比站立要更安全。进入一氧化碳中毒的现场，要严禁明火，室内一旦一氧化碳浓度比较高，开闭电灯造成的火花往往引起爆炸。",
+    "supplementary": [
+      {
+        "name": "同上（孙新答问「发生一氧化碳中毒如何施救」段）",
+        "url": "https://www.ndcpa.gov.cn/jbkzzx/c100009/common/content/content_1876073112178118656.html",
+        "date": "2026-11-21",
+        "quote": "对待中毒患者，首先要把他移离中毒环境，转移到通风良好的环境。注意患者的保暖，解开衣物，特别是领带、衣领，保持呼吸畅通。",
+        "supports": "分诊分支 unresponsive 的 immediate[1..3]：抬到室外通风处、解开衣领、注意保暖"
+      },
+      {
+        "name": "北京市卫生健康委员会《急危重症的家庭急救方法(二)》（昏迷段）",
+        "url": "https://wjw.beijing.gov.cn/bmfw_20143/jkzs/jksh/202303/t20230329_2947204.html",
+        "date": "2026-11-21",
+        "quote": "对有呼吸、心跳的患者，首先保持其呼吸道通畅，然后将他摆放成侧卧位(复苏位)，并紧急呼救。",
+        "supports": "分诊分支 unresponsive 的 immediate[2]：叫不醒但有呼吸时摆侧卧位，这是与「心跳停了做按压」分开的关键动作"
+      }
+    ]
   },
   "daily": {
     "summary": "一氧化碳无色无味，中毒后先开窗、断源、把人搬到通风处，再打 120。",
@@ -96,14 +148,14 @@
     "misconception": "屋里放盆水能防中毒——错，一氧化碳几乎不溶于水，放水没有任何作用。"
   },
   "offline": true,
-  "version": "1.0",
+  "version": "1.1",
   "status": "published",
   "review": {
     "author": "xieyouqing",
     "approved_by": [
       "xieyouqing"
     ],
-    "approved_at": "2026-11-18",
+    "approved_at": "2026-11-21",
     "checklist": {
       "step_order_ok": true,
       "never_non_empty": true,
@@ -111,11 +163,25 @@
     },
     "agent_check": {
       "source_quote": "pass",
-      "checked_at": "2026-11-18",
-      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+      "checked_at": "2026-11-21",
+      "detail": "主源：原文中逐字定位成功；补强 2/2 pass",
+      "supplementary": [
+        {
+          "url": "https://www.ndcpa.gov.cn/jbkzzx/c100009/common/content/content_1876073112178118656.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        },
+        {
+          "url": "https://wjw.beijing.gov.cn/bmfw_20143/jkzs/jksh/202303/t20230329_2947204.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        }
+      ]
     },
     "reject_reason": null
   },
   "created_at": "2026-11-18",
-  "updated_at": "2026-11-18"
+  "updated_at": "2026-11-21"
 }

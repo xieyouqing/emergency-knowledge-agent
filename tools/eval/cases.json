@@ -461,17 +461,17 @@
       "group": "emergency",
       "expect_intent": "ongoing",
       "expect_scene": "drowning",
-      "expect_action": "dialonly",
-      "expect_action_note": "drowning 未发布（且内容待验证 V12/V13）"
+      "expect_action": "steps",
+      "expect_action_note": "drowning 2026-11-21 已发布（红会主源 + 漳州红会补强），首屏分诊"
     },
     {
       "id": "E038",
-      "text": "小孩掉水里了",
+      "text": "小孩掉水里没呼吸了",
       "group": "emergency",
       "expect_intent": "ongoing",
       "expect_scene": "drowning",
       "expect_action": "dialonly",
-      "expect_action_note": "同上"
+      "expect_action_note": "儿科溺水且无呼吸：本库无儿科 CPR 参数，走 dial 120（C11 同类）"
     },
     {
       "id": "E039",
@@ -828,8 +828,8 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "drowning",
-      "expect_action": "refuse",
-      "expect_action_note": "drowning 未发布，且内容待验证"
+      "expect_action": "daily",
+      "expect_action_note": "drowning 2026-11-21 已发布，预防问题给日常解释"
     },
     {
       "id": "P028",
@@ -837,7 +837,7 @@
       "group": "prevention",
       "expect_intent": "prevention",
       "expect_scene": "drowning",
-      "expect_action": "refuse",
+      "expect_action": "daily",
       "expect_action_note": "同上"
     },
     {

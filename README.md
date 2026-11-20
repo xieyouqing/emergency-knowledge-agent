@@ -2,26 +2,30 @@
 
 给不会用智能手机的老人用的应急问答工具。出事时**按住说一句话**，系统判断场景、给出三段式步骤卡、并**直接念出来**。
 
+> **M2.5 版本说明见 [`M2.5-README.md`](M2.5-README.md)**：工具自主调用、会话记忆、16 场景、验收数字与已知边界。
+
 不是通用聊天机器人。它只答知识库里有的应急与安全常识，**不会自己编操作步骤**——库外问题一律拒答，只给拨号按钮。
 
 ---
 
 ## 当前状态
 
-**M2 功能闭合**（语音进 + 语音出 + 语义判定 + 运行日志）。代码侧验收全过，**老人实测尚未做**。
+**M2.5 功能与代码验收闭合（2026-11-21）**：16 个场景全部发布；`/act` 100/100、`/judge` 97/100；多轮 13/13；V4 CPR/溺水路由 54/54；P9 多步 20/20。**唯一未闭合项是老人真人实测 V3/V5**（需要人）。
 
 | 维度 | 状态 | 依据 |
 |---|---|---|
-| 文字问答 | ✅ | `selftest_m1.mjs` 623 条断言全过 |
+| 文字问答 | ✅ | `selftest_m1.mjs` **916 条**断言全过 |
 | 语音输入（按住说话 → 云 ASR） | ✅ | `e2e_asr.mjs` 16 条，真云 ASR，识别 3/3 正确 |
 | 语音输出（朗读 / 自动读 / 可停可重播） | ✅ | `e2e_voice.mjs` 16 条 |
-| 语义判定（是否在库内、紧急还是日常） | ✅ | 100 条评测四项门槛全过，`e2e_llm.mjs` 46 条 |
+| 语义判定（是否在库内、紧急还是日常） | ✅ | `/act` **100/100**、`/judge` **97/100**，安全项 0/40、0/30 |
+| 知识库场景 | ✅ **16/16** | drowning 2026-11-21 发布；`drowning` 用中国红十字会 + 漳州红会来源 |
+| 工具自主调用 / 多轮 / 路由 | ✅ | 多轮 13/13；P9 多步 20/20（P95 2）；V4 12×2 = 54/54 |
 | 界面人工验收 | ✅ | `docs/04` D 组 8 项（7 通过 + 1 项环境限制） |
-| 首句播报 ≤ 3 秒 | ✅ **临界** | 8/8 通过，但最大 2629ms，余量仅 371ms（`docs/04` §7.2.1） |
-| **老人真人实测** | ❌ **未做** | 延后至 M2.5（见 `docs/04` §6.3） |
+| 首句播报 ≤ 3 秒 | ✅ **通过（B 默认开启）** | 8 次：均值 **1768ms**、P50 1666ms、最大 **2429ms**，8/8 ≤ 3000 |
+| **老人真人实测** | ❌ **未做** | M2.5 唯一未闭合项（见 `docs/04` §6.3） |
 
-> **因此 M2 不能对外称为「主链路跑通」**。它可以说「功能完整、可演示」，不能说「老人已经会用」。
-> 演示时必须说明这一点（`docs/01` §8 红线 7）。
+> **准确说法**：功能完整、可演示、代码侧验收全过；**不能说「老人已经会用」**，因为 V3/V5 还没做。
+
 
 ---
 
@@ -87,7 +91,8 @@ cd app && python -m http.server 8899
 | 打电话 | 生命危险场景有拨号按钮，点了直接唤起拨号盘 |
 | 不认识步骤 | 点一下步骤会出现 ✓ 打勾 |
 
-**紧急模式一旦进入就锁定**，不能手动切回——防止老人在出事时误操作退出。
+**紧急模式默认锁定，不能直接切回**——防止老人在出事时误操作退出。  
+唯一出口：用户**口头明确说**「已经安全了 / 没事了 / 脱困了 / 门开了 / 火灭了」→ 出 `ack` 卡 → **自动退回日常**，不用点击。猜测句（「应该没事了吧」）不算；不明确时 ack 卡只留一个「结束紧急」按钮兜底。日常问题不会自动退出。
 
 ---
 
@@ -110,7 +115,7 @@ knowledge/              知识条目（每条约 140 行结构化字段）
 tools/                  开发与验证工具（不进产物）
   llm_proxy.mjs         本地代理：判定 / ASR / 日志落盘
   asr/                  ASR provider 层（deepseek | xfyun，env 切换）
-  selftest_m1.mjs       离线自测，623 条断言
+  selftest_m1.mjs       离线自测，916 条断言
   e2e_*.mjs             端到端：真服务、真链路
   measure_latency.mjs   首句播报时延实测
   probe/                人工验收探测页（字号、静默边界）
@@ -126,22 +131,47 @@ logs/                   运行日志（gitignore，保留 7 天）
 ```bash
 npm install                  # 只装 eslint / prettier，不进产物
 
-node tools/selftest_m1.mjs   # 离线自测：623 条断言
-node tools/e2e_llm.mjs       # 判定链路：46 条（需代理）
+node tools/selftest_m1.mjs   # 离线自测：916 条断言
+node tools/selftest_tools.mjs # 工具/调度器：129 条（离线）
+node tools/e2e_llm.mjs       # 判定链路：52 条（需代理）
+node tools/eval/run_eval.mjs --engine=llm   # /judge 单次判定（≠ /act）
+node tools/probe_loop.mjs                   # /act 自主循环（≠ /judge）
+node tools/e2e_cpr_routing.mjs              # V4 CPR/溺水路由：12 条×在线/断网
+node tools/probe_multi_step.mjs             # P9 多步：20 条，报平均/P95 步数
+node tools/probe_ctx_contamination.mjs      # P33 上文污染：100 条×2 arm
 node tools/e2e_voice.mjs     # 语音输出：16 条（需代理）
 node tools/e2e_asr.mjs       # 语音输入：16 条（需代理 + 真云 ASR）
+node tools/probe_seed.mjs    # B 预置判据：21 条（离线）
+node tools/check_s7_suite.mjs --suite=tools/eval/cases_s7.json   # S7 四码：28 条（离线）
+node tools/probe_p5_expand.mjs   # P5 扩写探针：28 条（需代理；已接前端，失败回落静态）
+node tools/e2e_p5_ui.mjs         # P5 前端接线：7 条（离线）
+node tools/e2e_followup_dedupe.mjs  # 同场景追问去重：7 条（离线）
+node tools/e2e_multiturn_ctx.mjs   # 多轮上下文契约：13 条；--live 跑 13 条真模型
+node tools/e2e_progress.mjs        # 每步可见进展：12 条（离线）
+node tools/e2e_lockold.mjs         # 旧消息锁定：16 条（离线）
+node tools/e2e_resolved_exit.mjs   # 口头确认退出：11 条（离线）
 node tools/measure_latency.mjs 5   # 首句播报时延
 
 npm run verify               # 代码门槛：prettier + eslint
 ```
 
+> ⚠️ **`/judge` 与 `/act` 不是同一条路**：`run_eval --engine=llm` 测 `/judge`，`probe_loop` 测 `/act`；数字不能混用。口径表见 `tools/eval/README.md`。
+
 当前实测：
 
 ```
-selftest_m1.mjs  623 条全过
-e2e_llm.mjs       46 条全过
+selftest_m1.mjs  916 条全过
+selftest_tools.mjs 129 条全过（工具/调度器，含 P24 断网危重、C11/C12 范围）
+e2e_llm.mjs       52 条全过
 e2e_voice.mjs     16 条全过
 e2e_asr.mjs       16 条全过
+probe_loop.mjs    100/100（/act 自主循环）
+run_eval --engine=llm  97/100（/judge），安全项 0/40、0/30
+e2e_cpr_routing.mjs   54/54（V4 12 条 × 在线/断网）
+probe_multi_step.mjs  20/20，平均 2.00 步、P95 2
+e2e_multiturn_ctx.mjs  13 条全过；--live 13/13
+e2e_progress.mjs     12 条全过（每步进展：处理→查资料→隐藏）
+measure_latency.mjs 8 次：8/8 ≤3000ms（均值 1768ms、最大 2429ms）
 eslint exit=0 ／ prettier 全绿
 ```
 
@@ -157,11 +187,11 @@ eslint exit=0 ／ prettier 全绿
 |---|---|---|---|
 | 1 | **Android 浏览器完全没有朗读** | 真机实测：`speechSynthesis` 不存在（非微信、http 页） | 界面给出明确提示，不静默失败。Android 语音只剩 M3 的 APK 原生 TTS |
 | 2 | **手机端语音输入不可用** | 需安全上下文（https），`http://192.168.x.x` 拿不到麦克风 | M3 云端中继解决 |
-| 3 | **没有多轮对话记忆** | `messages` 只有单条 user，不带历史。老人分两次说会断 | 已登记 P12，排在后续版本 |
-| 4 | **首句播报只是临界达标** | 最大 2629ms，判据 3000ms，余量 371ms | 波动来自判定段。若真机超 3 秒，改「先播已确定的场景名与号码」 |
+| 3 | **多轮记忆已覆盖在线 `/act`，judge 回落仍无** | 会话上文已接入前端（`app/state.js` 的 `utterances`）；裁决 A 后，已锁定的紧急后续轮也走 `/act` 并带上文。只有 `/act` 不可用回落 judge 时不带历史 | 产品路径 **13/13**，13/13 轮消费上文。MT05（倒地→没有呼吸）已随 cpr 发布改为 cpr steps；MT13 专测 P33 上文污染（当前句与上文无关 → refuse）。见 `docs/03` §2.6.11 与 `docs/08` P12/P15/P33 |
+| 4 | **首句播报依赖 B（已默认开启）** | 关闭 B 时首轮 `/act` 2 次模型往返：均值 2719ms、1/8 超 3000。B 预置本地 lookup 后 1 次往返 | 默认开启后 8/8 通过（均值 1768ms、最大 2429ms）。要复现基线：`window.ACT_SEED = false` / `ACT_SEED=0`。见 `docs/03` §2.5.9、`docs/08` P35 |
 | 5 | **判定结果会抖** | 同一句 `temperature:0` 连测 8 次，confidence 在 0.55 / 0.72 间跳 | 断言改成「落在安全集合内」而非确定值；解释见 `docs/09` §2.10.1 |
-| 6 | **知识库只有 9 条** | `drowning`（溺水）阻塞在源文核对 | 库外问题一律拒答，不会编 |
-| 7 | **离线只保证能听，不保证能说** | 离线 ASR 走讯飞 AIKit，需商务授权 + Rust FFI | 三条前置任一不满足即回退「图标区 + 手写」，不阻塞交付 |
+| 6 | **知识库 16 条场景已全部发布** | drowning 2026-11-21 解阻：中国红十字会《暑期防淹溺》+ 漳州红会补强；主源+3 补强逐字 pass | 库外问题仍一律拒答，不会编 |
+| 7 | **离线只保证能听，不保证能说** | 离线 ASR 走讯飞 AIKit，需商务授权 + Rust FFI | 三条前置任一不满足即回退「图标区 + 键盘输入」，不阻塞交付（手写需求已删除） |
 
 此外：嘈杂环境识别率、方言口音两项**未测**，因此不许对外宣称「嘈杂环境也能用」「支持方言」。
 样本全是安静环境 + 标准普通话（`docs/04` §7.1）。
@@ -192,6 +222,12 @@ eslint exit=0 ／ prettier 全绿
 | **`docs/09-M1-自测记录.md`** | **每条断言的实测输出、投毒结果、踩过的坑** |
 | `docs/10-代码质量门槛.md` | ESLint / Prettier 增量接管规则 |
 | `docs/11-选型可切换性提案.md` | ASR / LLM / TTS 三通道可切换性对照 |
+| `docs/12-来源缺口清单.md` | 所有需补一手来源的项目与工作量 |
+| `docs/13-方案与问题汇总.md` | 离线小模型/阈值/维护成本的已测事实与待裁项 |
+| `docs/14-P20-CPR-需求与验收.md` | P20 的需求、来源门、路由与发布验收 |
+| **`docs/15-场景补做清单.md`** | **要补哪些场景（id/批次）、每项交什么、怎么验收** |
+| `docs/16-提示词重构提案.md` | 去案例补丁 → `turn_type` 契约；Phase 1 + ACT 瘦身已完成，EXPAND 待做 |
+| `docs/17-改写集规范.md` | 改写集的配额、字段、写作规则、查重、runner 与污染纪律 |
 
 ---
 
@@ -199,7 +235,6 @@ eslint exit=0 ／ prettier 全绿
 
 | 优先级 | 事项 |
 |---|---|
-| 高 | **老人实测 V3/V5**（M2 的验收对象，延后至 M2.5） |
-| 中 | M2.5：手写输入引导 + ReAct 判定循环（仅日常模式） |
-| 中 | M3：Tauri 打包 + 云端中继 + 离线 TTS |
-| 低 | `drowning` 条目解阻、多轮记忆（P12）、TTS 第三个引擎 |
+| 高 | **老人实测 V3/V5** —— M2.5 唯一未闭合项，需要真人 |
+| 中 | M3：Tauri 打包 + 云端中继 + 离线 TTS + 离线语音输入 |
+| 低 | 提示词 Phase 3 收尾：EXPAND 动词枚举；RAG/向量检索（M3 离线态再评估） |

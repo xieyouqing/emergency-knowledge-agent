@@ -162,10 +162,11 @@ if (T && A) {
   const SCENE_IDS = KB.slots.map((s) => s.id);
 
   /* ---------- 1. 工具表结构 ---------- */
-  console.log('\n=== 1. 工具表（8 个，含 2 个探查类） ===');
-  ok(T.REGISTRY.length === 8, `应有 8 个工具，实际 ${T.REGISTRY.length}`);
+  console.log('\n=== 1. 工具表（9 个，含 2 个探查类） ===');
+  ok(T.REGISTRY.length === 9, `应有 9 个工具，实际 ${T.REGISTRY.length}`);
   const names = T.REGISTRY.map((t) => t.name).sort();
   const expect = [
+    'ack',
     'ask',
     'dial',
     'get_daily',
@@ -507,10 +508,12 @@ if (T && A) {
   /* ---------- 14. triage 只能对含分诊的条目 ---------- */
   console.log('\n=== 14. triage 前置条件 ===');
   {
+    /* 2026-11-21 改：fire_home 现已加分诊（门外/楼道着火分支），不能再当「无分诊」样例。
+       换用 scald_burn —— triage 仍为 null。断言语义不变：无分诊场景必须拒 triage。 */
     const withTriage = ENTRIES.gas_leak;
-    const without = ENTRIES.fire_home;
+    const without = ENTRIES.scald_burn;
     ok(!!withTriage && !!withTriage.triage, 'gas_leak 应有分诊（用于本组断言）');
-    ok(!!without && !without.triage, 'fire_home 应无分诊（用于本组断言）');
+    ok(!!without && !without.triage, 'scald_burn 应无分诊（用于本组断言）');
     const h = [
       {
         act: 'lookup_scene',
@@ -527,20 +530,20 @@ if (T && A) {
     const h2 = [
       {
         act: 'lookup_scene',
-        args: { scene: 'fire_home' },
+        args: { scene: 'scald_burn' },
         result: { found: true, published: true },
       },
     ];
     const g2 = T.checkGate(
       'triage',
-      { scene: 'fire_home' },
+      { scene: 'scald_burn' },
       {
         entries: ENTRIES,
         sceneIds: SCENE_IDS,
         history: h2,
       }
     );
-    ok(!g2.ok && g2.reason === 'no-triage', `fire_home 无分诊应被拒，实际 ${g2.reason}`);
+    ok(!g2.ok && g2.reason === 'no-triage', `scald_burn 无分诊应被拒，实际 ${g2.reason}`);
   }
 
   /* ---------- 15. 网络状态判断 ---------- */
@@ -609,24 +612,27 @@ if (T && A) {
       out.steps.some((s) => s.ok === false && s.reason === 'no-lookup'),
       `跳过 lookup 的 get_steps 应被前置条件门拒绝，实际 ${JSON.stringify(out.steps)}`
     );
-    ok(out.endKind === 'refuse', `被拒后应收敛到 refuse，实际 ${out.endKind}`);
+    /* 2026-11-21：no-lookup 不是「想编内容」，而是「模型跳过了查库」。
+       场景合法且条目在库时，补一次 lookup 再执行原动作；仍必须留痕。 */
+    ok(
+      out.steps.some((s) => s.act === 'lookup_scene' && s.why === 'auto-lookup'),
+      `no-lookup 后应自动补查，实际 ${JSON.stringify(out.steps)}`
+    );
+    ok(out.endKind === 'steps', `补查后应给出 steps，实际 ${out.endKind}`);
   })();
-  /* ---------- 18. 上限：同参重复调用必须收尾（§2.5.7） ----------
-     2026-11-19 新增。此前这一条**只有文档、没有代码也没有断言** ——
-     是 probe_multi_turn 的 MT08 撞出来的：模型想查「儿童坠床」，
-     而白名单只有 fall_elderly，于是反复 lookup_scene(fall_elderly)，
-     空转到撞上 MAX 步，用户白等 4 次往返（≈4 秒）。
-
-     §2.5.7 原文：「同参重复调用且观察相同 → 强制 finish」，
-     并强调「只设下限 = 允许死循环」。本节就是把这句话变成判据。 */
-  console.log('\n=== 18. 上限：同参重复 lookup 必须强制收尾 ===');
+  /* ---------- 18. 同参重复：复用一次，第二次才收尾（§2.5.7 + P32） ----------
+     2026-11-19 新增，2026-11-20 按 P32 修正。
+     旧行为「同参即收尾」会把「主体变更后的合理重查」误杀（MT08）：
+     模型想把 fall_elderly 重新确认给「孩子坠床」，被拦成拒答。
+     新行为：第一次重复复用上次结果继续；第二次仍收尾，防死循环。 */
+  console.log('\n=== 18. 同参重复 lookup：复用一次，第二次收尾 ===');
   await (async () => {
     let calls = 0;
     const out = await A.run(
       '孩子从床上掉下来了',
       { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
       {
-        // 永远只给同一个 lookup —— 模拟 MT08 的绕圈行为
+        // 永远只给同一个 lookup —— 模拟真正的绕圈行为
         decide() {
           calls++;
           return { act: 'lookup_scene', args: { scene: 'fall_elderly' } };
@@ -635,13 +641,31 @@ if (T && A) {
       }
     );
 
-    ok(calls <= 2, `同参重复 lookup 不应被调用超过 2 次（首次 + 一次判重），实际 ${calls} 次`);
-    ok(out.reason === 'repeat-call', `收尾原因应为 repeat-call，实际 ${out.reason}`);
+    ok(calls <= 3, `同参重复 lookup 不应超过 3 次（首次 + 一次复用 + 一次收尾），实际 ${calls} 次`);
+    ok(out.reason === 'repeat-call', `第二次重复后应收尾，实际 ${out.reason}`);
     ok(out.endKind === 'refuse', `绕圈后应收敛到安全出口，实际 ${out.endKind}`);
     ok(
-      out.steps.filter((s) => s.act === 'lookup_scene').length <= 1,
-      '重复的 lookup 不该被真的执行（进了 history 就会污染后续前置条件）'
+      out.steps.filter((s) => s.act === 'lookup_scene').length === 2,
+      `应执行 2 次 lookup（首次 + 复用一次），实际 ${out.steps.filter((s) => s.act === 'lookup_scene').length} 次`
     );
+  })();
+
+  /* 18c. 主体变更后的合理重查：重查一次后能继续出步骤，不得拒答（P32） */
+  console.log('\n=== 18c. 主体变更后的重查应继续，不得拒答 ===');
+  await (async () => {
+    const seq = [
+      { act: 'lookup_scene', args: { scene: 'fall_elderly' } },
+      { act: 'lookup_scene', args: { scene: 'fall_elderly' } },
+      { act: 'get_steps', args: { scene: 'fall_elderly' } },
+    ];
+    let i = 0;
+    const out = await A.run(
+      '不是他，是孩子从床上掉下来了',
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+      { decide: () => seq[Math.min(i++, seq.length - 1)], exec() {} }
+    );
+    ok(out.reason !== 'repeat-call', `合理重查不应触发防绕圈，实际 ${out.reason}`);
+    ok(out.endKind === 'steps', `重查后应能出步骤卡，实际 ${out.endKind}`);
   })();
 
   /* 对照组：换场景查不算绕圈（否则「逐条排查」会被误杀） */
@@ -690,6 +714,269 @@ if (T && A) {
     ok(out.endKind === 'ask', `endKind 应为 'ask'，实际 ${JSON.stringify(out.endKind)}`);
     ok(out.ok === true, 'ask 有产出，ok 应为 true（用户确实看到了追问卡）');
     ok(out.reason === 'waiting-user', `reason 应为 waiting-user，实际 ${out.reason}`);
+  })();
+
+  /* ---------- 20. ack：已脱困/状态更新（MT10，2026-11-20） ----------
+     背景：用户说「现在电梯门开了」，产品仍出急救步骤卡。
+     修法：新增终态工具 ack，只渲染「已经安全了」+ 观察提示，不出步骤。
+     判据：工具表认识它、门放行、执行是终态、循环能收敛到 ack。 */
+  console.log('\n=== 20. ack：已脱困/状态更新 ===');
+  await (async () => {
+    ok(!!T.byName('ack'), '工具表应认识 ack');
+    ok(T.KNOWN_NAMES.indexOf('ack') >= 0, 'KNOWN_NAMES 应包含 ack');
+    const g = T.checkGate('ack', {}, { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] });
+    ok(g.ok, `ack 不应有前置条件，实际 ${g.reason}`);
+    const r = T.execute('ack', {}, { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] });
+    ok(r.ok === true, 'ack 执行应成功');
+    ok(r.kind === 'ack', `ack 的 kind 应为 ack，实际 ${r.kind}`);
+    ok(r.ends === true, 'ack 必须是终态');
+
+    const out = await A.run(
+      '现在电梯门开了',
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+      { decide: () => ({ act: 'ack', args: {} }), exec() {} }
+    );
+    ok(out.endKind === 'ack', `循环应收敛到 ack，实际 ${out.endKind}`);
+    ok(out.ok === true, 'ack 有产出，ok 应为 true');
+  })();
+
+  /* ---------- 21. P24：断网危重状态必须先查危重条目，不得走 fall_elderly 分诊 ----------
+     背景：「我妈摔倒了没有呼吸」含「摔倒」，detectDanger 会命中 fall_elderly，
+     而 fall_elderly 首屏问「能自己动动胳膊腿吗」—— 对无呼吸者致命。
+     修法：planRule 先查 detectSevere，命中即查 cpr / severe_bleeding。
+
+     2026-11-21 更新（docs/14 §4.2「发布前后两套期望」）：
+       cpr 与 severe_bleeding 已发布，期望由「dial 120」改为「给对应条目的 steps」。
+       断言同时收紧——不只断言给了 steps，还要断言查的是**哪个**场景，
+       因为「给了 steps 但查错场景」正是本条要防的错误。 */
+  console.log('\n=== 21. P24：断网危重 → 危重条目，不得 fall_elderly ===');
+  await (async () => {
+    const saved = sandbox.navigator.onLine;
+    sandbox.navigator.onLine = false;
+    try {
+      const severeCases = [
+        { text: '我妈摔倒了没有呼吸', scene: 'cpr' },
+        { text: '心跳停了', scene: 'cpr' },
+        { text: '大出血止不住', scene: 'severe_bleeding' },
+      ];
+      for (const { text, scene } of severeCases) {
+        const out = await A.run(
+          text,
+          { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+          { exec() {} }
+        );
+        ok(
+          out.endKind === 'steps' || out.endKind === 'dial',
+          `断网「${text}」应给步骤或拨号，实际 ${out.endKind}`
+        );
+        /* 硬约束：绝不查 fall_elderly —— 对无呼吸者问「能自己动动胳膊腿吗」是致命误导 */
+        ok(
+          !out.steps.some(
+            (s) => s.act === 'lookup_scene' && s.args && s.args.scene === 'fall_elderly'
+          ),
+          `断网「${text}」不得查 fall_elderly`
+        );
+        /* 条目已发布时，必须查对应危重场景；未发布才允许 dial */
+        const looked = out.steps
+          .filter((s) => s.act === 'lookup_scene')
+          .map((s) => s.args && s.args.scene);
+        if (out.endKind === 'steps') {
+          ok(looked.includes(scene), `断网「${text}」应查 ${scene}，实际查了 ${looked.join(',')}`);
+        } else {
+          ok(
+            out.steps.some((s) => s.act === 'dial' && s.args && s.args.number === '120'),
+            `断网「${text}」拨号时必须给 120`
+          );
+        }
+      }
+
+      const normal = await A.run(
+        '我摔倒了但能说话',
+        { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+        { exec() {} }
+      );
+      ok(
+        normal.endKind === 'steps' || normal.endKind === 'triage',
+        `非危重应走分诊/步骤，实际 ${normal.endKind}`
+      );
+      ok(normal.endKind !== 'dial', '非危重不得被 P24 误拨号');
+    } finally {
+      sandbox.navigator.onLine = saved;
+    }
+  })();
+
+  /* ---------- 21-b. CPR 范围外：儿科 dial；溺水走 drowning（2026-11-21 更新） ----------
+     2026-11-21 早：drowning 未发布，「溺水没呼吸」回 dial 是安全兜底。
+     2026-11-21 晚：drowning 条目发布，成人/未标年龄的溺水改走 drowning；
+     儿科仍 dial（本库没有儿科 CPR 参数）。两者都不得复用成人 cpr。 */
+  console.log('\n=== 21-b. 儿科 CPR → dial；溺水 → drowning；都不得复用成人 cpr ===');
+  await (async () => {
+    const saved = sandbox.navigator.onLine;
+    for (const online of [false, true]) {
+      sandbox.navigator.onLine = online;
+      try {
+        const tag = online ? '在线' : '断网';
+        /* 儿科：仍必须 dial 120 */
+        for (const text of ['婴儿没呼吸', '宝宝心跳停了', '幼儿没呼吸']) {
+          const out = await A.run(
+            text,
+            { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+            { exec() {} }
+          );
+          const looked = out.steps
+            .filter((s) => s.act === 'lookup_scene')
+            .map((s) => s.args && s.args.scene);
+          ok(!looked.includes('cpr'), `${tag}「${text}」不得查成人 cpr`);
+          ok(!looked.includes('drowning'), `${tag}「${text}」不得查 drowning（儿科未覆盖）`);
+          ok(
+            out.steps.some((s) => s.act === 'dial' && s.args && s.args.number === '120'),
+            `${tag}「${text}」应给 dial 120`
+          );
+        }
+        /* 溺水：不得查 cpr，必须查 drowning */
+        for (const text of ['溺水没呼吸', '我爸溺水了']) {
+          const out = await A.run(
+            text,
+            { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+            { exec() {} }
+          );
+          const looked = out.steps
+            .filter((s) => s.act === 'lookup_scene')
+            .map((s) => s.args && s.args.scene);
+          ok(!looked.includes('cpr'), `${tag}「${text}」不得查成人 cpr`);
+          ok(looked.includes('drowning'), `${tag}「${text}」应查 drowning，实际 ${looked.join(',') || '(无)'}`);
+        }
+
+        /* 反向：排除不得误伤。成人仍给 cpr，儿童大出血仍给 severe_bleeding
+           —— 止血手法对儿童通用，只有 CPR 的参数不同。 */
+        const adult = await A.run(
+          '老人没有呼吸',
+          { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+          { exec() {} }
+        );
+        ok(
+          adult.steps.some(
+            (s) => s.act === 'lookup_scene' && s.args && s.args.scene === 'cpr'
+          ),
+          `${tag}「老人没有呼吸」是成人，应给 cpr，实际 ${adult.endKind}`
+        );
+        const childBleed = await A.run(
+          '孩子大出血',
+          { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+          { exec() {} }
+        );
+        ok(
+          childBleed.steps.some(
+            (s) => s.act === 'lookup_scene' && s.args && s.args.scene === 'severe_bleeding'
+          ),
+          `${tag}「孩子大出血」应给 severe_bleeding（排除只针对 CPR），实际 ${childBleed.endKind}`
+        );
+      } finally {
+        sandbox.navigator.onLine = saved;
+      }
+    }
+  })();
+
+  /* ---------- 22. 假设句是预案，不进入紧急 ----------
+     背景：「如果发生火灾怎么办」含「火灾」，旧逻辑命中 danger → get_steps →
+     前端 enterEmergency；用户只是问预案。
+     修法：planRule 先认「如果/万一/假如/要是」，绕开 severe/danger，走 get_daily。 */
+  console.log('\n=== 22. 假设句不进入紧急（预案 → daily） ===');
+  await (async () => {
+    const cases = [
+      '如果发生火灾怎么办',
+      '如果煤气漏了怎么办',
+      '万一老人摔倒了怎么办',
+      '怎么预防煤气泄漏',
+    ];
+    for (const text of cases) {
+      const out = await A.run(
+        text,
+        { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+        { exec() {} }
+      );
+      ok(out.endKind === 'daily', `假设句「${text}」应走 daily，实际 ${out.endKind}`);
+      ok(
+        !out.steps.some((s) => s.act === 'get_steps' || s.act === 'triage' || s.act === 'dial'),
+        `假设句「${text}」不得出 steps/triage/dial`
+      );
+    }
+  })();
+
+  /* ---------- 23. turn 契约：模型的 plan 标签必须能压住 steps ----------
+     2026-11-21 新契约：/act 输出 turn/evidence。即使本地 turnPolicy 判 unknown，
+     模型给出 turn=plan 时，调度器也必须把 get_steps/triage/dial 降级为 get_daily。
+     这是“靠语义标签”而不是“靠 prompt 案例”的第一条硬断言。 */
+  console.log('\n=== 23. 模型 turn=plan 必须压住 steps ===');
+  await (async () => {
+    const planSeq = [
+      { act: 'lookup_scene', args: { scene: 'scald_burn' }, turn: 'plan', evidence: '周围没有冷水' },
+      { act: 'get_steps', args: { scene: 'scald_burn' }, turn: 'plan', evidence: '周围没有冷水' },
+    ];
+    let i = 0;
+    const out = await A.run(
+      '周围没有冷水',
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+      { decide: () => planSeq[Math.min(i++, planSeq.length - 1)], exec() {} }
+    );
+    ok(out.endKind === 'daily', `turn=plan 应降级为 daily，实际 ${out.endKind}`);
+    ok(
+      !out.steps.some((s) => s.act === 'get_steps' || s.act === 'triage' || s.act === 'dial'),
+      'turn=plan 不得出 steps/triage/dial'
+    );
+
+    const ongoingSeq = [
+      { act: 'lookup_scene', args: { scene: 'scald_burn' }, turn: 'ongoing', evidence: '正在烫伤' },
+      { act: 'get_steps', args: { scene: 'scald_burn' }, turn: 'ongoing', evidence: '正在烫伤' },
+    ];
+    let j = 0;
+    const out2 = await A.run(
+      '正在烫伤',
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+      { decide: () => ongoingSeq[Math.min(j++, ongoingSeq.length - 1)], exec() {} }
+    );
+    ok(out2.endKind === 'steps', `turn=ongoing 应允许 steps，实际 ${out2.endKind}`);
+  })();
+
+  /* ---------- 24. 明确否认火灾：即使“冒点烟”，也不得给 fire_home 内容 ----------
+     R30：「不是着火，是我把锅烧糊了，就是冒点烟，没见明火」。
+     旧行为：detectDanger 命中 fire_home → get_steps，答非所问。
+     修法：isDeniedFire 明确否认闸；离线 planRule 与调度器都拦。 */
+  console.log('\n=== 24. 明确否认火灾 → refuse ===');
+  await (async () => {
+    const text = '不是着火，是我把锅烧糊了，就是冒点烟，没见明火';
+    const RET = sandbox.window.RETRIEVAL;
+    ok(RET.isDeniedFire(text) === true, '「不是着火」应判为明确否认');
+
+    const offline = await A.run(
+      text,
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+      { exec() {} }
+    );
+    ok(offline.endKind === 'refuse', `离线应 refuse，实际 ${offline.endKind}`);
+    ok(!offline.steps.some((s) => s.act === 'get_steps'), '离线不得给 fire_home 步骤');
+
+    const seq = [
+      { act: 'lookup_scene', args: { scene: 'fire_home' }, turn: 'ongoing', evidence: text },
+      { act: 'get_steps', args: { scene: 'fire_home' }, turn: 'ongoing', evidence: text },
+    ];
+    let i = 0;
+    const policy = RET.turnPolicy(text);
+    const out = await A.run(
+      text,
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: [], policy },
+      { decide: () => seq[Math.min(i++, seq.length - 1)], exec() {} }
+    );
+    ok(policy.denyDanger === true, 'turnPolicy 应带 denyDanger=true');
+    ok(out.endKind === 'refuse', `模型路径应 refuse，实际 ${out.endKind}`);
+    ok(!out.steps.some((s) => s.act === 'get_steps'), '模型路径不得给 fire_home 步骤');
+
+    const real = await A.run(
+      '着火了',
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
+      { exec() {} }
+    );
+    ok(real.endKind === 'steps', `对照「着火了」仍应 steps，实际 ${real.endKind}`);
   })();
 }
 

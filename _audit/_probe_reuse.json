@@ -1,0 +1,366 @@
+[
+ {
+  "id": "BEFAST",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "“B”是指平衡（Balance），平衡或协调能力丧失，突然出现行走困难；“E”是指眼睛（Eyes），突然的视力变化，视物困难，或者一过性黑蒙；“F”是指面部（Face），面部不对称，口角歪斜；“A”是指手臂（Arms），手臂突然出现无力感或者麻木感，通常出现在身体一侧；“S”是指言语（Speech），说话含混、不能理解别人的语言；“T”是指时间（Time），时间是至关重要的，如果有以上任何一个症状突然发生，则有可能是卒中。要立刻拨打急救电话，把握好最佳治疗时机。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "CPR按压参数",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=687961&business_type=100",
+  "quote": "开展心肺复苏 让患者平躺于坚硬平面，解开衣领腰带，双手交叉重叠，在患者胸骨中下1/3处，以每分钟100~120次的频率、5~6厘米的深度快速按压，按压与通气比例为30:2，非专业人士可仅做胸外按压，不做人工呼吸，持续操作直到救护车到达。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "CPR黄金4分钟",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=687961&business_type=100",
+  "quote": "心脏骤停后，黄金抢救时间只有4分钟，每耽误1分钟，存活率就下降7%~10%，现场急救远比等待救护车更重要。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "中风120",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "“1”代表“看到1张不对称的脸”；“2”代表“2只手臂是否出现单侧无力”；“0”代表“聆（零）听讲话是否清晰”。如果自己或他人突然出现以上任何一个症状，则有可能是卒中。要立刻拨打急救电话120。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "临时止血带",
+  "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+  "quote": "在院前急救中，若无制式止血工具，可使用布带或腰带等材料制作临时止血带，绑扎位置应避开关节，确保有效止血并控制使用时间在2 h以内。定时评估止血效果，观察异常情况，并记录起止时间、压力及患者反应，确保交接清晰、安全有效。【证据质量：1C。推荐强度：强】",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "体表压迫",
+  "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+  "quote": "对于体表活动性出血，如面部、躯干、四肢，应立即采取局部压迫或加压包扎止血。面部深层创口还可用止血敷料填塞并冷敷；牙龈或鼻腔出血可填塞纱条或棉球压迫止血，并保持头部前倾以防血液倒流入气道；四肢压迫止血无效时或无法快速定位出血点时，应及时使用止血带。【证据质量：1C。推荐强度：强】",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "儿童误服危险异物",
+  "url": "https://kepuchina.cn/kpkt/kpcb/201707/t20170717_211091.shtml",
+  "quote": "如果孩子吞下的是危险性较高的异物，如图钉、电池、缝衣针之类的物品，应该立即送往医院，不要再随意乱吃东西或大幅度活动，以免造成二次伤害。",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "儿童误服可催吐",
+  "url": "https://www.kepuchina.cn/article/articleinfo?business_type=100&ar_id=172849",
+  "quote": "大多数因为误服毒物而导致的消化道中毒，若为年龄较大、神志清醒和合作的患儿，且确定没有严重心脏病、食道静脉曲张、溃疡病和惊厥，不是强酸、强碱、汽油、煤油中毒的可以在拨打120等待急救车之时给予催吐处理，方法是用手指、筷子刺激咽部，引起反射性呕吐。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "儿童误服强酸",
+  "url": "https://www.kepuchina.cn/article/articleinfo?business_type=100&ar_id=172849",
+  "quote": "如果误服了强酸、强碱等腐蚀性东西，催吐会对儿童食道和咽喉造成更大伤害。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "儿童误服抠残留",
+  "url": "https://kepuchina.cn/kpkt/kpcb/201707/t20170717_211091.shtml",
+  "quote": "当孩子误服药物、毒物时，应立即从孩子嘴里把残留的毒物抠出；",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "儿童误服收集证据",
+  "url": "https://kepuchina.cn/kpkt/kpcb/201707/t20170717_211091.shtml",
+  "quote": "把孩子误食的药品或者毒物的瓶子、说明书、残留物收集起来，带到医院去；",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "儿童误服禁催吐",
+  "url": "https://kepuchina.cn/kpkt/kpcb/201707/t20170717_211091.shtml",
+  "quote": "当孩子误服药物、毒物时，应立即从孩子嘴里把残留的毒物抠出；把孩子误食的药品或者毒物的瓶子、说明书、残留物收集起来，带到医院去；不要给孩子催吐，因为催吐过程会再次损伤孩子的食道、咽喉，而这两个地方的损伤非常难修复，不如就让毒物待在胃里，待到医院由专业医师进行处理。",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "儿童误服禁喂水",
+  "url": "https://www.kepuchina.cn/article/articleinfo?business_type=100&ar_id=172849",
+  "quote": "一旦孩子误食毒物，要保持其呼吸通畅，不要喂水，应赶紧送医，因为大量喝水反而容易促进化学物品的吸收。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "儿童误服预防",
+  "url": "https://www.kepuchina.cn/article/articleinfo?business_type=100&ar_id=172849",
+  "quote": "尽量不要用饮料瓶装洗衣液、消毒水等，不然孩子可能会误以为是饮料而饮用。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "卒中不等",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "出现任何疑似卒中症状，不要犹豫，不要等待症状自行消失，应立即拨打120等急救电话。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "卒中康复",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "康复越早，效果越好。卒中后康复治疗的最佳时间是发病后3个月以内，在生命体征稳定和病情无进展情况下，卒中患者应尽早开展康复治疗。如果超过1年再进行康复治疗，各种功能恢复的效果将有所降低。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "卒中时间",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "时间就是大脑。卒中发生后，救治越早，大脑损伤越小，康复希望越大。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "卒中转运",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "建议不要自行驾车或由家人送往医院，救护车可以提供院前急救，并将患者直接送往距离最近的具备卒中救治能力的卒中中心。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "卒中首位",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "卒中，俗称“中风”，是一种急性脑血管疾病。主要包括缺血性卒中和出血性卒中两大类型。它是我国成年人致死、致残的首位原因，具有高发病率、高死亡率、高致残率和高复发率等特点。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "止血带规格",
+  "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+  "quote": "止血带宽度至少5 cm，长度需足够绕肢体两圈以上，绑扎于出血近心端5~8 cm处，避开关节并确保压力有效止血。为减少并发症风险，止血带的使用时间应严格控制在2 h内，尽管在军事环境中有长达6 h仍保留肢体功能的案例，但长时间使用可能增加肢体缺血和坏死风险。紧急情况下可直接使用止血带，无需衬垫。",
+  "verdict": "fail",
+  "reason": "未逐字命中"
+ },
+ {
+  "id": "止血科普",
+  "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+  "quote": "所有急救人员均应接受规范化的院前急救止血流程的培训，考核合格后方可上岗；对普通平民应推广院前止血治疗的科普教育，教育内容包括：创伤现场安全评估的重要性、创伤现场急救DRCAB评估流程、物理止血方法、止血带的使用等。【证据质量：1C。推荐强度：强】",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "气道禁练",
+  "url": "http://survey.cem.org.cn/rhtml/20190702/index.htm",
+  "quote": "不建议在真人身上练习腹部冲击法，因为过强有力地使用海姆立克急救法可出现腹主动脉分离和创伤性剥离，视网膜脱离，肋骨骨折和腹腔脏器破裂，以及膈肌、空肠、肝脏、食道和胃的破裂等并发症。",
+  "verdict": "fail",
+  "reason": "未逐字命中"
+ },
+ {
+  "id": "溶栓时窗",
+  "url": "https://www.nhc.gov.cn/ylyjs/gzdt/202510/90fb4a06216a47af91bf1e30963c1edd.shtml",
+  "quote": "1.静脉溶栓：通过静脉输注溶栓药物来溶解血栓。通常在发病4.5小时内进行，是目前应用最广泛的急性期疗法。2.动脉取栓：针对大脑大血管闭塞的患者，医生通过微创介入手术，将导管送至堵塞部位，用取栓支架将血栓“取”出。部分患者的取栓时间窗可延长至6～24小时。",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "热射体位",
+  "url": "http://www.cem.org.cn/zine/down/id/9719/flag/9719",
+  "quote": "迅速将患者移至通风、阴凉处平卧，头偏向一侧，解开衣领扣、腰带，脱去外衣以利于呼吸和散热，有条件可送至有电风扇或空调的房间",
+  "verdict": "unverified",
+  "reason": "页面编码无法确认（前 16 字节: 255044462d312e370d0a25a1b3c5d70d），需人工核对"
+ },
+ {
+  "id": "热射测温",
+  "url": "http://www.cem.org.cn/zine/down/id/9719/flag/9719",
+  "quote": "应第一时间拆除运动装备，同时测量核心温度（以直肠温度为最佳）",
+  "verdict": "unverified",
+  "reason": "页面编码无法确认（前 16 字节: 255044462d312e370d0a25a1b3c5d70d），需人工核对"
+ },
+ {
+  "id": "热射禁水",
+  "url": "http://www.cem.org.cn/zine/down/id/9719/flag/9719",
+  "quote": "应将昏迷患者头偏向一侧，保持其呼吸道通畅，及时清除气道内分泌物，防止呕吐误吸。对于意识不清的患者，禁止喂水。",
+  "verdict": "unverified",
+  "reason": "页面编码无法确认（前 16 字节: 255044462d312e370d0a25a1b3c5d70d），需人工核对"
+ },
+ {
+  "id": "热射禁药",
+  "url": "https://www.chinacdc.cn/jkkp/zyjk/zyjk/zybfzzs/202607/t20260729_1838473.html",
+  "quote": "严禁大面积酒精擦拭降温、禁止直接冰敷前胸或腹部、中暑引发的高热严禁自行服用布洛芬等退烧药。",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "热射补液疾控",
+  "url": "https://www.chinacdc.cn/jkkp/zyjk/zyjk/zybfzzs/202607/t20260729_1838473.html",
+  "quote": "补：意识清醒无呕吐者，少量多次补电解质饮料（每次＜100ml）；意识模糊、抽搐或频繁恶心呕吐者严禁经口喂水。",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "热射补液职卫",
+  "url": "https://niohp.chinacdc.cn/kpdw/202608/t20260805_1838679.htm",
+  "quote": "（四）谨慎补液，禁止喂药：若患者清醒且能吞咽，可少量多次饮用淡盐水或运动饮料；若意识不清，切勿强行喂水喂食，以免窒息；",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "热射转运",
+  "url": "http://www.cem.org.cn/zine/down/id/9719/flag/9719",
+  "quote": "转运过程中应做到：①密切监测体温，如有条件应测量直肠温度，同时做好生命体征的监测记录；②持续有效降温，不能因转运后送而延误降温治疗。尽量在30 min 内将直肠温度降至39.0℃以下，2 h 内降至38.5℃以下",
+  "verdict": "unverified",
+  "reason": "页面编码无法确认（前 16 字节: 255044462d312e370d0a25a1b3c5d70d），需人工核对"
+ },
+ {
+  "id": "热射降温",
+  "url": "http://www.cem.org.cn/zine/down/id/9719/flag/9719",
+  "quote": "快速、有效、持续降温是热射病的首要治疗措施。积极有效的降温措施包括：（1）水浴或冰水擦浴；（2）电子冰毯、冰帽；（3）快速液体复苏；（4）不提倡药物降温。",
+  "verdict": "unverified",
+  "reason": "页面编码无法确认（前 16 字节: 255044462d312e370d0a25a1b3c5d70d），需人工核对"
+ },
+ {
+  "id": "热射黄金期",
+  "url": "https://www.chinacdc.cn/jkkp/zyjk/zyjk/zybfzzs/202607/t20260729_1838473.html",
+  "quote": "发病30分钟内是降温黄金期，延误易造成多器官损伤，发现后立即拨打120并同步现场降温，切勿等待观望。",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "特殊部位",
+  "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+  "quote": "特殊部位出血（如腋下、腹股沟或颈部）应及时使用止血辅料填塞伤口并加压包扎。颈动脉大出血时可按压颈动脉来减少血流，同时应保护患者的气道。【证据质量：1C。推荐强度：强】",
+  "verdict": "pass",
+  "reason": "ok"
+ },
+ {
+  "id": "电池会复燃",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=743409&business_type=100",
+  "quote": "锂电池热失控是内部链式反应，表面火灭不代表内部反应停止，温度未降到安全值极易复燃，必须持续冷却、长时间观察。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "电池先撤人",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=743409&business_type=100",
+  "quote": "电动自行车锂电池容量大、热失控烈度高，燃烧产生的剧毒烟气是致死主因，处置核心是先撤人、再报警、慎扑救。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "电池断电撤离",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=743409&business_type=100",
+  "quote": "充电时冒烟异味：在确保自身安全的前提下，立即拔掉电源插头，不要试图拔出电池或搬动车辆，迅速撤离到室外安全区域，拨打 119 报警。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "电池禁泼水",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=743409&business_type=100",
+  "quote": "严禁操作：不要将燃烧的车辆推到电梯、楼道内；不要往电池仓少量泼水；不要试图拆解电池灭火；不要在室内停留观望。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "跌倒不扶起",
+  "url": "https://www.cdtf.gov.cn/cdtfxq/c159584/2017-06/09/content_4ec128b93022440f8790f8fa9826b210.shtml",
+  "quote": "发现老年人跌倒，不要急于扶起，要分情况进行处理：",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "跌倒意识不清理吐",
+  "url": "https://www.cdtf.gov.cn/cdtfxq/c159584/2017-06/09/content_4ec128b93022440f8790f8fa9826b210.shtml",
+  "quote": "（2）有呕吐，将头偏向一侧，并清理口、鼻腔呕吐物，保证呼吸通畅；",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "跌倒意识清",
+  "url": "https://www.cdtf.gov.cn/cdtfxq/c159584/2017-06/09/content_4ec128b93022440f8790f8fa9826b210.shtml",
+  "quote": "（1）询问老年人跌倒情况及对跌倒过程是否有记忆，如不能记起跌倒过程，可能为晕厥或脑血管意外，应立即护送老年人到医院诊治或拨打急救电话；……（2）询问是否有剧烈头痛或口角歪斜、言语不利、手脚无力等提示脑卒中的情况，如有，立即扶起老年人可能加重脑出血或脑缺血，使病情加重，应立即拨打急救电话；",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "跌倒无呼吸",
+  "url": "https://www.cdtf.gov.cn/cdtfxq/c159584/2017-06/09/content_4ec128b93022440f8790f8fa9826b210.shtml",
+  "quote": "（4）如呼吸、心跳停止，应立即进行胸外心脏按压、口对口人工呼吸等急救措施；",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "跌倒骨折",
+  "url": "https://www.cdtf.gov.cn/cdtfxq/c159584/2017-06/09/content_4ec128b93022440f8790f8fa9826b210.shtml",
+  "quote": "（4）查看有无肢体疼痛、畸形、关节异常、肢体位置异常等提示骨折情形，如无相关专业知识，不要随便搬动，以免加重病情，应立即拨打急救电话；",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "骨折压迫止血",
+  "url": "https://www.nhc.gov.cn/xcs/c100122/202604/e51230abcee348bea75d5ef456f26014.shtml",
+  "quote": "如果有出血，建议用干净的衣物压迫出血端",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "骨折原地评估",
+  "url": "https://www.nhc.gov.cn/xcs/c100122/202604/e51230abcee348bea75d5ef456f26014.shtml",
+  "quote": "首先我们建议原地不动，评估情况，如果出现剧烈的疼痛，肢体都发生畸形了，活动受限，这时候很可能是发生骨折或者脱位了，不要随意搬动",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ },
+ {
+  "id": "骨折正确四步",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=679956&business_type=100",
+  "quote": "1. 保持原位不动，先别搬\n2. 简单固定：用木板、硬纸板、杂志临时捆住，不让肢体晃\n3. 冷敷：冰袋/冷毛巾敷15分钟，减轻肿痛\n4. 立刻送医院拍片：X光/CT确诊",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "骨折禁喂食",
+  "url": "https://www.kepuchina.cn/article/articleinfo?business_type=100&classify=0&ar_id=736491",
+  "quote": "在急救过程中，切勿给患者喂食或喂水，特别是怀疑需要手术治疗的情况下。因为全麻手术通常要求空腹，进食可能增加麻醉风险。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "骨折禁强行活动",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=679956&business_type=100",
+  "quote": "3. 强行活动、走路试试、甩一甩轻微骨折→直接变错位骨折。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "骨折禁拖延",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=679956&business_type=100",
+  "quote": "5. 拖延不去医院骨折拖越久，越难复位、越难长好。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "骨折禁推骨",
+  "url": "https://www.kepuchina.cn/article/articleinfo?business_type=100&classify=0&ar_id=736491",
+  "quote": "如果骨头露出，切勿尝试将其推回体内，等待专业医疗救助。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "骨折禁揉热敷",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=679956&business_type=100",
+  "quote": "2. 揉一揉、按一按、热敷揉会把骨折移位揉得更严重，热敷加重肿胀出血。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "骨折禁涂药酒",
+  "url": "https://www.kepuchina.cn/article/articleinfo?ar_id=679956&business_type=100",
+  "quote": "4. 自行涂药酒、贴膏药掩盖病情，加重肿胀。",
+  "verdict": "unverified",
+  "reason": "HTTP 405（Not Allowed）"
+ },
+ {
+  "id": "骨折简单固定",
+  "url": "https://www.nhc.gov.cn/xcs/c100122/202604/e51230abcee348bea75d5ef456f26014.shtml",
+  "quote": "可以用木棍、围巾等对患处进行简单固定，并立即拨打急救电话",
+  "verdict": "unverified",
+  "reason": "HTTP 412（Precondition Failed）"
+ }
+]

@@ -134,7 +134,36 @@ async function runLoop(c) {
     const act = decision.act;
     const args = decision.args || {};
 
-    const gate = TOOLS.checkGate(act, args, { entries: ENTRIES, sceneIds: SCENE_IDS, history });
+    /* 与 agent.js 的上文证据闸一致（P33）；无上文时证据必须落在当前句，
+       不落 → 模型拿别的句子当依据，拒答。 */
+    if (decision.evidence) {
+      const evN = String(decision.evidence).replace(/\s+/g, '');
+      const curN = String(c.text).replace(/\s+/g, '');
+      const grounded = !!evN && (curN.indexOf(evN) !== -1 || evN.indexOf(curN) !== -1);
+      const pureFollowup =
+        /^(怎么办|然后呢|现在呢|那呢|怎么弄|要紧吗|严重吗|接下来呢|还怎么办)[？?。！!]*$/.test(curN);
+      if (!grounded && !pureFollowup) {
+        steps.push({ act, args, ok: false, reason: 'context-not-grounded' });
+        endKind = 'refuse';
+        break;
+      }
+    }
+
+    let gate = TOOLS.checkGate(act, args, { entries: ENTRIES, sceneIds: SCENE_IDS, history });
+    /* 与 agent.js 一致：模型跳过查库（no-lookup）不是想编内容，
+       场景合法时补一次 lookup 再重试原动作，不直接拒答。 */
+    if (!gate.ok && gate.reason === 'no-lookup' && args.scene && ENTRIES[args.scene]) {
+      const lr = TOOLS.execute(
+        'lookup_scene',
+        { scene: args.scene },
+        { entries: ENTRIES, sceneIds: SCENE_IDS, history }
+      );
+      if (lr.ok) {
+        history.push({ act: 'lookup_scene', args: { scene: args.scene }, result: lr.result });
+        steps.push({ act: 'lookup_scene', args: { scene: args.scene }, ok: true, why: 'auto-lookup' });
+        gate = TOOLS.checkGate(act, args, { entries: ENTRIES, sceneIds: SCENE_IDS, history });
+      }
+    }
     if (!gate.ok) {
       steps.push({ act, args, ok: false, reason: gate.reason });
       // 与 agent.js 的处置一致：被拒 → 改走安全出口
@@ -176,6 +205,8 @@ async function runLoop(c) {
 }
 
 /* ---------- 主循环 ---------- */
+console.log('★ 评测路径: /act 自主循环（模型选工具，完整循环）');
+console.log('⚠️ 与 run_eval --engine=llm（/judge 单次判定）不是同一条路，数字不能互换。\n');
 console.log(`完整循环探针：${list.length} 条`);
 console.log('─'.repeat(100));
 

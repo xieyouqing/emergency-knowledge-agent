@@ -79,6 +79,73 @@
     var danger = R && R.detectDanger ? R.detectDanger(text) : null;
     var entries = ctx.entries || {};
 
+    /* P24（2026-11-20）：断网/降级时，先看「未覆盖的危重状态」。
+       为什么必须放在 detectDanger 之前：
+         「我妈摔倒了没有呼吸」会命中 fall_elderly（因为「摔倒」），
+         而 fall_elderly 的首屏是「能自己动一动胳膊腿吗」—— 对无呼吸者是致命的。
+       为什么条目未发布就拨号：
+         没有 CPR/止血内容时，宁可只给 120 拨号卡，也不给错误方向的步骤。
+       场景 id 约定（给数据同学）：CPR = cpr，大出血 = severe_bleeding。
+         条目发布后，这里会自动从「拨号」切到「查条目 → 出步骤」。 */
+    /* 回合策略优先（2026-11-20「工作流 + 自主决策」）：
+       hypothetical / prevention → 只允许查库 + 日常解释，禁止 steps/triage/dial。
+       必须在 severe/danger 之前：否则「如果发生火灾怎么办」命中 fire_home 出步骤，
+       「怎么预防煤气泄漏」也会被关键词带成 steps。 */
+    var policy = R && R.turnPolicy ? R.turnPolicy(text) : null;
+    /* 明确否认火灾：不再走 fire_home 出内容。只认“不是着火/没见明火”这类
+       明确否认，不认模糊猜测；也不影响“没呼吸”等危重词。 */
+    if (R && R.isDeniedFire && R.isDeniedFire(text)) {
+      return [{ act: 'refuse', args: { reason: 'denied-fire' }, why: 'policy-denied-fire' }];
+    }
+    if (policy && policy.allowSteps === false) {
+      var hitP = R.retrieve ? R.retrieve(entries, text) : null;
+      if (hitP && hitP.entryId && entries[hitP.entryId]) {
+        return lookupThen('get_daily', hitP.entryId, 'policy-' + policy.type);
+      }
+      if (danger && entries[danger.id]) {
+        return lookupThen('get_daily', danger.id, 'policy-' + policy.type);
+      }
+      if (policy.type === 'hypothetical' && danger) {
+        return [
+          {
+            act: 'dial',
+            args: { number: danger.number || '120' },
+            why: 'policy-hypothetical-no-entry',
+          },
+        ];
+      }
+      return [{ act: 'refuse', args: { reason: 'policy-no-entry' }, why: 'policy-' + policy.type }];
+    }
+
+    /* 叫不醒但还有呼吸：P20-c 未发布 → 只拨号；不得走 cpr，也不得走 fall_elderly 分诊。 */
+    if (R && R.isUnresponsiveWithBreathing && R.isUnresponsiveWithBreathing(text)) {
+      return [{ act: 'dial', args: { number: '120' }, why: 'unresponsive-breathing-no-entry' }];
+    }
+
+    var severe = R && R.detectSevere ? R.detectSevere(text) : null;
+    if (severe) {
+      var isBleeding = /大出血|流血不止|止不住血/.test(severe);
+      var severeScene = isBleeding ? 'severe_bleeding' : 'cpr';
+      /* 2026-11-21（docs/14 §4.2 C11/C12）：儿科与溺水不进成人 CPR。
+         这一判断只对 cpr 生效——大出血条目对儿童仍适用（止血手法通用），
+         所以 isBleeding 时跳过范围检查。
+         命中范围外 → 回到 dial 120，与 cpr 未发布时的行为一致。 */
+      var outOfScope = !isBleeding && R.isCprOutOfScope ? R.isCprOutOfScope(text) : null;
+      /* 溺水条目发布后：溺水（非儿科）走 drowning；儿科仍 dial。
+         仍不允许把成人 cpr 套到溺水者身上（顺序不同）。 */
+      if (outOfScope === 'drowning' && entries.drowning) {
+        severeScene = 'drowning';
+        outOfScope = null;
+      }
+      if (outOfScope) {
+        return [{ act: 'dial', args: { number: '120' }, why: 'cpr-out-of-scope:' + outOfScope }];
+      }
+      if (entries[severeScene]) {
+        return lookupThen('get_steps', severeScene, 'severe-entry:' + severeScene);
+      }
+      return [{ act: 'dial', args: { number: '120' }, why: 'severe-no-entry:' + severe }];
+    }
+
     if (danger) {
       var de = entries[danger.id];
       if (de) return lookupThen('get_steps', danger.id, 'danger-hit');
@@ -153,6 +220,12 @@
     var limit = typeof o.maxSteps === 'number' ? o.maxSteps : MAX_STEPS;
     var degraded = false;
     var end = null;
+    /* P32（2026-11-20）：同参 lookup 第一次重复时复用上次结果继续，
+       第二次才收尾。为什么只放一次：
+         · 主体变更（老伴→孩子）后模型需要重新确认适用性，复用结果是正确的；
+         · 但「一直只查同一个」仍是空转，必须有上限，否则死循环。
+       每次 AGENT.run 重置，跨轮不累计。 */
+    var repeatReuseUsed = false;
 
     function step(i, planList) {
       if (end) return Promise.resolve(summary('done'));
@@ -191,7 +264,13 @@
               return finishSafe('decide-empty');
             }
             // 用模型给的动作为这一步的计划；i 不变，重入本函数
-            planList[i] = { act: d.act, args: d.args || {}, why: d.why || 'model' };
+            planList[i] = {
+              act: d.act,
+              args: d.args || {},
+              why: d.why || 'model',
+              turn: d.turn || null,
+              evidence: d.evidence || null,
+            };
             return step(i, planList);
           })
           .catch(function (e) {
@@ -203,6 +282,35 @@
       var planned = planList[i];
       var act = planned.act;
       var args = planned.args || {};
+
+      /* ★ 上文只补指代，不能替代当前句（P33 / O030）。
+         实测：「煤气漏了」→「手机没电了」时，模型证据引的是**上一句**，
+         于是把手机没电当成了煤气现场，给了 gas_leak 步骤。
+         契约要求 evidence 是「用户原话片段」，所以用「证据是否落在当前句」判：
+           · 落在当前句 → 正常；
+           · 只落在上文，且当前句不是纯追问 → 说明模型拿上文当现场，拒答；
+           · 纯追问（「怎么办」「然后呢」）允许省略，仍走上文。
+         这比再加一条 prompt 规则可靠：模型已经用证据字段自曝了依据。 */
+      if (planned.evidence && text) {
+        var evN = String(planned.evidence).replace(/\s+/g, '');
+        var curN = String(text).replace(/\s+/g, '');
+        var grounded = !!evN && (curN.indexOf(evN) !== -1 || evN.indexOf(curN) !== -1);
+        var pureFollowup =
+          /^(怎么办|然后呢|现在呢|那呢|怎么弄|要紧吗|严重吗|接下来呢|还怎么办)[？?。！!]*$/.test(
+            curN
+          );
+        if (!grounded && !pureFollowup) {
+          lg('info', '证据未落在当前句，判定为上文污染，拒答', {
+            evidence: evN,
+            text: curN,
+          });
+          return runOne(
+            { act: 'refuse', args: { reason: 'context-not-grounded' }, why: 'ctx-not-grounded' },
+            i,
+            planList
+          );
+        }
+      }
 
       /* ★ 上限：同参重复调用且观察相同 → 强制收尾（docs/03 §2.5.7）。
 
@@ -220,6 +328,19 @@
          为什么不是「重试」而是「收尾」：
            空转不可能靠再跑一次解决，模型缺的是信息而不是运气。 */
       if (isRepeatedAct(act, args, history)) {
+        /* P32：第一次同参重复 → 复用上次结果继续，不拒答。
+           语义依据：同一 scene 的库内容在一次会话内不变，重查不会得到新信息；
+           模型重查的真实意图是「确认这个条目是否适用于新主体」，复用结果即可。
+           仍保留一次上限：第二次同参重复 → 收尾，防死循环。 */
+        if (act === 'lookup_scene' && !repeatReuseUsed) {
+          repeatReuseUsed = true;
+          lg('info', '同参 lookup 重复：复用上次结果继续（P32）', {
+            act: act,
+            args: args,
+            step: i,
+          });
+          return runOne({ act: act, args: args, why: 'repeat-reuse' }, i, planList);
+        }
         lg('warn', '同参重复调用，强制收尾（防绕圈）', { act: act, args: args, step: i });
         return finishSafe('repeat-call');
       }
@@ -236,6 +357,36 @@
       if (!gate.ok) {
         lg('info', '前置条件未通过，改走安全出口', { act: act, reason: gate.reason });
         steps.push({ act: act, args: args, ok: false, reason: gate.reason });
+        /* no-lookup 是「模型跳过了查库」，不是「模型想编内容」：
+           场景 id 合法且条目在库时，补一次 lookup 再执行原动作，而不是直接拒答。
+           这条补救必须在这里做——P014「灭火器怎么选」模型会直接给 get_daily，
+           若一律 refuse，用户拿不到本可安全给出的日常卡。 */
+        if (gate.reason === 'no-lookup' && args.scene && ctx.entries[args.scene]) {
+          var autoLookup = T.execute(
+            'lookup_scene',
+            { scene: args.scene },
+            { entries: ctx.entries, sceneIds: ctx.sceneIds, history: history }
+          );
+          if (autoLookup.ok) {
+            steps.push({
+              act: 'lookup_scene',
+              args: { scene: args.scene },
+              ok: true,
+              result: autoLookup.result || null,
+              why: 'auto-lookup',
+            });
+            history.push({
+              act: 'lookup_scene',
+              args: { scene: args.scene },
+              result: autoLookup.result || null,
+            });
+            lg('info', 'no-lookup 自动补查后重试原动作', {
+              scene: args.scene,
+              act: act,
+            });
+            return step(i, planList);
+          }
+        }
         /* 关键：出内容的工具被拒 → 不许硬给内容，改拨号/拒答。
            这与 llm.js 的 low-confidence 分支同一立场（S1 不让编）。 */
         if (gate.reason === 'number-not-allowed') {
@@ -247,6 +398,143 @@
         }
         return runOne(
           { act: 'refuse', args: { reason: gate.reason }, why: 'gate-refuse' },
+          i,
+          planList
+        );
+      }
+
+      /* 否定闸：用户明确说“不是着火/没见明火”，即使模型仍选 fire_home，
+         也不给内容。只拦内容类工具；lookup 允许（便于日志与后续判断）。 */
+      if (
+        ctx.policy &&
+        ctx.policy.denyDanger &&
+        args.scene === 'fire_home' &&
+        (act === 'get_steps' || act === 'get_daily' || act === 'triage')
+      ) {
+        lg('info', '否定闸：明确否认火灾，拒绝 fire_home 内容', {
+          from: act,
+          scene: args.scene,
+        });
+        return runOne(
+          { act: 'refuse', args: { reason: 'denied-fire' }, why: 'policy-denied-fire' },
+          i,
+          planList
+        );
+      }
+
+      /* CPR 范围闸（docs/14 V4 C11/C12）：模型即使选 cpr，婴儿/儿童/溺水也不许出成人步骤。
+         离线 planRule 已做同样判断；这里补在线模型路径，防止两路分叉。
+         只拦 steps/triage：turn=plan 的 cpr 咨询应在下面降级为 get_daily，不能误拨号。 */
+      if (
+        (act === 'get_steps' || act === 'triage') &&
+        args.scene === 'cpr' &&
+        R &&
+        R.isCprOutOfScope &&
+        planned.turn !== 'plan' &&
+        !(ctx.policy && ctx.policy.type === 'plan')
+      ) {
+        var cprScope = R.isCprOutOfScope(text);
+        if (cprScope === 'drowning' && ctx.entries.drowning) {
+          /* 溺水条目已发布：不套成人 cpr，但也不该只给拨号卡。
+             先补 drowning 的 lookup，再把本步改成 drowning 的 get_steps。
+             儿科溺水（isCprOutOfScope 返回 pediatric）仍走下面的 dial。 */
+          var dl = T.execute(
+            'lookup_scene',
+            { scene: 'drowning' },
+            { entries: ctx.entries, sceneIds: ctx.sceneIds, history: history }
+          );
+          if (dl.ok) {
+            steps.push({
+              act: 'lookup_scene',
+              args: { scene: 'drowning' },
+              ok: true,
+              result: dl.result || null,
+              why: 'cpr-to-drowning',
+            });
+            history.push({
+              act: 'lookup_scene',
+              args: { scene: 'drowning' },
+              result: dl.result || null,
+            });
+            planList[i] = {
+              act: 'get_steps',
+              args: { scene: 'drowning' },
+              why: 'cpr-out-of-scope-drowning',
+              turn: planned.turn,
+              evidence: planned.evidence,
+            };
+            lg('info', 'CPR 范围闸：溺水改走 drowning 条目', {});
+            return step(i, planList);
+          }
+        }
+        if (cprScope) {
+          lg('info', 'CPR 范围闸：主体超出成人范围，改拨号', { scope: cprScope });
+          return runOne(
+            { act: 'dial', args: { number: '120' }, why: 'cpr-out-of-scope:' + cprScope },
+            i,
+            planList
+          );
+        }
+      }
+
+      /* 大出血精度闸（docs/14 V4 C10）：少量出血/划破皮不是大出血。
+         模型可能因「血」字选 severe_bleeding；这里在出内容前拦住。 */
+      if (
+        (act === 'get_steps' || act === 'triage' || act === 'get_daily') &&
+        args.scene === 'severe_bleeding' &&
+        R &&
+        R.isMinorBleeding &&
+        R.isMinorBleeding(text)
+      ) {
+        lg('info', '大出血精度闸：少量出血，拒绝 severe_bleeding 内容');
+        return runOne(
+          { act: 'refuse', args: { reason: 'minor-bleeding' }, why: 'minor-bleeding' },
+          i,
+          planList
+        );
+      }
+
+      /* 回合策略：优先级 = 模型 turn > 本地 policy。
+         模型 turn 来自 /act 的 turn 字段（2026-11-21 新契约）；
+         本地 policy 是兜底（模型没给 / 离线 / 旧缓存）。
+         turn=plan 禁 steps/triage/dial；turn=off_scope 只许 refuse。 */
+      var modelTurn = planned.turn || null;
+      var policyTurn = ctx.policy && ctx.policy.type ? ctx.policy.type : null;
+      var turn = modelTurn || policyTurn;
+      var allowSteps =
+        turn === 'plan' || turn === 'off_scope'
+          ? false
+          : turn === 'ongoing'
+            ? true
+            : ctx.policy
+              ? ctx.policy.allowSteps !== false
+              : true;
+
+      if (turn === 'off_scope' && act !== 'refuse') {
+        lg('info', '回合策略：off_scope 强制 refuse', { from: act, turn: turn });
+        return runOne(
+          { act: 'refuse', args: { reason: 'turn-off-scope' }, why: 'policy-turn' },
+          i,
+          planList
+        );
+      }
+
+      if (allowSteps === false && (act === 'get_steps' || act === 'triage' || act === 'dial')) {
+        if (args.scene && ctx.entries[args.scene]) {
+          lg('info', '回合策略：降级为 get_daily', {
+            from: act,
+            scene: args.scene,
+            turn: turn,
+            evidence: planned.evidence || null,
+          });
+          return runOne(
+            { act: 'get_daily', args: { scene: args.scene }, why: 'policy-downgrade' },
+            i,
+            planList
+          );
+        }
+        return runOne(
+          { act: 'refuse', args: { reason: 'policy-no-entry' }, why: 'policy-refuse' },
           i,
           planList
         );
@@ -271,6 +559,8 @@
         ok: res.ok,
         result: res.result || null,
         why: planned.why || null,
+        turn: planned.turn || null,
+        evidence: planned.evidence || null,
       };
       steps.push(rec);
       // history 只记「真的执行过」的动作 —— 被门拒绝的不进 history，

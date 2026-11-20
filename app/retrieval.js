@@ -108,6 +108,222 @@
     return null;
   }
 
+  /* ---------- B 方案用：严格危重词 / 进行时词（2026-11-20） ----------
+     为什么不直接用 DANGER_RULES 做预置：
+       DANGER_RULES 是**场景词**，含「煤气」「着火」这类字面词，
+       「怎么预防煤气泄漏」也会命中。拿它预置 lookup 会把预防咨询
+       预置成紧急场景，重演 2026-11-19 的旧 bug（三次踩坑，见 agent.js 注释）。
+
+     两张表分工：
+       SEVERE_WORDS  = 明确需要拨号的危重状态（无呼吸/心跳停/大出血）
+       ONGOING_WORDS = 危险正在发生的进行时（漏了/着火了/倒地/被困）
+     两张表都**不含**场景名词本身，且调用方还会再排除「预防/要不要/多久」类措辞。
+     它们是 B 方案的**加速条件**，不是新的安全判据 —— 不命中就回落现有 2 次往返。 */
+  var SEVERE_WORDS = [
+    '没有呼吸', '没呼吸', '无呼吸', '呼吸停止', '呼吸停了',
+    '心跳停止', '心跳停了', '没有脉搏', '无脉搏',
+    '大出血', '流血不止', '止不住血'
+  ];
+  var ONGOING_WORDS = [
+    '漏了', '在漏', '漏气',
+    '着了', '着火', '起火', '冒烟', '烟很大', '有烟',
+    '倒地', '倒在地上', '晕倒', '起不来', '爬不起来',
+    '摔了', '摔倒', '跌了', '绊倒',
+    '困在', '被困', '触电', '电到',
+    '溺水', '落水', '掉水里',
+    '噎住', '卡住喉咙',
+    '烫了', '烫到', '被烫', '烫起泡',
+    '流血不止', '止不住'
+  ];
+
+  function detectFrom(text, words) {
+    var t = norm(text);
+    for (var i = 0; i < words.length; i++) {
+      if (hitNoNegation(t, words[i])) return words[i];
+    }
+    return null;
+  }
+  function detectSevere(text) {
+    return detectFrom(text, SEVERE_WORDS);
+  }
+  function detectOngoing(text) {
+    return detectFrom(text, ONGOING_WORDS);
+  }
+
+  /* ---------- CPR 范围外主体（2026-11-21，docs/14 §2.2 / §4.2 C11-C12） ----------
+
+     要解决的实际错误：`cpr` 条目发布后，「婴儿没呼吸」「溺水没呼吸」直接拿到了
+     成人 CPR 步骤（按压 5-6cm、30:2）。`14` §2.2 明确这两类本轮不做——
+     婴幼儿的按压深度/手法/比例不同，溺水复苏的优先顺序也不同。
+
+     ⚠️ 为什么必须在**发布后**才暴露出这个问题：
+       cpr 未发布时，`planRule` 的 severe 分支查不到条目，落到 `dial 120`（安全兜底）；
+       条目一发布，同一个分支立刻变成「无差别给成人步骤」。
+       **是发布动作把兜底变成了越界，不是新增代码引入的。**
+
+     代价说清（不藏）：
+       「孩子」在中文口语里也可能指成年子女（「我孩子在外地工作」）。
+       所以把它也列进来，会产生一种误判：成年子女无呼吸时只给拨号卡、不给按压步骤。
+       这个误判的方向是**少给内容**（dial 120 仍是正确的第一动作），不是给错内容。
+       反过来若不列，「孩子没呼吸」会拿到成人按压深度——那才是给错。
+       两害相权取「少给」。 */
+  var PEDIATRIC_WORDS = ['婴儿', '宝宝', '新生儿', '幼儿', '小孩', '儿童', '孩子'];
+  var DROWNING_WORDS = ['溺水', '落水', '掉水里', '淹了', '淹死', '水里捞', '水中'];
+
+  function isCprOutOfScope(text) {
+    var t = norm(text);
+    for (var i = 0; i < PEDIATRIC_WORDS.length; i++) {
+      if (t.indexOf(PEDIATRIC_WORDS[i]) !== -1) return 'pediatric';
+    }
+    for (var j = 0; j < DROWNING_WORDS.length; j++) {
+      if (t.indexOf(DROWNING_WORDS[j]) !== -1) return 'drowning';
+    }
+    return null;
+  }
+
+  /* 「叫不醒 / 没反应，但还有呼吸」：P20-c 条目未发布前只能拨号（docs/14 C5/C6）。
+     为什么不能落 cpr：还有呼吸的人不需要胸外按压；也不能落 fall_elderly 分诊。 */
+  var UNRESPONSIVE_RE = /叫不醒|叫不应|没反应|无反应|无意识|意识不清|昏迷/;
+  var BREATHING_RE = /还有呼吸|有呼吸|呼吸正常|在呼吸|呼吸平稳/;
+  function isUnresponsiveWithBreathing(text) {
+    var t = norm(text);
+    return UNRESPONSIVE_RE.test(t) && BREATHING_RE.test(t);
+  }
+
+  /* 轻微出血：少量、能止住、划破皮。不能因为出现「血」就走大出血条目。 */
+  var MINOR_BLEEDING_RE = /没出多少血|没流多少血|一点点血|少量出血|小口子|划破|擦破|破了点皮/;
+  function isMinorBleeding(text) {
+    var t = norm(text);
+    if (!MINOR_BLEEDING_RE.test(t)) return false;
+    /* 同时明确说「止不住 / 大出血」时，仍按危重处理。 */
+    return !/大出血|流血不止|止不住血|止不住/.test(t);
+  }
+
+  /* 「如果/万一/假如……怎么办」问的是预案，不是现在出事。
+     为什么单独成一个判据而不是塞进 DANGER_RULES：
+       「如果发生火灾怎么办」仍含「火灾」，但它不该触发紧急锁定；
+       把否定/假设当成一种「场景」会让词表越来越糊。
+     这个词表只影响路由，不改变任何条目的危险信号判定。 */
+  var HYPOTHETICAL_RE = /如果|万一|假如|要是|倘若|假使/;
+  function isHypothetical(text) {
+    return HYPOTHETICAL_RE.test(norm(text));
+  }
+
+  /* 用户是否明确说「已经解除」。
+     只用于「ack 之后自动退出紧急」这一道复核；模型误 ack 时不能把老人退出。
+     不明确 → 保持紧急，只给单次点击兜底。 */
+  var RESOLVED_RE =
+    /已经.{0,4}(安全|没事|脱困|出来|得救)|安全了|没事了|脱困了|出来了|得救了|门开了|火灭了|灭了|缓过来了|不漏了|不漏气|没有危险了/;
+  function isResolved(text) {
+    var t = norm(text);
+    /* 「应该没事了吧 / 好像安全了」是猜测，不是确认；规则 8 明确不算解除。 */
+    if (/好像|可能|应该|也许|大概|是不是|不确定|似乎/.test(t)) return false;
+    return RESOLVED_RE.test(t);
+  }
+
+  /* 用户是否明确否认“着火/火灾”这一类危险。
+     为什么要单独一条：R30「不是着火，是锅烧糊了，冒点烟」里，
+     “冒点烟”会让词表命中 fire_home；但用户已经明确否认火灾。
+     这只处理「明确否认」，不处理模糊猜测；也不覆盖“没呼吸”等危重词。 */
+  var DENIED_FIRE_RE = /不是(着|起|冒)?火|不是火灾|并非(着|起)火|没见明火|没有明火|没看到明火/;
+  function isDeniedFire(text) {
+    var t = norm(text);
+    if (/好像|可能|应该|也许|大概|是不是|不确定|似乎/.test(t)) return false;
+    return DENIED_FIRE_RE.test(t);
+  }
+
+  /* 回合策略（2026-11-20 用户裁决「工作流 + 自主决策」）：
+     先用本地规则判「这一轮是在问预案/预防，还是现场正在发生」，
+     再把这个结论作为**工具约束**交给 /act；模型仍在允许的工具里自主选。
+     为什么不用再调一次 /judge：这是路由约束，不是语义判定；本地规则足够，
+     且不增加首轮 3 秒预算的往返。
+
+     只约束两种情况：
+       hypothetical / prevention → allowSteps=false（禁 get_steps/triage/dial）
+       ongoing / unknown          → allowSteps=true（保持自主）
+     不试图判 off_scope —— 那仍交给模型/refuse，避免误伤「安全防护设备选购」。 */
+  var PLAN_RE =
+    /怎么预防|如何预防|怎么防止|如何避免|要不要|该不该|多久|注意事项|怎么选|有用吗|平时|日常检查|怎么检查/;
+
+  function turnPolicy(text) {
+    var t = norm(text);
+    if (!t) return { type: 'unknown', allowSteps: true, denyDanger: false };
+    var denyDanger = isDeniedFire(t);
+    if (isHypothetical(t)) {
+      return { type: 'hypothetical', allowSteps: false, denyDanger: denyDanger };
+    }
+    if (PLAN_RE.test(t)) {
+      return { type: 'prevention', allowSteps: false, denyDanger: denyDanger };
+    }
+    var severe = detectSevere(t);
+    var danger = detectDanger(t);
+    var ongoing = detectOngoing(t);
+    if (severe || (danger && ongoing)) {
+      return { type: 'ongoing', allowSteps: true, denyDanger: denyDanger };
+    }
+    return { type: 'unknown', allowSteps: true, denyDanger: denyDanger };
+  }
+
+  /* B 方案的纯决策函数：只回答「首轮该不该本地预置、预置成什么」。
+     为什么放在检索层而不是 app.js：它是**判定逻辑**，必须能脱离 DOM 离线测；
+     app.js 只负责把结果翻译成 plan/history。
+     返回：
+       null                          → 不预置，走现有 2 次往返
+       {kind:'dial', number, why}    → 本地直接拨号（0 次模型）
+       {kind:'lookup', scene, why}   → 预置 lookup，模型 1 次决策出内容
+
+     ⚠️ 预防类措辞优先排除：`怎么预防煤气泄漏` 含场景词，但不是在说事。 */
+  /* 除预防外，还要排除「检查/平时/有没有」与事务性咨询（保险/理赔/投诉/费用）。
+     依据 2026-11-20 开发集误报：P004「平时怎么检查有没有漏气」、
+     O011「摔倒保险怎么理赔」都含进行时词，但不是在说「正在出事」。 */
+  var PREVENTION_RE =
+    /预防|防止|避免|要不要|多久|注意事项|安全吗|有用吗|怎么防|检查|平时|有没有|保险|理赔|投诉|缴费|费用|多少钱/;
+
+  function seedDecision(text, entries) {
+    var t = String(text || '');
+    if (!t || PREVENTION_RE.test(t)) return null;
+
+    if (isUnresponsiveWithBreathing(t)) {
+      return { kind: 'dial', number: '120', why: 'unresponsive-breathing-no-entry' };
+    }
+
+    var severe = detectSevere(t);
+    if (severe) {
+      /* 2026-11-21：cpr / severe_bleeding 已发布，危重不再无条件拨号。
+         与 planRule 同口径：婴儿/儿童/溺水不进成人 cpr → dial；其余查条目。
+         条目没发布时仍然 dial（安全兜底不变）。 */
+      var isBleeding = /大出血|流血不止|止不住血/.test(severe);
+      var severeScene = isBleeding ? 'severe_bleeding' : 'cpr';
+      var outOfScope = !isBleeding && isCprOutOfScope(t);
+      /* 溺水的专属条目已发布：成人/未标明年龄的溺水走 drowning，
+         不再因为「不能用成人 cpr」而一刀切拨号。儿科仍 dial（无儿科 CPR）。 */
+      if (outOfScope === 'drowning' && entries && entries.drowning) {
+        severeScene = 'drowning';
+        outOfScope = null;
+      }
+      if (!outOfScope && (entries || {})[severeScene]) {
+        return {
+          kind: 'lookup',
+          scene: severeScene,
+          number: '120',
+          why: 'severe-entry:' + severeScene,
+        };
+      }
+      return { kind: 'dial', number: '120', why: 'severe:' + severe };
+    }
+
+    var danger = detectDanger(t);
+    if (!danger) return null;
+    var ongoing = detectOngoing(t);
+    if (!ongoing) return null;
+
+    var entry = (entries || {})[danger.id];
+    if (!entry) {
+      return { kind: 'dial', number: danger.number || '120', why: 'no-entry:' + danger.id };
+    }
+    return { kind: 'lookup', scene: danger.id, number: danger.number, why: 'ongoing:' + ongoing };
+  }
+
   /* =========================================================
      引擎 A：L3 字符规则分
      离散分数自带绝对判据：top > 0 = 规则命中，top == 0 = 未命中。
@@ -382,6 +598,21 @@
     // 意图层（危险信号判定，独立于检索引擎）
     detectDanger: detectDanger,
     DANGER_RULES: DANGER_RULES,
+    // B 方案加速用的两张表（不参与原有判定）
+    detectSevere: detectSevere,
+    detectOngoing: detectOngoing,
+    isCprOutOfScope: isCprOutOfScope,
+    isUnresponsiveWithBreathing: isUnresponsiveWithBreathing,
+    isMinorBleeding: isMinorBleeding,
+    PEDIATRIC_WORDS: PEDIATRIC_WORDS,
+    DROWNING_WORDS: DROWNING_WORDS,
+    isHypothetical: isHypothetical,
+    isResolved: isResolved,
+    isDeniedFire: isDeniedFire,
+    turnPolicy: turnPolicy,
+    seedDecision: seedDecision,
+    SEVERE_WORDS: SEVERE_WORDS,
+    ONGOING_WORDS: ONGOING_WORDS,
     // 单引擎直调（评测与调试用）
     rankByRules: rankByRules,
     rankByBM25: rankByBM25,

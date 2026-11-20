@@ -104,6 +104,13 @@
       args: ['number'],
     },
     {
+      name: 'ack',
+      needsModel: false,
+      endsLoop: true,
+      desc: '危险已解除（已脱困/火灭了/人没事了）时确认；只给观察提示，不出步骤',
+      args: [],
+    },
+    {
       name: 'refuse',
       needsModel: false,
       endsLoop: true,
@@ -291,6 +298,12 @@
         number: String(args.number),
         ends: true,
       };
+    }
+
+    if (act === 'ack') {
+      /* 状态更新/已脱困：终态，但没有内容字段可给。
+         它只表示「危险解除」，绝不产出步骤 —— 归入安全出口一类。 */
+      return { ok: true, result: {}, kind: 'ack', ends: true };
     }
 
     if (act === 'refuse') {

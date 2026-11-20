@@ -47,6 +47,33 @@
         "value": "can_move",
         "label": "能活动，没有剧痛",
         "override": null
+      },
+      {
+        "value": "unresponsive",
+        "label": "叫不醒 / 没反应",
+        "override": {
+          "immediate": [
+            {
+              "text": "马上打 120",
+              "tool": {
+                "name": "dial",
+                "number": "120"
+              }
+            },
+            {
+              "text": "头偏向一侧",
+              "tool": null
+            },
+            {
+              "text": "清理口鼻里的呕吐物",
+              "tool": null
+            },
+            {
+              "text": "别搬动、别摇晃叫醒",
+              "tool": null
+            }
+          ]
+        }
       }
     ]
   },
@@ -95,7 +122,30 @@
     "name": "中国疾病预防控制中心慢病中心《预防老年人跌倒健康教育核心信息》（释义第 12 条）",
     "url": "https://ncncd.chinacdc.cn/xzzq/202409/t20240923_311832.htm",
     "date": "2026-11-18",
-    "quote": "如果老年人跌倒，首先要保持冷静，不要慌张。不要着急起身，先自行判断有无受伤，受伤部位、程度，能否自行站起等。经尝试后，如自己无法起身，不要强行站起；可以通过大声呼喊，打电话，敲打房门、地板、管道等物品发出声音求助，但要注意保持体力。在等待救助期间，可用垫子、衣物、床单等保暖。"
+    "quote": "如果老年人跌倒，首先要保持冷静，不要慌张。不要着急起身，先自行判断有无受伤，受伤部位、程度，能否自行站起等。经尝试后，如自己无法起身，不要强行站起；可以通过大声呼喊，打电话，敲打房门、地板、管道等物品发出声音求助，但要注意保持体力。在等待救助期间，可用垫子、衣物、床单等保暖。",
+    "supplementary": [
+      {
+        "name": "淄博市卫生健康委员会《家有一老,就怕跌倒!这两种突发状况,教你如何应对!》（意识不清段）",
+        "url": "https://ws.zibo.gov.cn/art/2023/1/18/art_1338_2655443.html",
+        "date": "2026-11-21",
+        "quote": "如果老人跌倒后意识不清 请立即拨打急救电话，并做适当的紧急处理。",
+        "supports": "分诊分支 unresponsive 的 immediate[0]：叫不醒/没反应时立即打 120，不再问「能不能动胳膊腿」"
+      },
+      {
+        "name": "同上（意识不清且有呕吐段）",
+        "url": "https://ws.zibo.gov.cn/art/2023/1/18/art_1338_2655443.html",
+        "date": "2026-11-21",
+        "quote": "若老人口内有呕吐物，可动作轻缓地将老人头部偏向一侧，清理口鼻腔的呕吐物，以防误吸导致窒息",
+        "supports": "分诊分支 unresponsive 的 immediate[1..2]：头偏向一侧、清理口鼻呕吐物"
+      },
+      {
+        "name": "同上（意识不清不要搬动段）",
+        "url": "https://ws.zibo.gov.cn/art/2023/1/18/art_1338_2655443.html",
+        "date": "2026-11-21",
+        "quote": "也不要轻易搬动、摇晃或试图唤醒跌倒者，避免加重损伤",
+        "supports": "分诊分支 unresponsive 的 immediate[3]：别搬动、别摇晃叫醒"
+      }
+    ]
   },
   "daily": {
     "summary": "跌倒是我国 65 岁以上老人因伤害死亡的首位原因，摔倒后最忌猛起身。",
@@ -108,14 +158,14 @@
     "misconception": "摔倒后赶紧扶起来——错，先判断伤情，盲目扶起可能加重损伤。"
   },
   "offline": true,
-  "version": "1.0",
+  "version": "1.1",
   "status": "published",
   "review": {
     "author": "xieyouqing",
     "approved_by": [
       "xieyouqing"
     ],
-    "approved_at": "2026-11-18",
+    "approved_at": "2026-11-21",
     "checklist": {
       "step_order_ok": true,
       "never_non_empty": true,
@@ -123,11 +173,31 @@
     },
     "agent_check": {
       "source_quote": "pass",
-      "checked_at": "2026-11-18",
-      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+      "checked_at": "2026-11-21",
+      "detail": "主源：原文中逐字定位成功；补强 3/3 pass",
+      "supplementary": [
+        {
+          "url": "https://ws.zibo.gov.cn/art/2023/1/18/art_1338_2655443.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        },
+        {
+          "url": "https://ws.zibo.gov.cn/art/2023/1/18/art_1338_2655443.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        },
+        {
+          "url": "https://ws.zibo.gov.cn/art/2023/1/18/art_1338_2655443.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        }
+      ]
     },
     "reject_reason": null
   },
   "created_at": "2026-11-18",
-  "updated_at": "2026-11-18"
+  "updated_at": "2026-11-21"
 }

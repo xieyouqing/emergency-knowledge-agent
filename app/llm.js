@@ -115,6 +115,8 @@
         var v = {
           ok: true,
           intent: d.intent,
+          turn: d.turn || null,
+          evidence: d.evidence || '',
           scene: d.scene === undefined ? null : d.scene,
           sceneUnpublished: !!d.scene_unpublished,
           confidence: typeof d.confidence === 'number' ? d.confidence : 0,
@@ -180,14 +182,43 @@
     return String(cfg.endpoint || DEFAULT_ENDPOINT).replace(/\/judge$/, '/act');
   }
 
-  function act(text, history) {
+  /* 会话上文只接受 {utterances: string[]}。
+     这里**不裁剪条数与字数**：上限唯一实现在代理 normalizeContext，
+     两处各裁一次会让「前端以为发了 5 条、代理实际收到 3 条」这类数字对不上。
+     本函数只做一件事：结构不合法或为空 → 返回 null，请求体里连字段都不出现。 */
+  function normalizeActContext(context) {
+    if (!context || !Array.isArray(context.utterances)) return null;
+    var list = context.utterances.filter(function (u) {
+      return typeof u === 'string' && u.trim();
+    });
+    if (!list.length) return null;
+    return { utterances: list };
+  }
+
+  /**
+   * 让模型选下一步工具。
+   * @param {string} text       当前这句话
+   * @param {Array}  history    已执行过的工具调用（不含用户原话）
+   * @param {{utterances:string[]}|null} context 更早说过的用户原话（不含当前句）
+   */
+  function act(text, history, context, policy) {
     var t = String(text || '').trim();
     if (!cfg.enabled || !t) {
       return Promise.resolve({ ok: false, error: 'disabled' });
     }
     stats.calls++;
     var trace = LOG ? LOG.getTrace() : null;
-    return fetchWithTimeout(actUrl(), { text: t, history: history || [], trace: trace }, cfg.timeout)
+    var ctx = normalizeActContext(context);
+    var payload = { text: t, history: history || [], trace: trace };
+    /* ⚠️ 空上文时**字段必须完全省略**：A 模式（无记忆）与 100 条单轮基线
+       要在加记忆前后逐字一致，否则历史数字不能再拿来对照。 */
+    if (ctx) payload.context = ctx;
+    /* 回合策略：只传类型与 allowSteps，不把整段策略逻辑塞进请求体。 */
+    if (policy && policy.type) {
+      payload.turn = policy.type;
+      payload.allow_steps = policy.allowSteps !== false;
+    }
+    return fetchWithTimeout(actUrl(), payload, cfg.timeout)
       .then(function (d) {
         if (!d || typeof d.act !== 'string') {
           throw new Error('代理 /act 返回结构不合法');
@@ -196,17 +227,28 @@
         if (LOG && LOG.always) {
           LOG.always('llm', 'act 决策', {
             act: d.act,
+            turn: d.turn || null,
+            evidence: d.evidence || null,
             args: d.args || null,
             reason: d.reason || null,
+            /* note 落 always：它是**会显示给用户**的文字。
+               凡是用户能看到的文本，必须留痕，否则事后无法复现「他当时看到了什么」。 */
+            note: d.note || null,
+            /* 上文条数落日志：排查「第二句为什么判错」时，先看这里是不是 0。
+               0 = 没带上下文或结构不合法，不一定是模型问题。 */
+            ctxLen: ctx ? ctx.utterances.length : 0,
             latency: d.latency_ms || 0,
             cached: !!d.cached
           });
         }
         return {
           ok: true,
+          turn: d.turn || null,
+          evidence: d.evidence || '',
           act: d.act,
           args: d.args || {},
           reason: d.reason || '',
+          note: d.note || '',
           latency: d.latency_ms || 0,
           cached: !!d.cached
         };
@@ -220,6 +262,39 @@
         lg('info', 'act 不可用，调用方应回落单次判定', { error: cfg.lastError });
         // 与 judge 同一立场：永不 reject，让调用方决定怎么降级
         return { ok: false, error: cfg.lastError };
+      });
+  }
+
+  /* P5 日常解释扩写（2026-11-20）。
+     与 judge/act 同一个代理、同一个 endpoint，只是走 /expand。
+     超时给 6s：代理侧可能重试一次（两次模型往返），但它是「静态卡已出现后的增强」，
+     不阻塞首卡；失败就保持静态。 */
+  function expandUrl() {
+    return String(cfg.endpoint || DEFAULT_ENDPOINT).replace(/\/judge$/, '/expand');
+  }
+
+  function expand(question, scene) {
+    var q = String(question || '').trim();
+    var s = String(scene || '').trim();
+    if (!cfg.enabled || !q || !s) return Promise.resolve({ ok: false, error: 'disabled' });
+    var trace = LOG ? LOG.getTrace() : null;
+    return fetchWithTimeout(expandUrl(), { question: q, scene: s, trace: trace }, 6000)
+      .then(function (d) {
+        if (!d || typeof d.ok !== 'boolean') throw new Error('代理 /expand 返回结构不合法');
+        if (LOG && LOG.always) {
+          LOG.always('llm', 'expand 结果', {
+            ok: !!d.ok,
+            reason: d.reason || null,
+            chars: d.text ? String(d.text).length : 0,
+            latency: d.latency_ms || 0
+          });
+        }
+        return d;
+      })
+      .catch(function (e) {
+        var msg = String((e && e.message) || e);
+        lg('warn', 'expand 失败，保持静态卡', { error: msg });
+        return { ok: false, error: msg };
       });
   }
 
@@ -283,6 +358,43 @@
     var scene = verdict.scene;
     var hasEntry = !!(scene && entries && entries[scene]);
 
+    /* CPR/溺水范围闸（docs/14 C11/C12，2026-11-21）：
+       judge 回落路径没有 agent 的范围闸，必须在这里补，否则「小孩溺水」会拿成人步骤。
+       · 儿科 → dialonly（本库无儿科 CPR 参数）
+       · 溺水（非儿科）→ drowning 条目；不套成人 cpr */
+    var scope =
+      text && global.RETRIEVAL && global.RETRIEVAL.isCprOutOfScope
+        ? global.RETRIEVAL.isCprOutOfScope(text)
+        : null;
+    var severeHit =
+      text && global.RETRIEVAL && global.RETRIEVAL.detectSevere
+        ? global.RETRIEVAL.detectSevere(text) || ''
+        : '';
+    var isBleeding = /大出血|流血不止|止不住血/.test(severeHit);
+    /* 只对 CPR/溺水语境生效：孩子烫伤、孩子跌倒不能因为「孩子」二字被拨号。 */
+    var cprContext = !isBleeding && (scene === 'cpr' || scene === 'drowning' || !!severeHit);
+    if (verdict.intent === 'ongoing' && scope && cprContext) {
+      if (scope === 'pediatric') {
+        return {
+          action: 'dialonly',
+          entryId: null,
+          sceneId: scene || 'cpr',
+          reason: 'cpr-out-of-scope:pediatric'
+        };
+      }
+      if (scope === 'drowning') {
+        if (entries && entries.drowning) {
+          return { action: 'steps', entryId: 'drowning', reason: 'drowning-entry' };
+        }
+        return {
+          action: 'dialonly',
+          entryId: null,
+          sceneId: 'drowning',
+          reason: 'cpr-out-of-scope:drowning'
+        };
+      }
+    }
+
     /* 关键词兜底：**只在 LLM 认为是紧急、但归不出场景时**启用。
      *
      * ⚠️ 2026-11-18 修 bug：上一版的条件是「只要关键词命中且该场景有条目」就给步骤，
@@ -325,6 +437,7 @@
   global.LLM = {
     judge: judge,
     act: act,
+    expand: expand,
     health: health,
     configure: configure,
     config: cfg,

@@ -22,7 +22,39 @@
     "电线"
   ],
   "life_threatening": true,
-  "triage": null,
+  "triage": {
+    "question": "碰到的是家里的插座电线，还是外面的高压线？",
+    "options": [
+      {
+        "value": "high_voltage",
+        "label": "高压线 / 变压器",
+        "override": {
+          "immediate": [
+            {
+              "text": "别靠近，退出 10 米外",
+              "tool": null
+            },
+            {
+              "text": "打电话让电网停电",
+              "tool": null
+            },
+            {
+              "text": "打 120 等专业救援",
+              "tool": {
+                "name": "dial",
+                "number": "120"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value": "home_220v",
+        "label": "家里插座、电器、电线",
+        "override": null
+      }
+    ]
+  },
   "steps": {
     "immediate": [
       {
@@ -45,6 +77,10 @@
     "next": [
       {
         "text": "烧伤处用干净布轻盖，别乱涂",
+        "tool": null
+      },
+      {
+        "text": "清醒的就地平卧，别走动",
         "tool": null
       },
       {
@@ -75,7 +111,23 @@
     "name": "中国红十字会《提高意识防触电》",
     "url": "https://www.redcross.org.cn/autoweb/hlwmh/third/hlwmh_hlwmhsmjk_250818.html",
     "date": "2026-11-18",
-    "quote": "应迅速切断电源，使触电者尽快脱离电源。确认自己无触电危险再进行救护。"
+    "quote": "应迅速切断电源，使触电者尽快脱离电源。确认自己无触电危险再进行救护。",
+    "supplementary": [
+      {
+        "name": "《急诊与灾难医学相关共识》（电击与雷击段），cem.org.cn",
+        "url": "http://survey.cem.org.cn/rhtml/20190702/index.htm",
+        "date": "2026-11-21",
+        "quote": "高压电线下有人触电，应尽快通知电网有关部门停电，禁止进入10米半径区域，以免救援者触电身亡",
+        "supports": "分诊分支 high_voltage 的 immediate[0..1]：不靠近、退到 10 米外、通知电网停电。这是「干木棍挑电线」绝对不能套用的情形"
+      },
+      {
+        "name": "同上（电击与雷击段，清醒者处置）",
+        "url": "http://survey.cem.org.cn/rhtml/20190702/index.htm",
+        "date": "2026-11-21",
+        "quote": "若伤者清醒，应让伤者就地平卧，不要站立或走动，防止继发性休克或心衰",
+        "supports": "支撑 next 段新增步骤：脱离电源后清醒者应就地平卧，不得站立走动"
+      }
+    ]
   },
   "daily": {
     "summary": "触电先断电，再救人。自己不安全就别上手，徒手拉人会一起被电。",
@@ -89,14 +141,14 @@
     "misconception": "穿胶鞋去拉人就安全——不可靠，鞋底可能破损或潮湿，正确做法是断电或用干燥绝缘物。"
   },
   "offline": true,
-  "version": "1.0",
+  "version": "1.1",
   "status": "published",
   "review": {
     "author": "xieyouqing",
     "approved_by": [
       "xieyouqing"
     ],
-    "approved_at": "2026-11-18",
+    "approved_at": "2026-11-21",
     "checklist": {
       "step_order_ok": true,
       "never_non_empty": true,
@@ -104,11 +156,25 @@
     },
     "agent_check": {
       "source_quote": "pass",
-      "checked_at": "2026-11-18",
-      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+      "checked_at": "2026-11-21",
+      "detail": "主源：原文中逐字定位成功；补强 2/2 pass",
+      "supplementary": [
+        {
+          "url": "http://survey.cem.org.cn/rhtml/20190702/index.htm",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        },
+        {
+          "url": "http://survey.cem.org.cn/rhtml/20190702/index.htm",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        }
+      ]
     },
     "reject_reason": null
   },
   "created_at": "2026-11-18",
-  "updated_at": "2026-11-18"
+  "updated_at": "2026-11-21"
 }

@@ -43,6 +43,13 @@
   }
   var detectDanger = R.detectDanger;
 
+  /* B 方案开关（2026-11-20）：首轮本地预置 lookup，把首轮模型往返从 2 次压到 1 次。
+     **默认开**（2026-11-20 用户裁决）。要跑关闭基线，在加载本文件前设
+     `window.ACT_SEED = false`；测试脚本用 `--no-seed` / `ACT_SEED=0`。
+     为什么是全局开关而不是每轮参数：它影响的是「首轮要不要走快路径」，
+     属部署/验收配置，不该由用户操作决定。 */
+  var ACT_SEED = !(typeof window !== 'undefined' && window.ACT_SEED === false);
+
   var LOG = window.LOG || null;
   function lg(level, msg, fields) {
     if (!LOG) return;
@@ -72,6 +79,65 @@
   var AGENT = window.AGENT || null;
   var esc = RENDER.esc;
 
+  /* 本轮回答要显示的解释（2026-11-20）。
+     为什么放模块作用域而不是 runActLoop 内部：execTool 是独立函数，
+     读不到 runActLoop 的局部变量；而改 execTool 签名会波及所有调用点
+     （含 selftest 里的同步调用），代价大于收益。
+     并发安全性：产品同一时刻只有一个循环在跑（输入区在循环中禁用），
+     所以这个单槽位够用。若将来支持并行提问，这里必须改成按 traceId 存。 */
+  var _noteSlot = null;
+  function currentNote() {
+    return _noteSlot;
+  }
+
+  /* 上一条日常卡的 entry/host：用于「同场景追问不重复整卡」。
+     只记最近一条；刷新即清。 */
+  var _lastDaily = { entryId: null, host: null };
+
+  /**
+   * 渲染日常结果；若与上一条同 entry，则改出「还是这个条目」短通知。
+   * @returns {boolean} true = 已去重（没有渲染整卡）
+   */
+  function renderDailyResult(entry, text, host) {
+    if (!entry || !host) return false;
+    var prev = _lastDaily;
+    var prevStillDaily =
+      prev.host &&
+      prev.host !== host &&
+      prev.host.innerHTML &&
+      prev.host.innerHTML.indexOf('class="explain"') >= 0;
+    if (prev.entryId === entry.id && prevStillDaily && RENDER.renderFollowupNotice) {
+      RENDER.renderFollowupNotice(entry, text, host, prev.host);
+      return true;
+    }
+    RENDER.renderDaily(entry, host);
+    _lastDaily = { entryId: entry.id, host: host };
+    return false;
+  }
+
+  /* ---------- 每步可见进展（M2.5，01 §4.25 第 2 条） ----------
+     为什么放在输入区而不是消息流：
+       消息流会被最终卡占位；进度是「过程中的临时状态」，不属于对话记录。
+     为什么文案按动作分：
+       红线 1 禁止无反馈的纯等待，但也禁止假反馈。查资料时说「正在查资料」，
+       出内容时说「正在准备回答」——说的必须是这一步真的在做的事。 */
+  function progressTextFor(act) {
+    if (act === 'lookup_scene') return '正在查资料…';
+    if (act === 'get_steps' || act === 'get_daily' || act === 'triage') return '正在准备回答…';
+    if (act === 'dial') return '正在准备拨号…';
+    if (act === 'ack') return '正在确认…';
+    if (act === 'speak') return '正在准备朗读…';
+    return '正在处理…';
+  }
+  function showProgress(text) {
+    if (!el.progress) return;
+    el.progress.textContent = text || '正在处理…';
+    el.progress.hidden = false;
+  }
+  function hideProgress() {
+    if (el.progress) el.progress.hidden = true;
+  }
+
   /* ---------- 共享状态（定义在 state.js，这里只取引用） ---------- */
   var state = window.APP_STATE;
   if (!state) {
@@ -90,7 +156,8 @@
     emgInput: document.getElementById('emgInput'),
     dailyTalk: document.getElementById('dailyTalk'),
     emgTalk: document.getElementById('emgTalk'),
-    msgIcons: document.getElementById('msgIcons')
+    msgIcons: document.getElementById('msgIcons'),
+    progress: document.getElementById('progress')
   };
 
   var CHAT = window.CHAT || null;
@@ -137,14 +204,50 @@
     if (state.locked) return;
     state.locked = true;
     state.mode = 'emergency';
+    /* D-11 = A（2026-11-20）：旧助手消息保留但置灰、不可交互。
+       调用点必须在新结果 answerHost() 之前 —— 见 chat.js lockOldMessages 注释。 */
+    if (CHAT && CHAT.lockOldMessages) CHAT.lockOldMessages();
     el.band.hidden = false;
     el.dailyForm.hidden = true;
     el.emgForm.hidden = false;
     if (el.dailyTalk) el.dailyTalk.hidden = true;
     if (el.emgTalk) el.emgTalk.hidden = false;
     document.body.classList.add('is-emergency');
-    // S8 是「进得去出不来」的锁，切换必须留痕（含是谁触发的）
-    lg('info', '切紧急模式并锁定', { locked: true, trace: LOG ? LOG.getTrace() : null });
+    /* S8 是「进得去出不来」的锁，切换必须留痕（含是谁触发的）。
+       2026-11-20 改 always：默认日志级别是 warn，info 会被过滤；
+       这是用户可见的状态切换，不能因为级别设置而消失。 */
+    logAlways('切紧急模式并锁定', { locked: true, trace: LOG ? LOG.getTrace() : null });
+  }
+
+  /* ---------- 退出紧急（S8 显式退出，2026-11-20 用户裁决 B） ----------
+     只有用户明确说「已经安全/脱困/火灭了」→ 模型出 ack 卡 → 用户点两次确认，
+     才会走到这里。日常问题**不会**触发退出，S8 的「不自动回落」仍成立。
+     退出后：模式回 daily、红色带收起、输入区切回日常、旧消息恢复可交互。 */
+  function exitEmergency(container) {
+    if (!state.locked && state.mode === 'daily') return false;
+    if (SPEAK && SPEAK.stopForAction) SPEAK.stopForAction('exit-emergency');
+    state.locked = false;
+    state.mode = 'daily';
+    el.band.hidden = true;
+    el.dailyForm.hidden = false;
+    el.emgForm.hidden = true;
+    if (el.dailyTalk) el.dailyTalk.hidden = false;
+    if (el.emgTalk) el.emgTalk.hidden = true;
+    if (el.progress) el.progress.hidden = true;
+    document.body.classList.remove('is-emergency');
+    if (CHAT && CHAT.unlockOldMessages) CHAT.unlockOldMessages();
+    if (container) {
+      /* ack 卡自己也在紧急消息里；退出后把红边摘掉，并换成一句明确的结束语。 */
+      var bubble = container.parentNode;
+      if (bubble && bubble.classList) bubble.classList.remove('is-emergency');
+      container.innerHTML =
+        '<article class="refuse ack">' +
+        '<p class="headline">已回到日常</p>' +
+        '<p>可以继续提问。</p>' +
+        '</article>';
+    }
+    logAlways('退出紧急模式（用户显式确认）', { locked: false, trace: LOG ? LOG.getTrace() : null });
+    return true;
   }
 
   /* ---------- 图标区 ----------
@@ -177,6 +280,40 @@
   /* ---------- 查询入口 ---------- */
   /* 路由决策单独抽出：界面与自测脚本共用同一条判断链，避免两处逻辑不同步 */
   function routeOf(text) {
+    /* 回合策略：hypothetical / prevention 是预案，不是现场；绕开 danger，
+       直接按检索命中出日常解释。否则「如果发生火灾怎么办」「怎么预防煤气泄漏」
+       都可能被关键词带成 steps 并锁进紧急。 */
+    if (R.isDeniedFire && R.isDeniedFire(text)) {
+      return { danger: null, targetId: null, entry: null };
+    }
+    var policy = R.turnPolicy ? R.turnPolicy(text) : null;
+    if (policy && policy.allowSteps === false) {
+      return { danger: null, targetId: null, entry: bestMatch(text) || null };
+    }
+    /* 与 planRule 同口径：断网/回落 judge 时也必须先认危重状态，
+       否则「没有呼吸」会被 bestMatch 成日常卡，「摔倒+没呼吸」会被分诊成跌倒。 */
+    if (R.isUnresponsiveWithBreathing && R.isUnresponsiveWithBreathing(text)) {
+      return { danger: { id: 'cpr', number: '120' }, targetId: 'cpr', entry: null };
+    }
+    var severe = R.detectSevere ? R.detectSevere(text) : null;
+    if (severe) {
+      var isBleeding = /大出血|流血不止|止不住血/.test(severe);
+      var severeScene = isBleeding ? 'severe_bleeding' : 'cpr';
+      if (R.isMinorBleeding && R.isMinorBleeding(text)) {
+        return { danger: null, targetId: null, entry: null };
+      }
+      var outOfScope =
+        !isBleeding && R.isCprOutOfScope ? R.isCprOutOfScope(text) : null;
+      if (outOfScope === 'drowning' && ENTRIES.drowning) {
+        severeScene = 'drowning';
+        outOfScope = null;
+      }
+      return {
+        danger: { id: severeScene, number: '120' },
+        targetId: severeScene,
+        entry: outOfScope ? null : ENTRIES[severeScene] || null,
+      };
+    }
     var danger = detectDanger(text);
     var targetId = danger ? danger.id : null;
     var entry = targetId ? ENTRIES[targetId] : bestMatch(text);
@@ -212,6 +349,7 @@
     if (a.kind === 'steps' && a.entry) RENDER.renderStepsCard(a.entry, container);
     else if (a.kind === 'daily' && a.entry) RENDER.renderDaily(a.entry, container);
     else if (a.kind === 'dialonly') RENDER.renderDialOnly(a.number, container);
+    else if (a.kind === 'ack' && RENDER.renderAck) RENDER.renderAck(container, exitEmergency);
     else RENDER.renderRefuse(container);
   }
 
@@ -229,7 +367,7 @@
     if (!res || !res.ok) return;
 
     if (res.kind === 'steps') {
-      RENDER.renderStepsCard(res.entry, host);
+      RENDER.renderStepsCard(res.entry, host, currentNote());
       return;
     }
     if (res.kind === 'daily') {
@@ -237,11 +375,15 @@
       return;
     }
     if (res.kind === 'triage') {
-      RENDER.renderStepsCard(res.entry, host); // 有分诊时它会出分诊卡
+      RENDER.renderStepsCard(res.entry, host, currentNote()); // 有分诊时它会出分诊卡
       return;
     }
     if (res.kind === 'dial') {
       RENDER.renderDialOnly(res.number, host);
+      return;
+    }
+    if (res.kind === 'ack') {
+      RENDER.renderAck(host, exitEmergency);
       return;
     }
     if (res.kind === 'refuse') {
@@ -344,7 +486,7 @@
       return;
     }
     var dc = answerHost(r.entry ? 'daily' : 'refuse');
-    if (r.entry) RENDER.renderDaily(r.entry, dc);
+    if (r.entry) renderDailyResult(r.entry, text, dc);
     else RENDER.renderRefuse(dc);
     scrollToAnswer(dc);
   }
@@ -388,20 +530,80 @@
        模型给 ask 时循环暂停，把选项渲染成按钮；用户点选后由 onAskChoice
        把选择作为新的一条 user 输入重新进循环（带之前的 history）。
        这样「追问」不需要循环自己保存会话状态，复用现有的输入通道。 */
-  function runActLoop(text) {
+  /* ---------- B：首轮本地预置（2026-11-20，默认关） ----------
+     目标：把首轮 `/act` 的 2 次模型往返（lookup → 出内容）压到 1 次。
+     为什么只在首轮：后续轮已经由 A 解决记忆问题，且语义更复杂；
+     首轮是 3 秒预算最紧的一轮，收益最大、风险面最小。
+
+     三条出口：
+       ① 危重词命中 → 本地 dial（0 次模型；与 ACT_PROMPT 规则 7 同向）
+       ② 场景词 + 进行时词命中 → 预置 lookup_scene，模型 1 次决策出内容
+       ③ 其余 → 原样走 2 次，不猜
+
+     ⚠️ 不能用整张 DANGER_RULES 预置：它含场景名词本身，
+        「怎么预防煤气泄漏」会被预置成 gas_leak，重演旧 bug。
+        决策逻辑在 retrieval.js 的 seedDecision（可脱离 DOM 离线测），
+        这里只把结果翻译成 AGENT 能执行的 plan / history。 */
+  function seedFor(text) {
+    if (!ACT_SEED || !R.seedDecision) return null;
+    var d = R.seedDecision(text, ENTRIES);
+    if (!d) return null;
+
+    if (d.kind === 'dial') {
+      return {
+        kind: 'plan',
+        plan: [{ act: 'dial', args: { number: d.number || '120' }, why: 'seed-' + d.why }],
+      };
+    }
+
+    var entry = ENTRIES[d.scene];
+    if (!entry) return null;
+    return {
+      kind: 'history',
+      history: [
+        {
+          act: 'lookup_scene',
+          args: { scene: d.scene },
+          ok: true,
+          result: { found: true, published: true, entry_id: entry.id },
+          why: 'seed-' + d.why,
+        },
+      ],
+    };
+  }
+
+  function runActLoop(text, context, seed) {
     var host = null;
-    var history = [];
+    /* seed.history：本地已查过的场景，直接作为循环起点。
+       它满足 tools.js 的 `lookup_scene` 前置条件，所以模型下一步可直接出内容；
+       同一场景若模型仍想重查，会被 isRepeatedAct 拦住（已有结果，重查无新信息）。 */
+    var history = seed && seed.kind === 'history' ? seed.history.slice() : [];
     var t0 = Date.now();
+    /* 第一轮决策的解释（2026-11-20 用户裁决「按危险定优先级，但要同时给出解释」）。
+       为什么取**第一轮**而不是导致出卡的那一轮：
+         出卡那轮的 reason 必然是「已查到条目，输出步骤」这类无信息量的话；
+         真正解释「为什么先处理这件事」的是第一轮选场景时的判断。
+       为什么存到模块级 _noteSlot：execTool 是独立函数，读不到这里的局部变量。 */
+    _noteSlot = null;
+    /* 回合策略：本地判「预案/预防/现场」，作为工具约束传给代理与调度器。
+       模型仍自主选工具，但允许集合被 workflow 收窄。 */
+    var policy = R.turnPolicy ? R.turnPolicy(text) : null;
+    /* 同步先显示：模型第一次往返要 0.8–1.5s，这期间必须有可见反馈。
+       文案是真的「正在处理」，不是「请稍等，正在思考」。 */
+    showProgress('正在处理…');
 
     function decide(t, ctx) {
-      return LLM.act(t, ctx.history || []).then(function (r) {
+      return LLM.act(t, ctx.history || [], context, policy).then(function (r) {
         if (!r || !r.ok) throw new Error(r && r.error ? r.error : 'act 不可用');
-        return { act: r.act, args: r.args, why: r.reason };
+        if (_noteSlot === null && r.note) _noteSlot = r.note;
+        return { act: r.act, args: r.args, why: r.reason, turn: r.turn, evidence: r.evidence };
       });
     }
 
     function exec(rec, res) {
       if (!res || !res.ok || !res.kind) return;
+      /* 只要产出终态/追问/分诊卡，进度就让位给真实内容。 */
+      hideProgress();
 
       /* ⚠️ 顺序必须「先切模式，再建容器、再渲染」。
          2026-11-19 修（e2e_voice「煤气漏了」应发声 1 次实际 0 次）：
@@ -418,14 +620,46 @@
         renderAsk(res.result, host);
         return;
       }
+      /* 日常：同一 entry 的追问不再重复整卡；只有第一次出完整卡。 */
+      if (res.kind === 'daily' && res.entry) {
+        var deduped = renderDailyResult(res.entry, text, host);
+        /* P5：静态卡先出现；扩写是增强，不阻塞首卡。
+           成功才替换 lead；失败/超时/用户已点“查看操作步骤”都保持现状。 */
+        if (!deduped && LLM && LLM.expand) {
+          var target = host;
+          LLM.expand(text, res.entry.id).then(function (r) {
+            if (!r || !r.ok || !r.text) return;
+            if (!target || target.innerHTML.indexOf('class="explain"') < 0) return;
+            RENDER.renderDaily(res.entry, target, r, { silent: true });
+          });
+        }
+        return;
+      }
       execTool(rec, res, host);
+
+      /* 口头确认一次就退出：ack 是模型判「用户明确说解除」，
+         再用本地 isResolved 复核原话。不明确 → 保持紧急，只留单按钮兜底。 */
+      if (res.kind === 'ack' && R.isResolved && R.isResolved(text)) {
+        exitEmergency(host);
+      }
     }
 
-    return AGENT.run(text, { entries: ENTRIES, sceneIds: SCENE_IDS, history: history }, {
-      decide: decide,
-      exec: exec
+    return AGENT.run(
+      text,
+      { entries: ENTRIES, sceneIds: SCENE_IDS, history: history, policy: policy },
+      {
+        decide: decide,
+        exec: exec,
+      /* 每执行完一步更新一次，让老人知道系统还在动，而不是卡死。 */
+      onStep: function (rec) {
+        showProgress(progressTextFor(rec.act));
+      },
+      /* seed.plan：危重/无条目时已由本地决定拨号，0 次模型往返。
+         AGENT.run 见到 o.plan 会直接执行，不再调 decide。 */
+      plan: seed && seed.kind === 'plan' ? seed.plan : undefined
     })
       .then(function (out) {
+        hideProgress();
         lg('info', '自主循环完成', {
           endKind: out.endKind,
           steps: out.steps.length,
@@ -460,6 +694,7 @@
         return out.endKind || 'loop';
       })
       .catch(function (e) {
+        hideProgress();
         lg('warn', '自主循环异常，回落单次判定', { error: String((e && e.message) || e) });
         return LLM.judge(text).then(function (verdict) {
           return renderVerdict(text, verdict);
@@ -520,8 +755,17 @@
 
     var h = answerHost(a.kind);
     if (state.mode === 'emergency') renderByAction(a, h);
-    else if (a.kind === 'daily') RENDER.renderDaily(a.entry, h);
-    else RENDER.renderRefuse(h);
+    else if (a.kind === 'daily') {
+      var deduped = renderDailyResult(a.entry, text, h);
+      if (!deduped && LLM.expand) {
+        var target = h;
+        LLM.expand(text, a.entry.id).then(function (r) {
+          if (!r || !r.ok || !r.text) return;
+          if (!target || target.innerHTML.indexOf('class="explain"') < 0) return;
+          RENDER.renderDaily(a.entry, target, r, { silent: true });
+        });
+      }
+    } else RENDER.renderRefuse(h);
     scrollToAnswer(h);
     return 'llm';
   }
@@ -555,6 +799,16 @@
        否则「LLM 不可用 → 回落 l3」会让同一句话出现两条用户气泡。 */
     if (CHAT) CHAT.appendUser(text);
 
+    /* 会话上文（2026-11-20）：只收用户原话，不收模型结论。
+       边界只在这里 —— 循环内部每一步都会调 decide，若在循环里记录，
+       同一句会被记多次。一次 handleQuery = 一次用户输入。
+       context 必须先于 push 取：当前这句话不能出现在「更早说过的话」里。 */
+    /* state.js 与 app.js 是两个文件：旧缓存版的 state.js 没有 utterances。
+       这里做一次惰性兜底，避免混版本时整个问答直接 TypeError。 */
+    if (!state.utterances) state.utterances = [];
+    var context = state.utterances.length ? { utterances: state.utterances.slice() } : null;
+    state.utterances.push(text);
+
     if (!LLM || !LLM.judge) {
       handleQuerySync(text, { keepTrace: true, noEcho: true });
       return Promise.resolve('sync');
@@ -565,16 +819,22 @@
        decide 由 agent.js 逐步调用：模型选一个工具 → 代码校验并执行 → 把结果
        追加进 history → 再问模型下一步。**这才是「模型自主选工具」。**
 
-       与下面 judge 路径的分工：
-         /act  可用 → 走循环，模型自己决定调哪个工具、调几步
-         /act  不可用或返回非法 → 回落 judge 单次判定（现 96/100 基线）
-       回落不是「降级」，而是保证「循环挂了也能答」——两条路径的终态卡是同一套渲染。
+       2026-11-20 用户裁决 A：**已锁定后的紧急后续轮也走 `/act`，并带会话上文。**
+       原先这里是 `state.mode !== 'emergency'`，把紧急后续轮全部推给 judge；
+       而 judge 路径不带 history，导致「第一句紧急、第二句补充」时模型看不到第一句。
 
-       代价（已实测，docs/03 §2.5.9）：循环每步一次往返（P50 822ms），
-       平均 1.71 步。所以**只在日常模式启用**：紧急模式仍走 judge + 关键词，
-       以保住 01 §6 的 3 秒预算。 */
-    if (AGENT && LLM.act && state.mode !== 'emergency') {
-      return runActLoop(text);
+       先纠正一个容易搞反的事实：**首次紧急轮本来就走 `/act`** ——
+       它从 `mode === 'daily'` 进入，循环渲染出 steps 时才 `enterEmergency()`。
+       所以本次改动只影响「已锁定后的下一句」，**首轮时延与行为一字未变**，
+       01 §6 的 3 秒预算不受影响。
+
+       与下面 judge 路径的分工（改后）：
+         `/act` 可用 → 所有在线提问都走循环（含紧急后续轮）
+         `/act` 不可用或返回非法 → 回落 judge 单次判定
+       回落不是「降级」，而是保证「循环挂了也能答」——两条路径的终态卡是同一套渲染。 */
+    if (AGENT && LLM.act) {
+      /* B：只给首轮加速。有上文说明不是首轮，不预置（语义更复杂，留给模型）。 */
+      return runActLoop(text, context, context ? null : seedFor(text));
     }
 
     return LLM.judge(text).then(function (verdict) {
@@ -833,6 +1093,28 @@
         本文件拆分时保证：成员名与语义一字未改，全部指向新模块的同名函数。 */
   window.__M1__ = {
     detectDanger: detectDanger,
+    /* 每步进展（M2.5）的测试入口 */
+    progressTextFor: progressTextFor,
+    progress: {
+      show: showProgress,
+      hide: hideProgress,
+      visible: function () {
+        return !!(el.progress && !el.progress.hidden);
+      },
+      text: function () {
+        return el.progress ? el.progress.textContent : null;
+      }
+    },
+    /* B 方案（首轮本地预置）的测试入口：不参与界面渲染 */
+    seedFor: seedFor,
+    actSeedEnabled: function () {
+      return ACT_SEED;
+    },
+    exitEmergency: exitEmergency,
+    /* 测试专用：清空「上一条 daily」记忆，避免连续用例被追问去重误伤。 */
+    resetDailyMemory: function () {
+      _lastDaily = { entryId: null, host: null };
+    },
     bestMatch: function (t) {
       var e = bestMatch(t);
       return e ? e.id : null;

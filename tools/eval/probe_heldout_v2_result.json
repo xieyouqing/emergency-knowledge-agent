@@ -1,14 +1,14 @@
 {
- "generated": "2026-11-19T11:48:00.304Z",
+ "generated": "2026-11-20T10:39:39.162Z",
  "endpoint": "http://127.0.0.1:8787/act",
  "note": "本结果集只跑一次。若据本结果改过 prompt，必须在 docs/08 P17 标注「已污染」。",
  "summary": {
   "total": 42,
-  "hit": 41,
-  "acc": 97.6,
+  "hit": 39,
+  "acc": 92.9,
   "solidTotal": 35,
-  "solidHit": 35,
-  "solidAcc": 100
+  "solidHit": 33,
+  "solidAcc": 94.3
  },
  "rows": [
   {
@@ -18,15 +18,14 @@
    "phenomenon": "★ 极短输入（2 字），紧急时说不完整",
    "expect": "steps",
    "expectScene": "gas_leak",
-   "got": "steps",
+   "got": "refuse",
    "acts": [
-    "lookup_scene",
-    "get_steps"
+    "refuse"
    ],
-   "ok": true,
+   "ok": false,
    "debatable": true,
    "debatableReason": "只有两字，脱离语境信息严重不足。「漏了」可能是漏水、漏气、漏电。取 gas_leak 是因为本产品只覆盖这个「漏」；但判 refuse 也不算错。这条主要在测「极短输入会不会崩」。",
-   "ms": 1986
+   "ms": 1117
   },
   {
    "id": "H2-02",
@@ -43,7 +42,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 2037
+   "ms": 2236
   },
   {
    "id": "H2-03",
@@ -60,7 +59,7 @@
    "ok": true,
    "debatable": true,
    "debatableReason": "「冒烟」可能是厨房油烟、电器短路、还是真着火。取 fire_home 偏保守（宁可多给），但也可能被判 refuse。",
-   "ms": 2557
+   "ms": 2582
   },
   {
    "id": "H2-04",
@@ -77,7 +76,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1665
+   "ms": 2261
   },
   {
    "id": "H2-05",
@@ -94,7 +93,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1601
+   "ms": 2178
   },
   {
    "id": "H2-06",
@@ -111,7 +110,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 2113
+   "ms": 1863
   },
   {
    "id": "H2-07",
@@ -128,7 +127,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1879
+   "ms": 2248
   },
   {
    "id": "H2-08",
@@ -145,7 +144,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1963
+   "ms": 2500
   },
   {
    "id": "H2-09",
@@ -154,15 +153,15 @@
    "phenomenon": "★ 否定式 + 更正（先否认再确认）",
    "expect": "steps",
    "expectScene": "fall_elderly",
-   "got": "dialonly",
+   "got": "steps",
    "acts": [
     "lookup_scene",
-    "dial"
+    "triage"
    ],
-   "ok": false,
+   "ok": true,
    "debatable": true,
    "debatableReason": "「突然倒地」可能是晕厥/卒中/心梗，而库内只有 fall_elderly。给 fall_elderly 的分诊（能不能动）对晕厥者不完全对症，但比拒答好。这条也暴露了库内缺「晕厥/卒中」条目。",
-   "ms": 2248
+   "ms": 4038
   },
   {
    "id": "H2-10",
@@ -179,7 +178,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 2238
+   "ms": 1698
   },
   {
    "id": "H2-11",
@@ -196,7 +195,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1850
+   "ms": 2431
   },
   {
    "id": "H2-12",
@@ -213,7 +212,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1997
+   "ms": 2266
   },
   {
    "id": "H2-13",
@@ -230,7 +229,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 2232
+   "ms": 1703
   },
   {
    "id": "H2-14",
@@ -247,7 +246,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1192
+   "ms": 2134
   },
   {
    "id": "H2-15",
@@ -264,7 +263,7 @@
    "ok": true,
    "debatable": true,
    "debatableReason": "库内**没有 CPR 条目**（已核实：airway_obstruction 只有海姆立克，fall_elderly 分诊问「能不能动胳膊腿」）。所以正确做法是 dial，而非给不适用的步骤。这条同时是「内容缺口」的证据。",
-   "ms": 2286
+   "ms": 2640
   },
   {
    "id": "H2-16",
@@ -275,12 +274,13 @@
    "expectScene": null,
    "got": "dialonly",
    "acts": [
+    "lookup_scene",
     "dial"
    ],
    "ok": true,
    "debatable": true,
    "debatableReason": "库内无「大出血」条目。按 P18 规则 7 应 dial。但也可以认为应给「按压止血」的通用指导 —— 库内没有，所以只能拨号。",
-   "ms": 861
+   "ms": 2180
   },
   {
    "id": "H2-17",
@@ -297,7 +297,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1747
+   "ms": 2321
   },
   {
    "id": "H2-18",
@@ -314,7 +314,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 2049
+   "ms": 1995
   },
   {
    "id": "H2-19",
@@ -331,7 +331,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 2338
+   "ms": 1633
   },
   {
    "id": "H2-20",
@@ -340,15 +340,15 @@
    "phenomenon": "★ 口语（那股味儿老有）",
    "expect": "daily",
    "expectScene": "gas_leak",
-   "got": "daily",
+   "got": "steps",
    "acts": [
     "lookup_scene",
-    "get_daily"
+    "get_steps"
    ],
-   "ok": true,
+   "ok": false,
    "debatable": false,
    "debatableReason": null,
-   "ms": 2200
+   "ms": 2275
   },
   {
    "id": "H2-21",
@@ -365,7 +365,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1918
+   "ms": 2394
   },
   {
    "id": "H2-22",
@@ -382,7 +382,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1474
+   "ms": 2115
   },
   {
    "id": "H2-23",
@@ -399,7 +399,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1693
+   "ms": 2199
   },
   {
    "id": "H2-24",
@@ -416,7 +416,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1623
+   "ms": 6898
   },
   {
    "id": "H2-25",
@@ -433,7 +433,7 @@
    "ok": true,
    "debatable": true,
    "debatableReason": "「要不要装呼叫器」可能被判 off_scope（选购咨询），与 O012「老人护理床怎么选」同类。但呼叫器属跌倒求助设备，与防跌倒直接相关。边界本身模糊。",
-   "ms": 1952
+   "ms": 3078
   },
   {
    "id": "H2-26",
@@ -442,15 +442,14 @@
    "phenomenon": "★ 问「多久」但主语是行为不是物件",
    "expect": "daily",
    "expectScene": "electric_shock",
-   "got": "daily",
+   "got": "refuse",
    "acts": [
-    "lookup_scene",
-    "get_daily"
+    "refuse"
    ],
-   "ok": true,
+   "ok": false,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1406
+   "ms": 1140
   },
   {
    "id": "H2-27",
@@ -467,7 +466,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1942
+   "ms": 2055
   },
   {
    "id": "H2-28",
@@ -484,7 +483,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1555
+   "ms": 2600
   },
   {
    "id": "H2-29",
@@ -501,7 +500,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1867
+   "ms": 5256
   },
   {
    "id": "H2-30",
@@ -518,7 +517,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1922
+   "ms": 2421
   },
   {
    "id": "H2-31",
@@ -535,7 +534,7 @@
    "ok": true,
    "debatable": true,
    "debatableReason": "「住几楼安全」其实没有标准答案（取决于建筑结构），给 daily 会让模型硬答。判 refuse 也有道理。这条在测「会不会编」。",
-   "ms": 2097
+   "ms": 2135
   },
   {
    "id": "H2-32",
@@ -551,7 +550,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 727
+   "ms": 854
   },
   {
    "id": "H2-33",
@@ -567,7 +566,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 765
+   "ms": 1150
   },
   {
    "id": "H2-34",
@@ -583,7 +582,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 807
+   "ms": 973
   },
   {
    "id": "H2-35",
@@ -599,7 +598,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1256
+   "ms": 1044
   },
   {
    "id": "H2-36",
@@ -615,7 +614,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 619
+   "ms": 831
   },
   {
    "id": "H2-37",
@@ -631,7 +630,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 953
+   "ms": 1100
   },
   {
    "id": "H2-38",
@@ -647,7 +646,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1065
+   "ms": 973
   },
   {
    "id": "H2-39",
@@ -663,7 +662,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 807
+   "ms": 801
   },
   {
    "id": "H2-40",
@@ -679,7 +678,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 1082
+   "ms": 1011
   },
   {
    "id": "H2-41",
@@ -695,7 +694,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 710
+   "ms": 1554
   },
   {
    "id": "H2-42",
@@ -711,7 +710,7 @@
    "ok": true,
    "debatable": false,
    "debatableReason": null,
-   "ms": 928
+   "ms": 1194
   }
  ]
 }

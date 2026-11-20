@@ -1,0 +1,148 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-11-21",
+  "purpose": "P9 验收：20 条需要多步（查库 → 出内容）的样本，用来测平均步数与 P95 步数。不是单次判定集。",
+  "how_to_run": "node tools/probe_multi_step.mjs",
+  "cases": [
+    {
+      "id": "M01",
+      "text": "用炭火取暖，现在头晕恶心",
+      "expect_action": "steps",
+      "expect_scene": "co_poisoning",
+      "why": "炭火 + 头晕恶心，需先区分中毒与普通不适"
+    },
+    {
+      "id": "M02",
+      "text": "我妈倒了，叫不醒，没呼吸了",
+      "expect_action": "steps",
+      "expect_scene": "cpr",
+      "why": "倒地 + 无呼吸：不能走跌倒分诊"
+    },
+    {
+      "id": "M03",
+      "text": "老伴摔倒，说胯骨疼",
+      "expect_action": "steps",
+      "expect_scene": "fall_elderly",
+      "why": "倒地但清醒，需分诊而不是 CPR"
+    },
+    {
+      "id": "M04",
+      "text": "手被开水烫了，皮肤发白不疼",
+      "expect_action": "steps",
+      "expect_scene": "scald_burn",
+      "why": "不疼反而可能是深部烫伤，不能按普通红肿处理"
+    },
+    {
+      "id": "M05",
+      "text": "电梯停了，门打不开",
+      "expect_action": "steps",
+      "expect_scene": "elevator_trapped",
+      "why": "需先确认是否被困"
+    },
+    {
+      "id": "M06",
+      "text": "插座冒火星，有焦味",
+      "expect_action": "steps",
+      "expect_scene": "electric_fire",
+      "why": "电器起火与普通火灾处置不同"
+    },
+    {
+      "id": "M07",
+      "text": "洗澡水太烫，皮肤红了",
+      "expect_action": "steps",
+      "expect_scene": "scald_burn",
+      "why": "烫伤程度需按条目判断"
+    },
+    {
+      "id": "M08",
+      "text": "我爸嘴歪了，半边身子动不了",
+      "expect_action": "steps",
+      "expect_scene": "stroke",
+      "why": "卒中表现，需与跌倒区分"
+    },
+    {
+      "id": "M09",
+      "text": "吃了剩菜，又吐又拉",
+      "expect_action": "steps",
+      "expect_scene": "food_poisoning",
+      "why": "食物中毒与普通肠胃不适的边界"
+    },
+    {
+      "id": "M10",
+      "text": "太阳下站久了，头晕恶心",
+      "expect_action": "steps",
+      "expect_scene": null,
+      "why": "中暑与一氧化碳中毒症状重叠；只看动作，不锁场景"
+    },
+    {
+      "id": "M11",
+      "text": "割了个口子，血止不住",
+      "expect_action": "steps",
+      "expect_scene": "severe_bleeding",
+      "why": "大出血需先分诊压得住吗"
+    },
+    {
+      "id": "M12",
+      "text": "喘不上气，喉咙像堵住",
+      "expect_action": "steps",
+      "expect_scene": "airway_obstruction",
+      "why": "气道梗阻与普通呼吸困难"
+    },
+    {
+      "id": "M13",
+      "text": "烧炭取暖，味道散了，但头还是晕",
+      "expect_action": "steps",
+      "expect_scene": "co_poisoning",
+      "why": "烧炭 + 头晕：味道散了不代表安全，需识别一氧化碳中毒"
+    },
+    {
+      "id": "M14",
+      "text": "孩子吞了纽扣，一直咳嗽",
+      "expect_action": "steps",
+      "expect_scene": "airway_obstruction",
+      "why": "儿童异物梗阻仍用海姆立克条目"
+    },
+    {
+      "id": "M15",
+      "text": "老人摔倒，胳膊动不了",
+      "expect_action": "steps",
+      "expect_scene": "fall_elderly",
+      "why": "需分诊判断能否移动"
+    },
+    {
+      "id": "M16",
+      "text": "厨房着火，火不大",
+      "expect_action": "steps",
+      "expect_scene": "fire_home",
+      "why": "火不大也不许自行扑救，先分诊"
+    },
+    {
+      "id": "M17",
+      "text": "地震停了，房子裂了",
+      "expect_action": "steps",
+      "expect_scene": "earthquake",
+      "why": "震后仍可能有余震与结构风险"
+    },
+    {
+      "id": "M18",
+      "text": "有人触电，手麻",
+      "expect_action": "steps",
+      "expect_scene": "electric_shock",
+      "why": "脱离电源后仍需观察"
+    },
+    {
+      "id": "M19",
+      "text": "煤气漏了，只是报警器响",
+      "expect_action": "steps",
+      "expect_scene": "gas_leak",
+      "why": "无明显味道也可能已泄漏"
+    },
+    {
+      "id": "M20",
+      "text": "厨房油锅起火",
+      "expect_action": "steps",
+      "expect_scene": "fire_home",
+      "why": "油锅火不能泼水"
+    }
+  ]
+}

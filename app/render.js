@@ -57,8 +57,15 @@
   /* ---------- 三段式步骤卡 ----------
      契约 §4.5：tool 全部忽略，只渲染 text。
      拨号按钮由 emergency_number 驱动，依据是 S5（生命危险场景须有显式拨号按钮），
-     不是已删除的 S9。与步骤级 tool 无关。 */
-  function renderSteps(entry, immediateSteps, container) {
+     不是已删除的 S9。与步骤级 tool 无关。
+
+     note（2026-11-20 新增，用户裁决「按危险定优先级，但要同时给出解释」）：
+       一句来自模型的解释，说明「为什么先处理这件事」。
+       为什么放在标题正下方而不是卡片底部：紧急时用户从上往下扫，
+       放底部等于没有。也不能只靠颜色/图标表达优先级 —— 老人看不懂图标语言。
+     ⚠️ note 是**解释**不是动作：S7 规定回答里的操作动作必须全部来自 steps/never，
+       所以这里只渲染文字，绝不把它当步骤，也不朗读（见 speakSteps）。 */
+  function renderSteps(entry, immediateSteps, container, note) {
     var segMap = [
       { key: 'immediate', title: '立刻做', cls: 'seg-immediate', checkable: true },
       { key: 'next', title: '接着做', cls: 'seg-next', checkable: true },
@@ -111,6 +118,7 @@
       '<h2 class="card-title">' +
       esc(entry.name) +
       '</h2>' +
+      (note ? '<p class="card-note">' + esc(note) + '</p>' : '') +
       body +
       '<div class="voice-row">' +
       '<button class="voice-btn" type="button" data-act="read" aria-label="朗读这张卡片">' +
@@ -155,9 +163,9 @@
   }
 
   /* ---------- 分诊：先问 1 个分支，再给步骤（契约 §5） ---------- */
-  function renderStepsCard(entry, container) {
+  function renderStepsCard(entry, container, note) {
     if (!entry.triage || !entry.triage.options || !entry.triage.options.length) {
-      renderSteps(entry, null, container);
+      renderSteps(entry, null, container, note);
       speak('autoReadCard', entry, null);
       return;
     }
@@ -182,6 +190,7 @@
       '<h2 class="card-title">' +
       esc(entry.name) +
       '</h2>' +
+      (note ? '<p class="card-note">' + esc(note) + '</p>' : '') +
       '<p class="triage-q">' +
       esc(entry.triage.question) +
       '</p>' +
@@ -239,6 +248,63 @@
       '</article>';
   }
 
+  /* ---------- 已脱困 / 状态更新（ack） ----------
+     为什么单独一张卡而不是复用 daily：
+       这一步没有条目可读（用户说的是「门开了/火灭了」），daily 需要 entry。
+     为什么不出步骤：
+       危险已解除；继续给急救步骤只会制造恐慌。只给确认 + 观察提示 + 拨号兜底。
+     为什么不写场景专属动作：
+       写「开窗通风」「别坐电梯」这类话就是在编操作；本产品只允许条目字段里的动作。 */
+  function renderAck(container, onExit) {
+    container.innerHTML =
+      '<article class="refuse ack">' +
+      '<p class="headline">已经安全了</p>' +
+      '<p>先休息一下，注意观察身体。如果还有不舒服或受伤，拨打 120。</p>' +
+      '<div class="dial-row"><a class="dial-btn" href="tel:120">拨打 120</a></div>' +
+      (onExit
+        ? '<div class="ack-actions">' +
+          '<button type="button" class="ack-exit">结束紧急，回到日常</button>' +
+          '</div>'
+        : '') +
+      '</article>';
+    var btn = container.querySelector ? container.querySelector('.ack-exit') : null;
+    if (btn && onExit) {
+      /* 2026-11-21：去掉二次确认。老人主要靠“口头确认一句”退出；
+         这个按钮是单次点击兜底，不再多问一遍。 */
+      btn.addEventListener('click', function () {
+        onExit(container);
+      });
+    }
+    speak('autoReadAck');
+  }
+
+  /* ---------- 同一场景的追问：不重复整卡 ----------
+     场景对了，但条目里没有这个子问题的答案时，再贴一张一模一样的卡
+     会让用户以为「它没回答」。这里只给一句明确说明 + 回到上一条。
+     不生成任何新内容；上一张卡仍在消息流里。 */
+  function renderFollowupNotice(entry, question, container, prevHost) {
+    container.innerHTML =
+      '<article class="refuse ack">' +
+      '<p class="headline">还是「' +
+      esc(entry.name) +
+      '」这个条目</p>' +
+      '<p>库内没有更具体的「' +
+      esc(question) +
+      '」答案；上面那张卡仍可回看。</p>' +
+      (prevHost
+        ? '<div class="ack-actions">' +
+          '<button type="button" class="ack-exit-no followup-back">回到上一条</button>' +
+          '</div>'
+        : '') +
+      '</article>';
+    var btn = container.querySelector ? container.querySelector('.followup-back') : null;
+    if (btn && prevHost && prevHost.scrollIntoView) {
+      btn.addEventListener('click', function () {
+        prevHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }
+
   /* ---------- 拒答（S1 / S4：零步骤 + 固定话术 + 拨号按钮） ---------- */
   var REFUSE_TEXT =
     '这个问题我答不了。我只会说应急和安全的常识，比如燃气泄漏、老人跌倒、电梯困人。';
@@ -254,8 +320,11 @@
   }
 
   /* ---------- 日常模式只用 daily 四字段拼装 ---------- */
-  function renderDaily(entry, container) {
+  function renderDaily(entry, container, expanded, opts) {
     var d = entry.daily || {};
+    /* P5：expanded 只替换「解释」那一段；下面的 prevention 列表仍逐字来自条目。
+       为什么保留静态 why：它是已标注、可回溯的内容；扩写失败时整张卡不受影响。 */
+    var lead = expanded && expanded.text ? expanded.text : d.summary || '';
     var prev = (d.prevention || [])
       .map(function (p) {
         return '<li>' + esc(p) + '</li>';
@@ -268,8 +337,11 @@
       '</h2>' +
       '<div class="explain">' +
       '<p class="lead">' +
-      esc(d.summary || '') +
+      esc(lead) +
       '</p>' +
+      (expanded && expanded.text
+        ? '<p class="card-note p5-note">这段解释由模型按条目整理；操作步骤仍来自条目。</p>'
+        : '') +
       (d.why ? '<p>' + esc(d.why) + '</p>' : '') +
       (prev ? '<p><b>平时怎么做</b></p><ul>' + prev + '</ul>' : '') +
       (d.misconception
@@ -300,7 +372,8 @@
         if (S4) S4.muteAutoRead();
       });
     }
-    speak('autoReadDaily', entry);
+    /* P5 扩写到达后是「替换同一张卡」，不能触发第二次自动朗读。 */
+    if (!(opts && opts.silent)) speak('autoReadDaily', entry);
 
     var btn = container.querySelector('#toSteps');
     if (btn) {
@@ -316,6 +389,8 @@
     renderSteps: renderSteps,
     renderStepsCard: renderStepsCard,
     renderDialOnly: renderDialOnly,
+    renderAck: renderAck,
+    renderFollowupNotice: renderFollowupNotice,
     renderRefuse: renderRefuse,
     renderDaily: renderDaily,
     REFUSE_TEXT: REFUSE_TEXT,

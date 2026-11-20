@@ -1,0 +1,165 @@
+{
+  "schema_version": "1.0",
+  "id": "severe_bleeding",
+  "name": "大出血",
+  "aliases": [
+    "大出血",
+    "流血不止",
+    "血止不住",
+    "流了好多血",
+    "割伤了",
+    "划伤了"
+  ],
+  "category": "severe_bleeding",
+  "keywords": [
+    "出血",
+    "流血",
+    "伤口",
+    "割伤",
+    "划伤",
+    "止不住",
+    "血流不止",
+    "血一直流",
+    "血不停",
+    "血哗哗流",
+    "血流得"
+  ],
+  "life_threatening": true,
+  "triage": {
+    "question": "用手压住伤口，血能压住吗？",
+    "options": [
+      {
+        "value": "cannot_stop",
+        "label": "压不住 / 找不到哪出血",
+        "override": {
+          "immediate": [
+            {
+              "text": "压住伤口，扎上止血带",
+              "tool": null
+            },
+            {
+              "text": "马上打 120",
+              "tool": {
+                "name": "dial",
+                "number": "120"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value": "can_stop",
+        "label": "能压住",
+        "override": null
+      }
+    ]
+  },
+  "steps": {
+    "immediate": [
+      {
+        "text": "马上用手压住伤口",
+        "tool": null
+      },
+      {
+        "text": "用干净布加压包扎",
+        "tool": null
+      },
+      {
+        "text": "马上打 120",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      }
+    ],
+    "next": [
+      {
+        "text": "脸和脖子出血，塞住再压",
+        "tool": null
+      },
+      {
+        "text": "压的时候手别松开",
+        "tool": null
+      },
+      {
+        "text": "止血带宽 5 厘米以上",
+        "tool": null
+      },
+      {
+        "text": "绑在伤口上方 5~8 厘米",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "流鼻血别仰头，要低头",
+        "tool": null
+      },
+      {
+        "text": "血止不住别只硬压",
+        "tool": null
+      },
+      {
+        "text": "止血带别绑超过 2 小时",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "《院前创伤急救止血专家共识（2025年版）》中华急诊医学杂志 2025,34(4):469-477",
+    "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+    "date": "2026-11-18",
+    "quote": "对于体表活动性出血，如面部、躯干、四肢，应立即采取局部压迫或加压包扎止血。面部深层创口还可用止血敷料填塞并冷敷；牙龈或鼻腔出血可填塞纱条或棉球压迫止血，并保持头部前倾以防血液倒流入气道；四肢压迫止血无效时或无法快速定位出血点时，应及时使用止血带。【证据质量：1C。推荐强度：强】",
+    "supplementary": [
+      {
+        "name": "同上（相关证据段，止血带规格与时限）",
+        "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+        "date": "2026-11-21",
+        "quote": "止血带宽度至少5 cm，长度需足够绕肢体两圈以上，绑扎于出血近心端5~8 cm处，避开关节并确保压力有效止血 [ 47 ] 。为减少并发症风险，止血带的使用时间应严格控制在2 h内 [ 48 ]",
+        "supports": "新增 next[2]（止血带宽度≥5cm、绑在近心端5~8cm）与 never[2]（不超过2小时）；2h 是本场景最硬的安全红线"
+      }
+    ]
+  },
+  "daily": {
+    "summary": "大出血最要紧的是立刻压住伤口，别等。",
+    "why": "血流失太快会危及生命。直接用手掌压住伤口，或用干净布加压包扎，是最快也最有效的止血办法。脸、脖子这些地方压不住，要先用干净布塞住伤口再压。四肢压不住，或者找不到哪里出血，就要用止血带，同时打 120。",
+    "prevention": [
+      "家里备干净纱布和绷带",
+      "刀具用完马上收好",
+      "玻璃杯碗别放在桌边"
+    ],
+    "misconception": "流鼻血要仰头——错，要低头前倾，防止血流进气管。"
+  },
+  "offline": true,
+  "version": "0.3",
+  "status": "published",
+  "review": {
+    "author": "xieyouqing",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-21",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-21",
+      "detail": "主源：原文中逐字定位成功；补强 1/1 pass",
+      "supplementary": [
+        {
+          "url": "http://www.cem.org.cn/public/html/202504/20250403/index.htm",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        }
+      ]
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-20",
+  "updated_at": "2026-11-21"
+}

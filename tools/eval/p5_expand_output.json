@@ -1,0 +1,514 @@
+[
+  {
+    "id": "S7-01",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气漏出来会在屋里越积越浓，这时开灯、按门铃、开抽油烟机，哪怕一点小火花都可能引爆，所以别先动电器。平时防漏，软管老化、用完没关严都是常见原因。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-02",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气漏了会在屋里越积越多，浓度够了，开灯、按门铃、打电话那点小火花都能引爆。报警器能在气味还不明显时就响，给人留出反应时间。",
+      "actions": [
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-03",
+    "scene": "gas_leak",
+    "intent": "ongoing",
+    "model_output": {
+      "text": "煤气漏了，屋里气会越聚越浓，开灯、按门铃、打电话冒的小火花都可能点着它，所以先别碰电器开关。抽油烟机也别开，它一开也会打火花。人先到外面去，再联系报修和报警。",
+      "actions": [],
+      "needAction": false
+    }
+  },
+  {
+    "id": "S7-04",
+    "scene": "elevator_trapped",
+    "intent": "prevention",
+    "model_output": {
+      "text": "一般不会。电梯停住是它自己发现异常在保护，不是失控。轿厢有通风口，不是密不透风的箱子，短时间不会缺氧。真正危险的是扒门、爬出去。",
+      "actions": [],
+      "needAction": false
+    }
+  },
+  {
+    "id": "S7-05",
+    "scene": "fire_home",
+    "intent": "prevention",
+    "model_output": {
+      "text": "火灾里最要命的是浓烟，不是火苗。烟里有毒气，热烟往上跑，贴近地面空气干净些，也看得清路。电梯着火时会断电，还像烟囱一样灌烟，所以要走安全出口。门发烫说明外面火大，一开就窜进来。躲卫生间不一定安全，没窗没法求救，塑料门遇高温会化。",
+      "actions": [
+        {
+          "say": "家里装独立式烟感报警器",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "楼道和阳台不要堆放杂物",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "提前认好两个方向的安全出口",
+          "src": "daily.prevention[2]"
+        },
+        {
+          "say": "备一条湿毛巾放在易取处",
+          "src": "daily.prevention[3]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-07",
+    "scene": "fire_home",
+    "intent": "prevention",
+    "model_output": {
+      "text": "家里着火，最要命的不是火苗，是浓烟。烟里有毒气，热烟往上飘，所以贴近地面空气干净些，也看得清路。电梯着火时会断电，还容易变成烟囱，得走安全出口。门发烫说明外面火大，一开火就窜进来。躲卫生间不一定安全，没窗没法求救，塑料门遇高温会化。",
+      "actions": [],
+      "needAction": false
+    }
+  },
+  {
+    "id": "S7-08",
+    "scene": "scald_burn",
+    "intent": "prevention",
+    "model_output": {
+      "text": "烫伤是热慢慢往皮肤里钻，越早降温越轻。牙膏偏方会污染伤口，还挡着医生看伤情。水泡皮是天然保护层，挑破容易感染。平时热水壶、汤锅把手朝里放，端热汤前先提醒一声，给孩子洗澡先放冷水再加热水，灶台前不要放凳子让孩子爬上。",
+      "actions": [
+        {
+          "say": "热水壶、汤锅把手朝里放",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "端热汤前先提醒一声",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "给孩子洗澡先放冷水再加热水",
+          "src": "daily.prevention[2]"
+        },
+        {
+          "say": "灶台前不要放凳子让孩子爬上",
+          "src": "daily.prevention[3]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-09",
+    "scene": "scald_burn",
+    "intent": "prevention",
+    "model_output": {
+      "text": "烫伤是热慢慢往皮肤里钻，越早降温越轻。常见误区是抹牙膏，那会弄脏伤口，医生清理更麻烦。水泡皮是天然保护层，挑破容易感染。",
+      "actions": [
+        {
+          "say": "热水壶、汤锅把手朝里放",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "端热汤前先提醒一声",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "给孩子洗澡先放冷水再加热水",
+          "src": "daily.prevention[2]"
+        },
+        {
+          "say": "灶台前不要放凳子让孩子爬上",
+          "src": "daily.prevention[3]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-10",
+    "scene": "scald_burn",
+    "intent": "prevention",
+    "model_output": {
+      "text": "热水器温度没有统一标准，各家不一样。关键是别让热水直接烫到人，尤其给孩子洗澡时，水温要先试。烫伤后热量会往皮肤里钻，冷水冲能降温、减轻损伤；水泡皮是天然保护层，挑破容易感染。",
+      "actions": [],
+      "needAction": false
+    }
+  },
+  {
+    "id": "S7-11",
+    "scene": "airway_obstruction",
+    "intent": "prevention",
+    "model_output": {
+      "text": "噎住时气道被堵，人没法说话咳嗽，几分钟就缺氧，所以别喂水，水会让异物卡更紧或呛进气管。预防上，吃饭时不要大笑、说话、走动；老人吃肉、年糕要切小块；不要给三岁以下孩子整颗坚果；小孩不要边跑边吃。",
+      "actions": [
+        {
+          "say": "吃饭时不要大笑、说话、走动",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "老人吃肉、年糕要切小块",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "不要给三岁以下孩子整颗坚果",
+          "src": "daily.prevention[2]"
+        },
+        {
+          "say": "小孩不要边跑边吃",
+          "src": "daily.prevention[3]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-12",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气本身没味道，漏出来聚在屋里，浓度够了，开灯、按门铃、打电话那点小电火花就能引爆，所以闻到味先别动电器。平时防漏，靠的是每年检查一次燃气软管、用完燃气关灶具和阀门，装个燃气报警器更稳妥。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-13",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "煤气漏了会在屋里越积越多，浓度一高，开灯、按门铃、打电话冒出的那点小火花都能点着它，炸起来很危险。所以闻到味别开抽油烟机，开关也会打火花。平时每年检查一次燃气软管，用完燃气关灶具和阀门，建议安装燃气报警器。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-14",
+    "scene": "co_poisoning",
+    "intent": "prevention",
+    "model_output": {
+      "text": "煤炉烧炭会产生一氧化碳，这气没色没味，人吸了会头晕、恶心、没劲，重了会昏迷。屋里放盆水没用，它几乎不溶于水。用炭火取暖时，空气流通很要紧，不然气越积越多。",
+      "actions": [
+        {
+          "say": "用炭火取暖必须开窗通风",
+          "src": "daily.prevention[1]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-15",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "软管老化会慢慢漏气，漏出的气在屋里攒到一定浓度，一点电火花就能引爆。所以每年检查一次燃气软管，能早点发现裂口。平时用完燃气关灶具和阀门，屋里再装个燃气报警器，漏气时能提前响。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-16",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气漏出来会在屋里越积越多，浓度够了，开灯、按门铃、打电话那点小火花都能引爆，所以闻到味别开抽油烟机，它开关也打火花。平时做到：每年检查一次燃气软管；用完燃气关灶具和阀门；建议安装燃气报警器。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-17",
+    "scene": "elevator_trapped",
+    "intent": "prevention",
+    "model_output": {
+      "text": "电梯超载时，它自己会报警、门关不上，这是保护机制在起作用，不是坏了。硬挤进去，电梯可能停运困人。被困时轿厢有通风口，短时间不会缺氧，扒门爬出才真危险。",
+      "actions": [
+        {
+          "say": "进电梯前看清是否超载",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "不乘坐无年检标志的电梯",
+          "src": "daily.prevention[1]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-18",
+    "scene": "airway_obstruction",
+    "intent": "prevention",
+    "model_output": {
+      "text": "噎住是食物把气道堵死，人就说不出话、喘不上气，几分钟就缺氧，很危险。喂水冲不下去，反而卡得更紧或呛进气管。所以防在前头：吃饭时不要大笑、说话、走动；老人吃肉、年糕要切小块；不要给三岁以下孩子整颗坚果；小孩不要边跑边吃。",
+      "actions": [
+        {
+          "say": "吃饭时不要大笑、说话、走动",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "老人吃肉、年糕要切小块",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "不要给三岁以下孩子整颗坚果",
+          "src": "daily.prevention[2]"
+        },
+        {
+          "say": "小孩不要边跑边吃",
+          "src": "daily.prevention[3]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-19",
+    "scene": "airway_obstruction",
+    "intent": "prevention",
+    "model_output": {
+      "text": "噎住是食物把气道堵死，人就说不出话、喘不上气，几分钟就缺氧，喂水反而会卡得更紧。老人牙口和吞咽都弱，大块肉、年糕最容易出事。",
+      "actions": [
+        {
+          "say": "吃饭时不要大笑、说话、走动",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "老人吃肉、年糕要切小块",
+          "src": "daily.prevention[1]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-20",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "漏气平时靠闻味道、看软管有没有老化发硬，燃气公司也会上门查。软管用久了会裂，气就慢慢渗出来，屋里聚多了，开灯、按门铃、打电话那点电火花都可能引爆。",
+      "actions": [],
+      "needAction": false
+    }
+  },
+  {
+    "id": "S7-21",
+    "scene": "fire_home",
+    "intent": "prevention",
+    "model_output": {
+      "text": "火灾里最要命的是浓烟，不是火苗。烟里有毒气，热烟往上飘，贴近地面的空气相对干净，看得也清楚些。电梯着火时会断电，还容易变成烟囱，所以要走安全出口。门发烫说明外面火大，一开就窜进来。躲卫生间不一定安全，没窗没法求救，塑料门遇高温会化。",
+      "actions": [
+        {
+          "say": "家里装独立式烟感报警器",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "楼道和阳台不要堆放杂物",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "提前认好两个方向的安全出口",
+          "src": "daily.prevention[2]"
+        },
+        {
+          "say": "备一条湿毛巾放在易取处",
+          "src": "daily.prevention[3]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-22",
+    "scene": "earthquake",
+    "intent": "prevention",
+    "model_output": {
+      "text": "地震晃动就几十秒，伤人的多是掉下来的东西和摔倒，不是房子整体塌。所以先就近蹲下护头、抓牢固定物，晃停了再走；晃时跑楼梯、坐电梯都危险。应急包就是提前备好手电、口哨、饮用水，晃完停电或被困时能照明、能呼救、能喝上水。",
+      "actions": [
+        {
+          "say": "家里备手电、口哨、饮用水",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-23",
+    "scene": "elevator_trapped",
+    "intent": "prevention",
+    "model_output": {
+      "text": "电梯困住是它自己发现不对劲，停下来锁门保护人，不是掉下去。轿厢有通风口，不是密不透风的箱子，短时间不会憋着。真正危险的是自己扒门、往外爬。年检多久一次，我这里没有这个数，不敢乱说。",
+      "actions": [],
+      "needAction": false
+    }
+  },
+  {
+    "id": "S7-24",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气漏出来会在屋里越积越浓，开灯、按门铃、打电话那点小火花都可能引爆，所以先别碰电器。平时预防，软管要定期看，灶具和阀门用完就关，装个报警器能早点提醒。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-25",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气漏出来会在屋里越积越多，浓度够了，开灯、按门铃、打电话那点小火花都能引爆，所以闻到味别开抽油烟机，它开关也打火花。平时做到：每年检查一次燃气软管；用完燃气关灶具和阀门；建议安装燃气报警器。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-26",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气漏出来会在屋里越积越多，浓度够了，开灯、按门铃、打电话那点小火花都能引爆，所以闻到味别开抽油烟机，它开关也打火花。平时做到：每年检查一次燃气软管；用完燃气关灶具和阀门；建议安装燃气报警器。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  },
+  {
+    "id": "S7-27",
+    "scene": "gas_leak",
+    "intent": "prevention",
+    "model_output": {
+      "text": "燃气漏出来会在屋里越积越浓，这时开灯、按门铃、打电话冒出的小火花都可能引爆，所以闻到味别碰电器开关。平时软管老化、用完没关严都容易漏气。",
+      "actions": [
+        {
+          "say": "每年检查一次燃气软管",
+          "src": "daily.prevention[0]"
+        },
+        {
+          "say": "用完燃气关灶具和阀门",
+          "src": "daily.prevention[1]"
+        },
+        {
+          "say": "建议安装燃气报警器",
+          "src": "daily.prevention[2]"
+        }
+      ],
+      "needAction": true
+    }
+  }
+]

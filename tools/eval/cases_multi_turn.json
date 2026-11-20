@@ -6,28 +6,40 @@
     "how_to_read": {
       "turns": "用户依次说的每一句。turns[0] 是第一轮，turns[1] 是第二轮。",
       "expect": "**只看最后一轮（turns[last]）的期望结果**。中间轮次是铺垫，不设期望 —— 因为它们本来就可能拿不到答案。",
-      "expect.final_action": "最后一轮应有的结局，取值与 cases.json 的 expect_action 一致：steps / daily / dialonly / refuse / ask",
+      "expect.final_action": "最后一轮应有的结局，取值与 cases.json 的 expect_action 一致：steps / daily / dialonly / refuse / ask / ack",
       "expect.needs_context": "true 表示「这句话单独看必然判不出」，必须靠上文。这是本文件的核心字段：它把「记忆的价值」变成可证伪的断言。",
       "expect.why": "为什么需要上文 —— 写清「单看会怎样错」，便于人工复核标注是否合理"
     },
-    "warning": "★ 本文件是**标注**，不是结论。标注由人（或经人复核的 AI 提案）给定。用脚本按有利口径重算等于自我授权，docs/02 §4.7 禁止。"
+    "warning": "★ 本文件是**标注**，不是结论。标注由人（或经人复核的 AI 提案）给定。用脚本按有利口径重算等于自我授权，docs/02 §4.7 禁止。",
+    "annotation_changes": [
+      "2026-11-20：MT01/MT05 的 final_action 由 steps 改为 dialonly，与 ACT_PROMPT 规则 7 对齐（叫不醒/没反应、没有呼吸 → 直接拨号）。原标注与规则 7 冲突。",
+      "代价：dialonly 只给拨号卡、没有现场处置指引；补「无反应但还有呼吸→侧卧位」与 CPR 条目见 docs/08 P20 同批（方案 B）。",
+      "改动经用户 2026-11-20 裁决 A。不是按有利口径重算，是修正与现行规则的冲突。",
+      "2026-11-20：MT10 改为 ack（已脱困/状态更新），配合新增终态工具 ack。"
+    ]
   },
   "cases": [
     {
       "id": "MT01",
       "group": "分批说症状",
-      "turns": ["老人倒在地上了，叫不醒", "她还有呼吸，但是没反应"],
+      "turns": [
+        "老人倒在地上了，叫不醒",
+        "她还有呼吸，但是没反应"
+      ],
       "expect": {
-        "final_action": "steps",
-        "final_scene": "fall_elderly",
+        "final_action": "dialonly",
+        "final_scene": null,
         "needs_context": true,
-        "why": "第二句单独看只有「呼吸」「没反应」，无场景词。实测单轮判 stroke conf=0.55 被阈值拦成拒答；拼接上文后判 fall_elderly conf=0.95"
+        "why": "规则 7：叫不醒 / 没反应属未覆盖的昏迷情形，必须直接拨号，不能给 fall_elderly 分诊卡（会问「能自己动胳膊腿吗」，对无反应者致命）。原标 steps 与规则 7 冲突，已对齐。代价：用户只拿到拨号卡，没有现场处置指引；补「无反应但还有呼吸→侧卧位」条目见 P20 同批（B）。"
       }
     },
     {
       "id": "MT02",
       "group": "分批说症状",
-      "turns": ["厨房有股味道", "现在我妈说头晕恶心"],
+      "turns": [
+        "厨房有股味道",
+        "现在我妈说头晕恶心"
+      ],
       "expect": {
         "final_action": "steps",
         "final_scene": "co_poisoning",
@@ -38,7 +50,10 @@
     {
       "id": "MT03",
       "group": "代词指代",
-      "turns": ["我爸被开水烫了胳膊", "他皮肤现在发白，不疼了"],
+      "turns": [
+        "我爸被开水烫了胳膊",
+        "他皮肤现在发白，不疼了"
+      ],
       "expect": {
         "final_action": "steps",
         "final_scene": "scald_burn",
@@ -49,7 +64,10 @@
     {
       "id": "MT04",
       "group": "代词指代",
-      "turns": ["我老伴摔了", "他胳膊动不了"],
+      "turns": [
+        "我老伴摔了",
+        "他胳膊动不了"
+      ],
       "expect": {
         "final_action": "steps",
         "final_scene": "fall_elderly",
@@ -60,18 +78,24 @@
     {
       "id": "MT05",
       "group": "追问后续",
-      "turns": ["有人倒地了", "没有呼吸"],
+      "turns": [
+        "有人倒地了",
+        "没有呼吸"
+      ],
       "expect": {
         "final_action": "steps",
-        "final_scene": "airway_obstruction",
+        "final_scene": "cpr",
         "needs_context": true,
-        "why": "「没有呼吸」是关键分水岭：有呼吸 = fall_elderly，无呼吸 = 心肺复苏。单看第二句判不出是谁、什么场景"
+        "why": "2026-11-21 更新：cpr 条目已发布，「倒地→没有呼吸」是成人无呼吸，应给 cpr steps；原 dialonly 是条目未发布时的旧期望（docs/14「发布前后两套期望」）。"
       }
     },
     {
       "id": "MT06",
       "group": "追问后续",
-      "turns": ["燃气灶打不着火", "没有味道，就是打不着"],
+      "turns": [
+        "燃气灶打不着火",
+        "没有味道，就是打不着"
+      ],
       "expect": {
         "final_action": "refuse",
         "final_scene": null,
@@ -82,7 +106,10 @@
     {
       "id": "MT07",
       "group": "修正上文",
-      "turns": ["煤气漏了", "不是煤气，是楼下饭店的油烟味"],
+      "turns": [
+        "煤气漏了",
+        "不是煤气，是楼下饭店的油烟味"
+      ],
       "expect": {
         "final_action": "refuse",
         "final_scene": null,
@@ -93,7 +120,10 @@
     {
       "id": "MT08",
       "group": "修正上文",
-      "turns": ["我老伴摔了", "不是他，是孩子从床上掉下来了"],
+      "turns": [
+        "我老伴摔了",
+        "不是他，是孩子从床上掉下来了"
+      ],
       "expect": {
         "final_action": "steps",
         "final_scene": "fall_elderly",
@@ -104,7 +134,10 @@
     {
       "id": "MT09",
       "group": "时态推进",
-      "turns": ["刚才闻到很浓的煤气味", "现在味道散了，但头还是晕"],
+      "turns": [
+        "刚才闻到很浓的煤气味",
+        "现在味道散了，但头还是晕"
+      ],
       "expect": {
         "final_action": "steps",
         "final_scene": "co_poisoning",
@@ -115,18 +148,24 @@
     {
       "id": "MT10",
       "group": "时态推进",
-      "turns": ["电梯突然停了，我被困在里面", "现在电梯动了，门开了"],
+      "turns": [
+        "电梯突然停了，我被困在里面",
+        "现在电梯动了，门开了"
+      ],
       "expect": {
-        "final_action": "daily",
-        "final_scene": "elevator_trapped",
+        "final_action": "ack",
+        "final_scene": null,
         "needs_context": true,
-        "why": "已脱困。第二句单独看完全无场景词。若记忆固化成「被困」，会继续给急救步骤（无用且制造恐慌）"
+        "why": "已脱困（电梯门开了）不是求助，也不是急救步骤：应出「已经安全了」的确认卡，不出 elevator_trapped 的步骤。2026-11-20 新增终态工具 ack。"
       }
     },
     {
       "id": "MT11",
       "group": "主体切换",
-      "turns": ["我孙子把纽扣吞下去了", "我自己也咳嗽，嗓子卡了鱼刺"],
+      "turns": [
+        "我孙子把纽扣吞下去了",
+        "我自己也咳嗽，嗓子卡了鱼刺"
+      ],
       "expect": {
         "final_action": "steps",
         "final_scene": "airway_obstruction",
@@ -137,12 +176,29 @@
     {
       "id": "MT12",
       "group": "无上文依赖（对照）",
-      "turns": ["煤气漏了", "怎么预防煤气泄漏"],
+      "turns": [
+        "煤气漏了",
+        "怎么预防煤气泄漏"
+      ],
       "expect": {
         "final_action": "daily",
         "final_scene": "gas_leak",
         "needs_context": false,
         "why": "★ 对照组：第二句本身完整，**不需要上文就能判对**。若加上文反而变错（因为第一轮已在紧急锁定态），说明记忆引入了污染。这条判「记忆不该伤害自足句」"
+      }
+    },
+    {
+      "id": "MT13",
+      "group": "上文污染（P33）",
+      "turns": [
+        "家里闻到很浓的煤气味，煤气漏了",
+        "手机没电了"
+      ],
+      "expect": {
+        "final_action": "refuse",
+        "final_scene": null,
+        "needs_context": true,
+        "why": "当前句是与煤气无关的新话题；模型曾把上文当现场，给出 gas_leak 步骤。判「上文只补指代，不能替代当前句」"
       }
     }
   ]

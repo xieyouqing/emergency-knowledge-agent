@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "id": "food_poisoning",
+  "name": "食物中毒",
+  "aliases": [
+    "吃了坏东西",
+    "食物中毒了",
+    "上吐下泻",
+    "饭后都拉肚子",
+    "吃坏肚子",
+    "剩饭吃完吐了"
+  ],
+  "category": "food_poisoning",
+  "keywords": [
+    "食物中毒",
+    "吃坏",
+    "上吐下泻",
+    "腹泻",
+    "呕吐",
+    "剩饭",
+    "变质",
+    "一家人"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "马上停吃可疑食物",
+        "tool": null
+      },
+      {
+        "text": "意识清醒才能催吐",
+        "tool": null
+      },
+      {
+        "text": "留好食物和呕吐物",
+        "tool": null
+      },
+      {
+        "text": "别自己吃止泻药",
+        "tool": null
+      },
+      {
+        "text": "脱水严重就打 120",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      }
+    ],
+    "next": [
+      {
+        "text": "少量多次喝温淡盐水",
+        "tool": null
+      },
+      {
+        "text": "给食物拍张照再装袋",
+        "tool": null
+      },
+      {
+        "text": "告诉医生吃了什么、几点吃",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "别自己吃止泻药",
+        "tool": null
+      },
+      {
+        "text": "别硬扛着观察",
+        "tool": null
+      },
+      {
+        "text": "昏迷的人别催吐",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "北京市卫生健康委员会《天越热越要当心!警惕盛夏食物中毒》",
+    "url": "https://wjw.beijing.gov.cn/bmfw_20143/jkzs/jksh/202507/t20250722_4154667.html",
+    "date": "2026-11-21",
+    "quote": "食物中毒了?四步急救法记牢 1. 催吐排险:意识清醒、没剧烈呕吐的话,赶紧喝300-500ml温水,用手指轻抠喉咙催吐,把有毒食物吐出来。2. 补水“续命”:多次喝温淡盐水,别让身体脱水(脱水会心慌、尿少,超危险)。 3. 留好“证据”:给可疑食物拍张照(连盘子一起拍),装干净袋子里带去医院,帮医生快速破案。 4. 火速就医:别自己吃止泻药!"
+  },
+  "daily": {
+    "summary": "食物中毒先停吃、留样本，脱水严重或高烧要立刻就医。",
+    "why": "剩饭剩菜在高温天两小时就可能变质，细菌在肠道里繁殖、毒素进到血里，越拖越重。吐和拉本身是身体在排毒，所以不能一味止泻——把毒素关在体内反而加重中毒。真正要补的是水和电解质。",
+    "prevention": [
+      "剩饭菜冷藏别超过 24 小时",
+      "凉菜卤味别在常温久放",
+      "豆角必须焯水炒到全软"
+    ],
+    "misconception": "拉肚子赶紧吃止泻药——错，止泻药会把毒素关在体内，别自己吃。"
+  },
+  "offline": true,
+  "version": "0.1",
+  "status": "published",
+  "review": {
+    "author": "待指派",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-21",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-21",
+      "detail": "原文中逐字定位成功"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-21",
+  "updated_at": "2026-11-21"
+}

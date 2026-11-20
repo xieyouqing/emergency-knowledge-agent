@@ -137,35 +137,69 @@ def fetch(url: str):
     return text, None
 
 
+def _check_quote(quote: str, url: str) -> dict:
+    """判一条摘录：pass / fail / unverified。主源与 supplementary 共用同一套判据。"""
+    text, err = fetch(url)
+    if text is None:
+        return {"result": "unverified", "reason": err}
+
+    if len(normalize(quote)) < 10:
+        return {"result": "fail", "reason": "quote 过短，视为概括"}
+
+    if normalize(quote) in normalize(text):
+        return {"result": "pass", "reason": "原文中逐字定位成功"}
+
+    # 找不到时给一点诊断：取 quote 前 12 字再试一次，判断是整体不在还是部分不在
+    head = normalize(quote)[:12]
+    hint = "连首 12 字都找不到" if head not in normalize(text) else "首段能对上，后面不一致"
+    return {"result": "fail", "reason": f"抓到原文但未找到该句（{hint}）"}
+
+
+# v0.6（契约 §4.3.1）：取最差值。有 fail → fail；否则有 unverified → unverified；全 pass → pass
+_RANK = {"pass": 0, "unverified": 1, "fail": 2}
+
+
+def worst(results) -> str:
+    return max(results, key=lambda r: _RANK[r]) if results else "unverified"
+
+
 def check_entry(d) -> dict:
     sid = d.get("id", "?")
     src = d.get("source") or {}
     quote = str(src.get("quote", "")).strip()
     url = str(src.get("url", "")).strip()
 
-    text, err = fetch(url)
-    if text is None:
-        return {
-            "id": sid, "result": "unverified", "reason": err,
-            "quote": quote[:40] + ("..." if len(quote) > 40 else ""),
-        }
+    main = _check_quote(quote, url)
 
-    if len(quote) < 10:
-        return {"id": sid, "result": "fail", "reason": "quote 过短，视为概括",
-                "quote": quote}
+    # ---- v0.6: 主源 + supplementary 全部逐条比，取最差值 ----
+    supp_out = []
+    supp_src = src.get("supplementary")
+    if isinstance(supp_src, list):
+        for item in supp_src:
+            item = item or {}
+            r = _check_quote(
+                str(item.get("quote", "")).strip(),
+                str(item.get("url", "")).strip(),
+            )
+            supp_out.append({
+                "url": str(item.get("url", "")).strip(),
+                "result": r["result"],
+                "detail": r["reason"],
+            })
 
-    if normalize(quote) in normalize(text):
-        return {"id": sid, "result": "pass", "reason": "原文中逐字定位成功",
-                "quote": quote[:40] + "..."}
+    overall = worst([main["result"]] + [s["result"] for s in supp_out])
 
-    # 找不到时给一点诊断：取 quote 前 12 字再试一次，判断是整体不在还是部分不在
-    head = normalize(quote)[:12]
-    hint = "连首 12 字都找不到" if head not in normalize(text) else "首段能对上，后面不一致"
-    return {
-        "id": sid, "result": "fail",
-        "reason": f"抓到原文但未找到该句（{hint}）",
-        "quote": quote[:40] + "...",
+    out = {
+        "id": sid,
+        "result": overall,
+        "reason": main["reason"],
+        "quote": quote[:40] + ("..." if len(quote) > 40 else ""),
     }
+    if supp_out:
+        n_ok = sum(1 for s in supp_out if s["result"] == "pass")
+        out["reason"] = f"主源：{main['reason']}；补强 {n_ok}/{len(supp_out)} pass"
+        out["supplementary"] = supp_out
+    return out
 
 
 def main():
@@ -208,11 +242,23 @@ def main():
             if INSECURE:
                 detail += "（本次未校验证书，仅确认字面一致）"
             review = d.setdefault("review", {})
-            review["agent_check"] = {
+            ac = {
                 "source_quote": r["result"],
                 "checked_at": today,
                 "detail": detail,
             }
+            # v0.6（契约 §4.3.1）：supplementary 逐条留结果，条数与 source.supplementary 对齐
+            if r.get("supplementary"):
+                ac["supplementary"] = [
+                    {
+                        "url": s["url"],
+                        "result": s["result"],
+                        "checked_at": today,
+                        "detail": s["detail"] + ("（未校验证书）" if INSECURE else ""),
+                    }
+                    for s in r["supplementary"]
+                ]
+            review["agent_check"] = ac
             # 契约 §7.2：source_quote_verbatim 由机器判，人不得手填。
             # 因此这一项只能由本脚本回写，pass 才置 true，fail/unverified 一律置 false。
             checklist = review.setdefault("checklist", {})
@@ -227,7 +273,9 @@ def main():
     for r in results:
         print(f"[{icon[r['result']]:<6}] {r['id']}")
         print(f"         原因: {r['reason']}")
-        print(f"         quote: {r['quote']}")
+        print(f"         quote: {r.get('quote', '')}")
+        for s in r.get("supplementary") or []:
+            print(f"         [补强 {icon[s['result']]}] {s['detail']}  {s['url'][:56]}")
     print("=" * 64)
 
     n_pass = sum(1 for r in results if r["result"] == "pass")

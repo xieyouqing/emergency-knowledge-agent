@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "id": "heatstroke",
+  "name": "中暑",
+  "aliases": [
+    "中暑了",
+    "热射病",
+    "热得头晕恶心",
+    "晒晕了",
+    "高温中暑",
+    "老人在太阳下晕倒"
+  ],
+  "category": "heatstroke",
+  "keywords": [
+    "中暑",
+    "热射病",
+    "热射",
+    "高温",
+    "暴晒",
+    "降温",
+    "出汗多",
+    "热天头晕"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "马上移到阴凉通风处",
+        "tool": null
+      },
+      {
+        "text": "平躺，松开衣扣腰带",
+        "tool": null
+      },
+      {
+        "text": "凉水擦身，扇风降温",
+        "tool": null
+      },
+      {
+        "text": "边降温边打 120",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      }
+    ],
+    "next": [
+      {
+        "text": "冰袋敷脖子腋窝大腿根",
+        "tool": null
+      },
+      {
+        "text": "清醒没吐才小口补液",
+        "tool": null
+      },
+      {
+        "text": "转运路上继续降温",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "别大面积擦酒精降温",
+        "tool": null
+      },
+      {
+        "text": "别直接冰敷前胸或肚子",
+        "tool": null
+      },
+      {
+        "text": "别吃布洛芬等退烧药",
+        "tool": null
+      },
+      {
+        "text": "意识模糊别经口喂水",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "中国疾病预防控制中心《科学应对高温中暑，守护劳动者职业健康》",
+    "url": "https://www.chinacdc.cn/jkkp/zyjk/zyjk/zybfzzs/202607/t20260729_1838473.html",
+    "date": "2026-11-21",
+    "quote": "移： 迅速移至阴凉通风处或空调房，平卧、松开衣扣、腰带。 降： 迅速启动物理降温。使用无冰刺感凉水（手背触碰 微 感 冰凉 ）擦拭患者全身，搭配风扇加速体表散热；冰袋 等 冷敷颈部、腋窝、腹股沟。"
+  },
+  "daily": {
+    "summary": "中暑核心是快快降温。重症会死人，降温的同时必须打 120。",
+    "why": "中暑是身体产热和散热失衡，热量积在体内散不出去，重症会发展成热射病，几小时内就能危及生命。所以现场最要紧的是把人和热源分开、把体表的温度降下来。发病后 30 分钟内是降温黄金期，这段时间别浪费在等待观望上。",
+    "prevention": [
+      "热天每 15-30 分钟喝点水",
+      "别在正午最热时久待户外",
+      "老人房间要通风、开空调"
+    ],
+    "misconception": "中暑发高烧就吃退烧药——错，中暑高热严禁自行服用布洛芬等退烧药。"
+  },
+  "offline": true,
+  "version": "0.1",
+  "status": "published",
+  "review": {
+    "author": "待指派",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-21",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-21",
+      "detail": "原文中逐字定位成功"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-21",
+  "updated_at": "2026-11-21"
+}

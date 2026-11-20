@@ -14,7 +14,9 @@
 退出码 0 = 全部通过；1 = 有失败项
 """
 import json
+import re
 import sys
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,6 +35,10 @@ REQUIRED = [
     "daily", "offline", "version", "status", "review", "created_at", "updated_at",
 ]
 REQUIRED_SOURCE = ["name", "url", "date", "quote"]
+# v0.6: source.supplementary[] 每项五要素（supports 用来判断该来源的用途）
+REQUIRED_SUPPLEMENTARY = ["name", "url", "date", "quote", "supports"]
+MAX_SUPPLEMENTARY = 3
+MIN_QUOTE_CHARS = 10
 REQUIRED_DAILY = ["summary", "why", "prevention", "misconception"]
 REQUIRED_REVIEW = ["author", "approved_by", "approved_at", "checklist", "reject_reason"]
 REQUIRED_SLOT = ["id", "name", "icon", "order", "state", "show_when_empty"]
@@ -41,6 +47,13 @@ CHECKLIST_KEYS = ["step_order_ok", "never_non_empty", "source_quote_verbatim"]
 MAX_STEP_CHARS = 20
 IMMEDIATE_RANGE = (3, 7)
 NEXT_RANGE = (1, 7)
+
+
+def normalize_quote(s: str) -> str:
+    """比对 quote 是否同一句时用的归一化：去空白、统一全半角标点差异。
+    只用于「是不是同一句」的判断，不用于和原文比对（那个在 check_source_quote 里）。"""
+    s = unicodedata.normalize("NFKC", str(s or ""))
+    return re.sub(r"\s+", "", s)
 
 
 def load_index(errors):
@@ -204,8 +217,65 @@ def check_file(path, errors, allowed):
     for k in REQUIRED_SOURCE:
         if k not in src or not str(src[k]).strip():
             errors.append(f"[{rel}] source.{k} 为空")
-    if len(str(src.get("quote", ""))) < 10:
-        errors.append(f"[{rel}] source.quote 少于 10 字，视为概括而非原文")
+    if len(str(src.get("quote", ""))) < MIN_QUOTE_CHARS:
+        errors.append(f"[{rel}] source.quote 少于 {MIN_QUOTE_CHARS} 字，视为概括而非原文")
+
+    # v0.6: source.supplementary[] 校验（契约 §4.3.1）
+    supp = src.get("supplementary")
+    if supp is not None:
+        if not isinstance(supp, list):
+            errors.append(f"[{rel}] source.supplementary 必须是数组，实际 {type(supp).__name__}")
+        elif len(supp) > MAX_SUPPLEMENTARY:
+            errors.append(
+                f"[{rel}] source.supplementary 有 {len(supp)} 条，超过上限 {MAX_SUPPLEMENTARY}"
+                f"（该拆场景，不是继续堆来源）"
+            )
+        else:
+            seen_quotes = {normalize_quote(str(src.get("quote", ""))): "主源"}
+            for i, item in enumerate(supp):
+                stag = f"[{rel}] source.supplementary[{i}]"
+                if not isinstance(item, dict):
+                    errors.append(f"{stag} 必须是对象，实际 {type(item).__name__}")
+                    continue
+                for k in REQUIRED_SUPPLEMENTARY:
+                    if k not in item or not str(item[k]).strip():
+                        errors.append(f"{stag} 缺字段或为空: {k}")
+                q = str(item.get("quote", ""))
+                if q and len(q) < MIN_QUOTE_CHARS:
+                    errors.append(f"{stag} quote 少于 {MIN_QUOTE_CHARS} 字，视为概括而非原文")
+                # v0.6 修正：同 URL 不同段合法（同一篇文献常支撑不同步骤）；
+                # 只禁「同一句原文拆成多条凑数」。
+                if q:
+                    nq = normalize_quote(q)
+                    if nq in seen_quotes:
+                        errors.append(
+                            f"{stag} quote 与 {seen_quotes[nq]} 完全相同"
+                            f"（同一句拆多条凑数；同 URL 不同段落是允许的）"
+                        )
+                    else:
+                        seen_quotes[nq] = f"supplementary[{i}]"
+
+        # agent_check.supplementary 必须与 source.supplementary 条数一致（契约 §4.3.1）
+        ac_supp = (d.get("review", {}).get("agent_check") or {}).get("supplementary")
+        if isinstance(supp, list) and supp:
+            if not isinstance(ac_supp, list):
+                errors.append(
+                    f"[{rel}] 有 source.supplementary 但 review.agent_check.supplementary 缺失"
+                    f"（须由 check_source_quote.py 生成）"
+                )
+            elif len(ac_supp) != len(supp):
+                errors.append(
+                    f"[{rel}] agent_check.supplementary 有 {len(ac_supp)} 条"
+                    f"，与 source.supplementary 的 {len(supp)} 条不一致"
+                )
+            else:
+                for i, item in enumerate(ac_supp):
+                    res = (item or {}).get("result")
+                    if res not in AGENT_CHECK_RESULTS:
+                        errors.append(
+                            f"[{rel}] agent_check.supplementary[{i}].result={res!r} 非法"
+                            f"（只能是 pass / fail / unverified）"
+                        )
 
     daily = d["daily"]
     for k in REQUIRED_DAILY:
@@ -260,6 +330,18 @@ def check_file(path, errors, allowed):
             )
         if not str(ac.get("checked_at") or "").strip():
             errors.append(f"[{rel}] published 但 agent_check.checked_at 为空")
+        # v0.6: 取最差值 —— 有任一条 supplementary 不是 pass，source_quote 就不许是 pass
+        ac_supp = ac.get("supplementary")
+        if isinstance(ac_supp, list) and ac_supp:
+            bad = [
+                i for i, it in enumerate(ac_supp)
+                if (it or {}).get("result") != "pass"
+            ]
+            if bad and res == "pass":
+                errors.append(
+                    f"[{rel}] published 但 agent_check.supplementary{bad} 不是 pass"
+                    f"，source_quote 却写成 pass（契约 §4.3.1 取最差值）"
+                )
 
     return d
 

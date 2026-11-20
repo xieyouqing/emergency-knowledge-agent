@@ -22,7 +22,47 @@
     "火警"
   ],
   "life_threatening": true,
-  "triage": null,
+  "triage": {
+    "question": "着火的是你自己屋里，还是门外、楼道或楼下？",
+    "options": [
+      {
+        "value": "outside",
+        "label": "门外 / 楼道 / 楼下",
+        "override": {
+          "immediate": [
+            {
+              "text": "门发烫就别开门",
+              "tool": null
+            },
+            {
+              "text": "用湿被褥堵住门缝",
+              "tool": null
+            },
+            {
+              "text": "泼水给门降温",
+              "tool": null
+            },
+            {
+              "text": "到窗口挥衣物求救",
+              "tool": null
+            },
+            {
+              "text": "在窗口打 119 说清地址",
+              "tool": {
+                "name": "dial",
+                "number": "119"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "value": "own_room",
+        "label": "自己屋里起火",
+        "override": null
+      }
+    ]
+  },
   "steps": {
     "immediate": [
       {
@@ -87,7 +127,23 @@
     "name": "中华人民共和国应急管理部《社区消防安全知识常识》（火灾逃生自救常识第 4 条）",
     "url": "https://www.mem.gov.cn/kp/shaq/201904/t20190401_366005.shtml",
     "date": "2026-11-18",
-    "quote": "穿过浓烟逃生时，要尽量使身体贴近地面，并用湿毛巾捂住口鼻。"
+    "quote": "穿过浓烟逃生时，要尽量使身体贴近地面，并用湿毛巾捂住口鼻。",
+    "supplementary": [
+      {
+        "name": "同上（火灾逃生自救常识第 7 条）",
+        "url": "https://www.mem.gov.cn/kp/shaq/201904/t20190401_366005.shtml",
+        "date": "2026-11-21",
+        "quote": "室外着火，门已发烫时，千万不要开门，以防大火窜入室内。要用浸湿的被褥、衣物等堵塞门窗，并泼水降温。",
+        "supports": "分诊分支 outside 的 immediate[0..3]：门发烫不开门、堵门缝、泼水降温"
+      },
+      {
+        "name": "同上（火灾逃生自救常识第 8 条）",
+        "url": "https://www.mem.gov.cn/kp/shaq/201904/t20190401_366005.shtml",
+        "date": "2026-11-21",
+        "quote": "若所有逃生路线被大火封锁，要立即退回室内，用打手电筒、挥舞衣物、呼叫等方式向窗外发送求救信号，等待救援。",
+        "supports": "分诊分支 outside 的 immediate[3..4]：窗口挥衣物求救；同时支撑 next[2] 退回室内等救援"
+      }
+    ]
   },
   "daily": {
     "summary": "火灾中最致命的是浓烟，不是火。贴近地面、捂住口鼻、走安全出口，不要坐电梯。",
@@ -101,14 +157,14 @@
     "misconception": "躲进卫生间最安全——不一定，卫生间常无窗无法求救，且门多为塑料，遇高温会熔化。"
   },
   "offline": true,
-  "version": "1.0",
+  "version": "1.1",
   "status": "published",
   "review": {
     "author": "xieyouqing",
     "approved_by": [
       "xieyouqing"
     ],
-    "approved_at": "2026-11-18",
+    "approved_at": "2026-11-21",
     "checklist": {
       "step_order_ok": true,
       "never_non_empty": true,
@@ -116,11 +172,25 @@
     },
     "agent_check": {
       "source_quote": "pass",
-      "checked_at": "2026-11-18",
-      "detail": "原文中逐字定位成功（本次未校验证书，仅确认字面一致）"
+      "checked_at": "2026-11-21",
+      "detail": "主源：原文中逐字定位成功；补强 2/2 pass",
+      "supplementary": [
+        {
+          "url": "https://www.mem.gov.cn/kp/shaq/201904/t20190401_366005.shtml",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        },
+        {
+          "url": "https://www.mem.gov.cn/kp/shaq/201904/t20190401_366005.shtml",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功"
+        }
+      ]
     },
     "reject_reason": null
   },
   "created_at": "2026-11-18",
-  "updated_at": "2026-11-18"
+  "updated_at": "2026-11-21"
 }

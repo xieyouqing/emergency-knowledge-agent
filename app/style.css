@@ -136,6 +136,17 @@ main{
   border-left: 10px solid var(--sos);
   background: #FFF7F6;
 }
+/* D-11 = A（2026-11-20）：进入紧急后，旧助手消息保留但置灰、不可交互。
+   为什么不用 display:none：老人还要能回看自己刚才看到过什么。
+   为什么不用 pointer-events:none 在容器上：子元素仍会接事件，必须覆盖到 *。 */
+.msg.is-old-locked{
+  opacity: .62;
+  filter: grayscale(1);
+  cursor: default;
+}
+.msg.is-old-locked *{
+  pointer-events: none !important;
+}
 .msg-notice{
   align-self: stretch;
   background: #FFF9E6;
@@ -177,6 +188,19 @@ body.is-emergency .composer{
 .composer .ask-row{ margin-bottom: 12px; }
 .composer .voicein-row{ margin-bottom: 12px; }
 .composer .rate-row{ margin-bottom: 0; }
+/* 每步可见进展（M2.5）：与输入区同宽，字号不低于全局下限 */
+.progress{
+  font-size: var(--fs-min);
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  color: #FFFFFF;
+  background: var(--act);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+}
+body.is-emergency .composer .progress{ background: var(--sos); }
 /* hidden 必须真正隐藏：flex 布局下 [hidden] 会被 display:flex 覆盖 */
 .composer [hidden]{ display: none !important; }
 
@@ -381,6 +405,19 @@ body.is-emergency .composer{
   color: var(--ink-2);
   margin: 0 0 18px;
 }
+/* 解释行：为什么先处理这件事（2026-11-20）
+   与 .card-sub 的区别只在左边一道竖线 —— 让老人一眼看出
+   「这是说明，不是要做的事」，避免把解释误读成步骤（S1 关注点）。
+   字号必须用 --fs-min（32px），不允许缩小：这是正文级信息，
+   本项目不使用小于 24pt 的字（docs/01 §6 判据 10）。 */
+.card-note{
+  font-size: var(--fs-min);
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin: 0 0 20px;
+  padding-left: 16px;
+  border-left: 6px solid #C9D2DD;
+}
 
 /* 三段式 */
 .seg{ margin: 0 0 26px; }
@@ -475,6 +512,42 @@ body.is-emergency .composer{
   padding: 16px;
 }
 .dial-btn:active{ background: var(--sos-dark); }
+
+/* ---------- 退出紧急（S8 显式退出，2026-11-20） ----------
+   只在 ack 卡上出现；二次确认才真正退出。按钮必须够大，老人好点。 */
+.ack-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+.ack-actions button{
+  min-height: 64px;
+  flex: 1 1 220px;
+  font-family: inherit;
+  font-size: var(--fs-min);
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 12px 18px;
+  cursor: pointer;
+}
+.ack-exit{
+  color: #FFFFFF;
+  background: var(--act);
+  border: 3px solid var(--act);
+}
+.ack-exit:active{ background: #0E356B; }
+.ack-exit-yes{
+  color: #FFFFFF;
+  background: var(--sos);
+  border: 3px solid var(--sos);
+}
+.ack-exit-yes:active{ background: var(--sos-dark); }
+.ack-exit-no{
+  color: var(--ink);
+  background: #FFFFFF;
+  border: 3px solid var(--line);
+}
 
 /* ---------- 朗读（M2） ----------
    两个按钮并排：大面积「朗读一遍」+ 窄的「停止」。

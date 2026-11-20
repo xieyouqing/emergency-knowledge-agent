@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0",
+  "id": "drowning",
+  "name": "溺水",
+  "aliases": ["溺水", "淹溺", "落水", "掉水里", "水里捞上来", "淹了"],
+  "category": "drowning",
+  "keywords": [
+    "溺水",
+    "淹溺",
+    "落水",
+    "掉水里",
+    "水里捞",
+    "淹了",
+    "呛水",
+    "游泳池",
+    "浴缸"
+  ],
+  "life_threatening": true,
+  "triage": {
+    "question": "人还在水里，还是已经救上岸了？",
+    "options": [
+      {
+        "value": "in_water",
+        "label": "还在水里",
+        "override": {
+          "immediate": [
+            {
+              "text": "大声呼救，马上打 120",
+              "tool": {
+                "name": "dial",
+                "number": "120"
+              }
+            },
+            {
+              "text": "用竹竿、绳子或漂浮物拉人",
+              "tool": null
+            },
+            {
+              "text": "别下水，也别手拉手救人",
+              "tool": null
+            }
+          ]
+        }
+      },
+      {
+        "value": "on_land",
+        "label": "已经上岸",
+        "override": null
+      }
+    ]
+  },
+  "steps": {
+    "immediate": [
+      {
+        "text": "大声呼救，马上打 120",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      },
+      {
+        "text": "清理口鼻里的泥沙、水草",
+        "tool": null
+      },
+      {
+        "text": "没呼吸就开放气道，先吹 2 到 5 口气",
+        "tool": null
+      },
+      {
+        "text": "再按压30次、吹气2次，反复做",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "按压每分钟 100 到 120 次",
+        "tool": null
+      },
+      {
+        "text": "有呼吸就侧卧，脱去湿衣服保暖",
+        "tool": null
+      },
+      {
+        "text": "一直做到呼吸恢复或急救人员到",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "不要倒挂控水，也不要膝盖顶腹",
+        "tool": null
+      },
+      {
+        "text": "不要手拉手下水救人",
+        "tool": null
+      },
+      {
+        "text": "不要只按压、不吹气",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "中国红十字会《暑期防淹溺》",
+    "url": "https://www.redcross.org.cn/autoweb/hlwmh/third/hlwmh_hlwmhsmjk_250756.html?firstcode=",
+    "date": "2026-11-21",
+    "quote": "当淹溺者被救上岸后，应放在坚实的地面上，迅速清除口腔、鼻咽部的异物（如淤泥、杂草等）。迅速判断其意识和呼吸，如果已经没有任何反应，没有呼吸，立即进行心肺复苏，直到专业急救人员到达现场为止。",
+    "supplementary": [
+      {
+        "name": "漳州市红十字会《生命教育之溺水岸上救护》（CPR 顺序）",
+        "url": "http://www.zzhszh.org.cn/cms/html/zzshszh/2022-07-25/676962101.html",
+        "date": "2026-11-21",
+        "quote": "抢救溺水者的心肺复苏操作应按照打开气道-人工呼吸-胸外按压的顺序进行。",
+        "supports": "steps.immediate[2..3]：溺水是窒息性骤停，先开放气道、吹气，再按压"
+      },
+      {
+        "name": "漳州市红十字会《生命教育之溺水岸上救护》（通气与按压比）",
+        "url": "http://www.zzhszh.org.cn/cms/html/zzshszh/2022-07-25/676962101.html",
+        "date": "2026-11-21",
+        "quote": "对于心搏骤停者，立即给予2至5次人工呼吸，然后开始以30:2的按压/吹气比例（按压30次，吸气2次）实施心肺复苏。",
+        "supports": "steps.immediate[2..3] 与 next[0]：先吹 2-5 口，再 30:2，按压 100-120 次/分"
+      },
+      {
+        "name": "漳州市红十字会《生命教育之溺水岸上救护》（不控水）",
+        "url": "http://www.zzhszh.org.cn/cms/html/zzshszh/2022-07-25/676962101.html",
+        "date": "2026-11-21",
+        "quote": "不管溺水者是否还有呼吸，任何情况下都不要对其进行各种形式的控水，如倒挂奔跑、膝盖顶腹、海姆立克等。",
+        "supports": "steps.never[0]：任何情况都不控水"
+      }
+    ]
+  },
+  "daily": {
+    "summary": "溺水救上岸后先清理口鼻；没呼吸就按 A-B-C 做心肺复苏，任何情况都不要控水。",
+    "why": "溺水致命的根源是缺氧，不是肺里灌满了水。所以要先开放气道、吹气，再做胸外按压；控水控出来的多是胃里的东西，还会延误抢救。有呼吸的人侧卧保暖、尽快送医。",
+    "prevention": [
+      "不去不熟悉的水域游泳",
+      "在有救生员的泳池游泳",
+      "下水前先热身"
+    ],
+    "misconception": "倒挂控水能救命——错，控出来多是胃里的水，还会延误心肺复苏。"
+  },
+  "offline": true,
+  "version": "1.0",
+  "status": "published",
+  "review": {
+    "author": "xieyouqing",
+    "approved_by": ["xieyouqing"],
+    "approved_at": "2026-11-21",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-21",
+      "detail": "主源：原文中逐字定位成功；补强 3/3 pass（2026-11-21 抓取核对）",
+      "supplementary": [
+        {
+          "url": "http://www.zzhszh.org.cn/cms/html/zzshszh/2022-07-25/676962101.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功（CPR 顺序）"
+        },
+        {
+          "url": "http://www.zzhszh.org.cn/cms/html/zzshszh/2022-07-25/676962101.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功（2-5 次通气与 30:2）"
+        },
+        {
+          "url": "http://www.zzhszh.org.cn/cms/html/zzshszh/2022-07-25/676962101.html",
+          "result": "pass",
+          "checked_at": "2026-11-21",
+          "detail": "原文中逐字定位成功（不控水）"
+        }
+      ]
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-21",
+  "updated_at": "2026-11-21"
+}

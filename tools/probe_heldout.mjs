@@ -173,6 +173,8 @@ const solid = rows.filter((r) => !r.debatable);
 const solidHit = solid.filter((r) => r.ok).length;
 
 console.log('');
+console.log('★ 评测路径: /act 自主循环（模型选工具，完整循环）');
+console.log('⚠️ 与 run_eval --engine=llm（/judge 单次判定）不是同一条路，数字不能互换。');
 console.log('=== 结果 ===');
 console.log(`  全部 ${n} 条            ${hit}/${n}  (${((hit / n) * 100).toFixed(1)}%)`);
 console.log(

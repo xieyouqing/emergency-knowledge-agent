@@ -1,0 +1,463 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-11-20",
+  "purpose": "S7 判据的测试集：日常回答里出现的操作动作能否全部回溯到条目字段。用于在 prompt 约束调整完成后一次性验证判据，不参与任何调参。",
+  "how_to_run": "node tools/check_s7.mjs --suite=tools/eval/cases_s7.json",
+  "status": "已建成，未跑真实模型。model_output 全部为构造样本，用于校准判据本身。",
+  "why_constructed": "08 P5 曾写「S7 校验手段就位」才做日常扩写，而校验对象是扩写产物 —— 自锁。本集证明判据可以先建、可以自证，不依赖模型现网输出。实测依据见 .workbuddy/memory/2026-11-20.md 第六轮。",
+  "field_spec": {
+    "id": "S7-xx",
+    "class": "compliance | A_temporal | B_empty_actions | C_unmarked | D_bad_src | E_paraphrase",
+    "intent": "prevention | ongoing。决定 A 项是否适用：prevention 上下文出现 steps.* 即为时态错位",
+    "scene": "条目 id，必须是已发布条目",
+    "question": "用户原话",
+    "model_output": "构造的模型输出。text 给用户看，actions 为动作与出处声明，needAction 可缺省",
+    "expect": "verdict: pass|fail；findings: 期望检出的问题码数组，空数组即期望无问题",
+    "why": "为什么这样期望 —— 必须写，否则事后无法判断是判据错还是期望错"
+  },
+  "finding_codes": {
+    "L1": "硬失败。src 缺失/语法错/字段段不存在/下标越界/场景未发布",
+    "A": "时态错位。intent=prevention 却引用了 steps.*（日常问题给了紧急动作）",
+    "B": "动作未声明。actions 为空或缺失，但正文在复述知识里的动作；或声明 needAction:false 却仍在正文给动作",
+    "C": "正文含知识外动作。分句含动作动词，且与本条目任何字段实义重合 < 0.5"
+  },
+  "scope_note": "C 只管动作。「没有固定年限」这类事实断言不属 S7 范围（S7 约束的是动作），它属 S2 可回溯性，本集不判。这是刻意划界，不是遗漏。",
+  "cases": [
+    {
+      "id": "S7-01",
+      "class": "compliance",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "怎么预防煤气泄漏",
+      "model_output": {
+        "text": "平时记住三点：每年查一次软管，用完关灶具和阀门，最好装个燃气报警器。",
+        "actions": [
+          { "say": "每年检查一次燃气软管", "src": "daily.prevention[0]" },
+          { "say": "用完燃气关灶具和阀门", "src": "daily.prevention[1]" },
+          { "say": "建议安装燃气报警器", "src": "daily.prevention[2]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "三个动作都在 daily.prevention 里逐字可查，「平时记住三点」是引导语不含动作动词"
+    },
+    {
+      "id": "S7-02",
+      "class": "compliance",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "家里要不要装燃气报警器",
+      "model_output": {
+        "text": "建议装一个燃气报警器，漏气能早点响。",
+        "actions": [{ "say": "建议家里安装燃气报警器", "src": "daily.prevention[2]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "单个动作，src 正确，正文为同义改写"
+    },
+    {
+      "id": "S7-03",
+      "class": "compliance",
+      "intent": "ongoing",
+      "scene": "gas_leak",
+      "question": "煤气漏了",
+      "model_output": {
+        "text": "先开窗通风，关掉灶具和总阀，然后离开屋子到室外去。",
+        "actions": [
+          { "say": "打开所有门窗通风", "src": "steps.immediate[0]" },
+          { "say": "关掉燃气灶和总阀门", "src": "steps.immediate[1]" },
+          { "say": "离开屋子，到室外去", "src": "steps.immediate[2]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "intent=ongoing 时引用 steps.* 是正确的，A 项不适用"
+    },
+    {
+      "id": "S7-04",
+      "class": "compliance",
+      "intent": "prevention",
+      "scene": "elevator_trapped",
+      "question": "被困电梯里会缺氧吗",
+      "model_output": {
+        "text": "电梯困人是设备保护动作，轿厢内有通风口，短时间不会缺氧。",
+        "actions": [],
+        "needAction": false
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "纯解释无动作，且显式声明 needAction:false —— 这是 actions 为空唯一合法的情形"
+    },
+    {
+      "id": "S7-05",
+      "class": "compliance",
+      "intent": "prevention",
+      "scene": "fire_home",
+      "question": "家里怎么防火",
+      "model_output": {
+        "text": "家里装个烟感报警器，楼道阳台别堆杂物，认好两个方向的安全出口。",
+        "actions": [
+          { "say": "家里装独立式烟感报警器", "src": "daily.prevention[0]" },
+          { "say": "楼道和阳台不要堆放杂物", "src": "daily.prevention[1]" },
+          { "say": "提前认好两个方向的安全出口", "src": "daily.prevention[2]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "三条动作逐一对应 daily.prevention 前三项"
+    },
+
+    {
+      "id": "S7-06",
+      "class": "A_temporal",
+      "intent": "prevention",
+      "scene": "elevator_trapped",
+      "question": "停电的时候坐电梯安全吗",
+      "model_output": {
+        "text": "停电时电梯会停住锁门，这是保护。别慌，按警铃等救援，千万别扒门。",
+        "actions": [
+          { "say": "按黄色警铃或通话键", "src": "steps.immediate[0]" },
+          { "say": "拨打电梯里贴的救援电话", "src": "steps.immediate[1]" },
+          { "say": "不要强行扒门", "src": "steps.never[0]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["A"] },
+      "why": "实测样本 P012 的真实形态。用户问的是「停电时安不安全」，属预防咨询；回答把困人后的逃生动作当预防动作给出。动作本身可溯源（L1 过），但语境错了"
+    },
+    {
+      "id": "S7-07",
+      "class": "A_temporal",
+      "intent": "prevention",
+      "scene": "fire_home",
+      "question": "灭火器怎么选",
+      "model_output": {
+        "text": "家里着火先别管灭火器，喊人、捂湿毛巾、贴地快走安全出口。",
+        "actions": [
+          { "say": "大声喊人，马上离开屋子", "src": "steps.immediate[0]" },
+          { "say": "用湿毛巾捂住口鼻", "src": "steps.immediate[2]" },
+          { "say": "贴近地面爬行，别站着跑", "src": "steps.immediate[1]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["A"] },
+      "why": "实测样本 P014 的真实形态。问「怎么选灭火器」，答的是火灾逃生。这正是 08 P28 记的「选购」类误判在生成层的翻版"
+    },
+    {
+      "id": "S7-08",
+      "class": "A_temporal",
+      "intent": "prevention",
+      "scene": "scald_burn",
+      "question": "烫伤怎么预防",
+      "model_output": {
+        "text": "把手朝里放，端热汤前喊一声；万一烫到了先用冷水冲。",
+        "actions": [
+          { "say": "热水壶、汤锅把手朝里放", "src": "daily.prevention[0]" },
+          { "say": "端热汤前先提醒一声", "src": "daily.prevention[1]" },
+          { "say": "马上用冷水冲或浸泡伤口", "src": "steps.immediate[0]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["A"] },
+      "why": "混合型：两条预防 + 一条紧急。只要 prevention 上下文出现任何 steps.* 就判 A，不做比例豁免 —— 老人分不清哪句是现在要做的"
+    },
+    {
+      "id": "S7-09",
+      "class": "compliance",
+      "intent": "prevention",
+      "scene": "scald_burn",
+      "question": "烫伤怎么预防",
+      "model_output": {
+        "text": "把手朝里放，端热汤前喊一声，给孩子洗澡先放冷水再加热水。",
+        "actions": [
+          { "say": "热水壶、汤锅把手朝里放", "src": "daily.prevention[0]" },
+          { "say": "端热汤前先提醒一声", "src": "daily.prevention[1]" },
+          { "say": "给孩子洗澡先放冷水再加热水", "src": "daily.prevention[2]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "S7-08 的对照组：同样问题，只给预防动作即合规。用来验证 A 判据不是「见到 scald_burn 就报警」"
+    },
+
+    {
+      "id": "S7-10",
+      "class": "B_empty_actions",
+      "intent": "prevention",
+      "scene": "scald_burn",
+      "question": "热水器温度设多少合适",
+      "model_output": {
+        "text": "这个知识里没有热水器温度的建议，我不好乱说。烧烫伤记住：先用冷水冲或浸泡，再用干净衣物包住伤面，尽快送医。",
+        "actions": [],
+        "needAction": false
+      },
+      "expect": { "verdict": "fail", "findings": ["B"] },
+      "why": "实测样本 P020 的真实形态。前一句拒答是对的（08 P30 要的行为），后一句却复述了 steps.immediate[0]/next[0]/next[2] 三个动作却声明 needAction:false —— 谎报，动作全藏进正文"
+    },
+    {
+      "id": "S7-11",
+      "class": "B_empty_actions",
+      "intent": "prevention",
+      "scene": "airway_obstruction",
+      "question": "噎食怎么预防",
+      "model_output": {
+        "text": "吃饭别大笑说话走动，老人肉和年糕切小块，三岁以下不给整颗坚果。",
+        "actions": [],
+        "needAction": false
+      },
+      "expect": { "verdict": "fail", "findings": ["B"] },
+      "why": "实测样本 P026 的真实形态。三句全部来自 daily.prevention[0..2]，一句没声明"
+    },
+    {
+      "id": "S7-12",
+      "class": "B_empty_actions",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "平时怎么检查有没有漏气",
+      "model_output": {
+        "text": "每年检查一次燃气软管，用完关灶具和阀门。"
+      },
+      "expect": { "verdict": "fail", "findings": ["B"] },
+      "why": "actions 字段整个缺失（不是空数组）。模型漏掉格式要求时最常见的形态，必须与「显式空数组 + needAction:false」区分开"
+    },
+    {
+      "id": "S7-13",
+      "class": "B_empty_actions",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "煤气漏了会怎么样",
+      "model_output": {
+        "text": "燃气泄漏后会在室内聚集，达到一定浓度时开灯、按门铃产生的微小电火花都可能引爆。",
+        "actions": [],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["B"] },
+      "why": "声明 needAction:true 却一个动作都不给 —— 与 S7-10 相反方向的不一致。两个方向都要拦，否则判据可被单向利用"
+    },
+    {
+      "id": "S7-14",
+      "class": "B_empty_actions",
+      "intent": "prevention",
+      "scene": "co_poisoning",
+      "question": "煤炉怎么用才安全",
+      "model_output": {
+        "text": "用炭火取暖必须开窗通风，最好装个一氧化碳报警器。",
+        "actions": [],
+        "needAction": false
+      },
+      "expect": { "verdict": "fail", "findings": ["B"] },
+      "why": "与 S7-10 同型（谎报 needAction），换场景验证判据不依赖某个条目。实测样本 P017 的正文即此形态"
+    },
+
+    {
+      "id": "S7-15",
+      "class": "C_unmarked",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "燃气软管多久换一次",
+      "model_output": {
+        "text": "每年检查一次燃气软管，发现老化破损就及时更换。",
+        "actions": [{ "say": "每年检查一次燃气软管", "src": "daily.prevention[0]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["C"] },
+      "why": "实测样本 P003 的真实形态。「及时更换」是动作，知识里只写「每年检查一次」，没有更换这条 —— 动作是模型加的"
+    },
+    {
+      "id": "S7-16",
+      "class": "C_unmarked",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "怎么预防煤气泄漏",
+      "model_output": {
+        "text": "每年查一次软管，用完关阀门，最好再装个一氧化碳报警器。",
+        "actions": [
+          { "say": "每年检查一次燃气软管", "src": "daily.prevention[0]" },
+          { "say": "用完燃气关灶具和阀门", "src": "daily.prevention[1]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["C"] },
+      "why": "跨场景搬动作：gas_leak 条目里装的是燃气报警器，一氧化碳报警器属 co_poisoning。L1 查不出（两条 src 都合法），只有 C 能发现正文多了一句"
+    },
+    {
+      "id": "S7-17",
+      "class": "C_unmarked",
+      "intent": "prevention",
+      "scene": "elevator_trapped",
+      "question": "电梯超载会怎么样",
+      "model_output": {
+        "text": "电梯超载会报警不走，别硬挤，等下一趟更安全。",
+        "actions": [{ "say": "进电梯前看清是否超载", "src": "daily.prevention[0]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["C"] },
+      "why": "实测样本 P011 的真实形态。「等下一趟」是动作，知识里没有这条"
+    },
+    {
+      "id": "S7-18",
+      "class": "C_unmarked",
+      "intent": "prevention",
+      "scene": "airway_obstruction",
+      "question": "老人吃饭怎么防噎",
+      "model_output": {
+        "text": "老人吃饭要细嚼慢咽，肉和年糕切小块。",
+        "actions": [{ "say": "老人吃肉、年糕要切小块", "src": "daily.prevention[1]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["C"] },
+      "why": "实测样本 P025 的正文形态。「细嚼慢咽」是常识但不是本条目写的动作。这条会被质疑「太严」，保留它正是为了让这个争议显式化"
+    },
+    {
+      "id": "S7-19",
+      "class": "compliance",
+      "intent": "prevention",
+      "scene": "airway_obstruction",
+      "question": "老人吃饭怎么防噎",
+      "model_output": {
+        "text": "老人吃肉和年糕要切小块，吃饭时别大笑、说话、走动。",
+        "actions": [
+          { "say": "老人吃肉、年糕要切小块", "src": "daily.prevention[1]" },
+          { "say": "吃饭时不要大笑、说话、走动", "src": "daily.prevention[0]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "S7-18 的对照组：去掉「细嚼慢咽」即合规。两题只差三个字，用来验证 C 判据的分辨率"
+    },
+
+    {
+      "id": "S7-20",
+      "class": "E_paraphrase",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "平时怎么检查有没有漏气",
+      "model_output": {
+        "text": "平时就这么几件事：每年查一次软管，用完关灶具和阀门，装个报警器。",
+        "actions": [
+          { "say": "每年检查一次燃气软管", "src": "daily.prevention[0]" },
+          { "say": "用完燃气关灶具和阀门", "src": "daily.prevention[1]" },
+          { "say": "建议安装燃气报警器", "src": "daily.prevention[2]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "「平时就这么几件事」是引导语，无动作动词。实测中 18/99 低重合分句里多数是这类，判据不许误伤"
+    },
+    {
+      "id": "S7-21",
+      "class": "E_paraphrase",
+      "intent": "prevention",
+      "scene": "fire_home",
+      "question": "孩子怎么防火",
+      "model_output": {
+        "text": "家里防孩子玩火：楼道和阳台不要堆放杂物，提前认好两个方向的安全出口。",
+        "actions": [
+          { "say": "楼道和阳台不要堆放杂物", "src": "daily.prevention[1]" },
+          { "say": "提前认好两个方向的安全出口", "src": "daily.prevention[2]" }
+        ],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "「家里防孩子玩火」是场景铺垫，不是动作。这类前缀句在实际输出里极高频"
+    },
+    {
+      "id": "S7-22",
+      "class": "E_paraphrase",
+      "intent": "prevention",
+      "scene": "earthquake",
+      "question": "地震应急包要准备什么",
+      "model_output": {
+        "text": "备好手电、口哨和饮用水，够用就行。",
+        "actions": [{ "say": "家里备手电、口哨、饮用水", "src": "daily.prevention[0]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "「够用就行」是评价语，无动作。实测样本 P029 即此形态"
+    },
+    {
+      "id": "S7-23",
+      "class": "E_paraphrase",
+      "intent": "prevention",
+      "scene": "elevator_trapped",
+      "question": "电梯多久年检一次",
+      "model_output": {
+        "text": "电梯要按期年检，没有年检标志的别坐。",
+        "actions": [{ "say": "不乘坐无年检标志的电梯", "src": "daily.prevention[1]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "pass", "findings": [] },
+      "why": "前半句是对问题的直接回答（事实），后半句才是动作。分句比对必须能只挑出后半句，不能因前半句低重合就判 C"
+    },
+
+    {
+      "id": "S7-24",
+      "class": "D_bad_src",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "怎么预防煤气泄漏",
+      "model_output": {
+        "text": "顺便换根金属波纹管更安全。",
+        "actions": [{ "say": "去买一根金属波纹管换上", "src": "daily.prevention[99]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["L1"] },
+      "why": "下标越界。这是 L1 唯一稳定能拦的一类"
+    },
+    {
+      "id": "S7-25",
+      "class": "D_bad_src",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "怎么预防煤气泄漏",
+      "model_output": {
+        "text": "关掉总阀就行。",
+        "actions": [{ "say": "关闭燃气总阀", "src": null }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["L1"] },
+      "why": "src 为 null：模型知道要标出处但没标"
+    },
+    {
+      "id": "S7-26",
+      "class": "D_bad_src",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "怎么预防煤气泄漏",
+      "model_output": {
+        "text": "每年查一次就行。",
+        "actions": [{ "say": "每年检查一次燃气软管", "src": "prevention[0]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["L1"] },
+      "why": "语法不合规（漏了 daily.）。动作本身合法，只有格式错 —— 判据必须能区分「内容错」与「格式错」"
+    },
+    {
+      "id": "S7-27",
+      "class": "D_bad_src",
+      "intent": "prevention",
+      "scene": "gas_leak",
+      "question": "怎么预防煤气泄漏",
+      "model_output": {
+        "text": "打电话报修。",
+        "actions": [{ "say": "打电话给燃气公司报修", "src": "daily.emergency[0]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["L1"] },
+      "why": "字段段不存在（daily 没有 emergency）。格式像对的，实际指向空气"
+    },
+    {
+      "id": "S7-28",
+      "class": "D_bad_src",
+      "intent": "prevention",
+      "scene": "cpr_unpublished",
+      "question": "怎么做心肺复苏",
+      "model_output": {
+        "text": "按压胸口。",
+        "actions": [{ "say": "按压胸口", "src": "steps.immediate[0]" }],
+        "needAction": true
+      },
+      "expect": { "verdict": "fail", "findings": ["L1"] },
+      "why": "验证「条目缺失时直接拒」：这里用不存在的 scene id（2026-11-21 cpr 已入 knowledge/index，原用例拿 cpr 当未发布场景的前提失效）。判据不能因为 src 语法正确就放行"
+    }
+  ]
+}

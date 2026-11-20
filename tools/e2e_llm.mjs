@@ -156,6 +156,8 @@ const sandbox = {
   RegExp,
 };
 sandbox.globalThis = sandbox;
+/* B 方案开关：默认开（与产品一致）；--no-seed 时关掉，跑基线对照。 */
+window.ACT_SEED = !process.argv.includes('--no-seed');
 vm.createContext(sandbox);
 
 for (const f of [
@@ -185,15 +187,21 @@ if (!M.LLMAvailable) {
 }
 
 /* ---------- 用例：每条给出「输入 / 期望落点 / 期望内容特征」 ----------
-   注意：含 triage 的场景（gas_leak / earthquake / fall_elderly）首渲染是**分诊卡**，
-   不是完整步骤列表。所以内容特征按分诊卡来断言，不硬套步骤文字。 */
+   注意：含 triage 的场景（gas_leak / earthquake / fall_elderly / fire_home）首渲染是
+   **分诊卡**，不是完整步骤列表。所以内容特征按分诊卡来断言，不硬套步骤文字。 */
 const CASES = [
   { text: '煤气漏了', expect: 'steps', must: ['燃气泄漏', 'triage'] },
-  { text: '着火了', expect: 'steps', must: ['家庭火灾', '贴近地面'] },
+  /* fire_home 自 2026-11-20 起带 triage：首屏问「自己屋里」还是「门外/楼道/楼下」。
+     「贴近地面」属 own_room 分支的步骤，选完分支才出现，不能拿来断言首屏。
+     这里断言分诊问题与两个分支都在，保证「进了火灾路径且分诊没丢」。 */
+  { text: '着火了', expect: 'steps', must: ['家庭火灾', '门外 / 楼道 / 楼下', '自己屋里起火'] },
   { text: '孩子被热水烫起泡了', expect: 'steps', must: ['烧烫伤', '冷水'] },
   { text: '地震了', expect: 'steps', must: ['地震', 'triage'] },
   { text: '老人噎住了', expect: 'steps', must: ['气道梗阻', '拍'] },
   { text: '怎么预防煤气泄漏', expect: 'daily', must: ['查看操作步骤'] },
+  /* 假设句是预案，不是现场：2026-11-20 修 ACT_PROMPT 规则 2 后加的回访用例。
+     它含「火灾」，但不得出步骤卡、不得锁紧急。 */
+  { text: '如果发生火灾怎么办', expect: 'daily', must: ['查看操作步骤'] },
   /* 这条用例**不能断言固定落点**，原因是实测出来的（2026-11-19）：
 
      同一句话、同一时刻、temperature=0，连测 8 次：
@@ -213,15 +221,9 @@ const CASES = [
   { text: '电梯多久年检一次', expect: 'refuse|daily', must: [] },
   { text: '煤气费怎么交', expect: 'refuse', must: ['答不了'] },
   { text: '电梯广告怎么投诉', expect: 'refuse', must: ['答不了'] }, // 曾经误给电梯困人步骤卡
-  /* 溺水给哪个号：119（消防，承担水域救援）或 120（医疗）都合法，
-     白名单里两个都在（tools.js allowedNumbers）。
-
-     ⚠️ 2026-11-19 改：原来写死 must:['120']，但模型实测**稳定给 119**（3/3）。
-     这不是抖动，也不是本轮的回归 —— 溺水场景人还在水里，先要救援力量把人捞上来，
-     119 比 120 更实用。锁死 120 会把这条断言变成「测模型选哪个号」，
-     而它本来要测的是「没有可靠步骤时必须给拨号出口」。
-     所以号码改为「必须在急救号集合内」，仍然能失败（给 110 或不给号都会红）。 */
-  { text: '有人落水了', expect: 'dialonly', must: ['没有可靠的操作步骤'], mustMatch: /119|120/ },
+  /* 溺水条目 2026-11-21 发布后，首屏是分诊卡（还在水里 / 已经上岸），不是拨号卡。
+     这条仍测「有可靠条目时不能退化成 only 拨号」。 */
+  { text: '有人落水了', expect: 'steps', must: ['溺水', '还在水里', '已经上岸'] },
   { text: '今天天气怎么样', expect: 'refuse', must: ['答不了'] },
 ];
 
@@ -262,6 +264,9 @@ for (const c of CASES) {
   // 每条用例前重置状态，避免上一条的 emergency 锁影响本条
   M.state.mode = 'daily';
   M.state.locked = false;
+  /* 2026-11-20：本脚本测的是**单轮基线**，用例之间不能共享会话上文。
+     不清空的话，前一条会作为 context 发给 /act，测的就不再是单轮了。 */
+  M.state.utterances.length = 0;
   M.state.choice = null;
   document.getElementById('dailyAnswer').innerHTML = '';
   document.getElementById('emgAnswer').innerHTML = '';
@@ -290,6 +295,11 @@ for (const c of CASES) {
     );
   }
   ok(html.length > 0, `「${c.text}」渲染结果为空（白屏）`);
+  /* 假设句是预案：除了卡片是 daily，模式也必须仍是 daily、未锁。 */
+  if (c.text === '如果发生火灾怎么办') {
+    ok(M.state.mode === 'daily', `「${c.text}」不得进入紧急模式，实际 ${M.state.mode}`);
+    ok(M.state.locked === false, `「${c.text}」不得锁定紧急，实际 locked=${M.state.locked}`);
+  }
   for (const kw of c.must) {
     ok(html.includes(kw), `「${c.text}」渲染结果缺少「${kw}」`);
   }
@@ -316,6 +326,7 @@ console.log('\n=== 降级链路：把 LLM 指向不存在的端口 ===');
 
   M.state.mode = 'daily';
   M.state.locked = false;
+  M.state.utterances.length = 0;
   document.getElementById('dailyAnswer').innerHTML = '';
   document.getElementById('emgAnswer').innerHTML = '';
 

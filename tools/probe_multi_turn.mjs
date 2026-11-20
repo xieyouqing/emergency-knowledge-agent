@@ -36,8 +36,9 @@ const ENDPOINT = 'http://127.0.0.1:8787/act';
 
 const argv = process.argv.slice(2);
 const VERBOSE = argv.includes('--verbose');
+const NOCACHE = argv.includes('--nocache');
 const modeArg = argv.find((a) => a.startsWith('--mode='));
-const MODE = modeArg ? modeArg.split('=')[1] : 'both';
+const MODE = modeArg ? modeArg.split("=")[1] : "both";
 
 /* ---------- 加载产品代码 ---------- */
 const sandbox = {
@@ -95,11 +96,19 @@ const multi = JSON.parse(
 ).cases;
 
 /* ---------- 调 /act ---------- */
-async function callAct(text, history) {
+async function callAct(text, history, context) {
+  const body = { text, history: (history || []).slice(-6) };
+  /* context 只在 C 模式带。A/B 不带 —— 它们必须与历史基线逐字一致，
+     否则今天这次跑出来的 A/B 数字和 2026-11-19 那批就没法对照了。 */
+  if (context && context.utterances && context.utterances.length) body.context = context;
+  /* --nocache：多轮重复跑时**必须**加，否则第二轮起全部命中代理的 actCache，
+     三遍跑出三份完全相同的数字，看起来「很稳」，实际一次都没重新问过模型。
+     本项目已经踩过同类的坑（probe_stability 的摇摆只在未命中时出现）。 */
+  if (NOCACHE) body.nocache = true;
   return fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, history: (history || []).slice(-6) }),
+    body: JSON.stringify(body),
   }).then((x) => x.json());
 }
 
@@ -110,6 +119,7 @@ function kindToAction(kind) {
   if (kind === 'refuse') return 'refuse';
   if (kind === 'triage') return 'steps';
   if (kind === 'ask') return 'ask';
+  if (kind === 'ack') return 'ack';
   return 'unknown';
 }
 
@@ -117,13 +127,13 @@ function kindToAction(kind) {
    ★ 走产品路径的理由：只有这样才能测到 agent.js 里的
      前置条件门、防绕圈、步数上限、安全出口收敛 —— 本脚本一旦自己写 for 循环，
      那些逻辑全部绕过，测出来的数字与线上行为无关。 */
-async function runLoop(text) {
+async function runLoop(text, context) {
   const out = await AGENT.run(
     text,
     { entries: ENTRIES, sceneIds: SCENE_IDS, history: [] },
     {
       decide(t, ctx2) {
-        return callAct(t, ctx2.history).then((r) => {
+        return callAct(t, ctx2.history, context).then((r) => {
           if (!r || !r.act) throw new Error((r && r.error) || 'no-act');
           return { act: r.act, args: r.args, why: r.reason };
         });
@@ -148,17 +158,24 @@ async function runLoop(text) {
      §2.6 已裁决**不做前端拼接**（会污染时态/否定），所以 B 只作对照基线，
      不是推荐实现。 */
 function buildInput(c, mode) {
-  if (mode === 'none') return c.turns[c.turns.length - 1];
-  return c.turns.join('。');
+  if (mode === 'none') return { text: c.turns[c.turns.length - 1], ctx: null };
+  if (mode === 'concat') return { text: c.turns.join('。'), ctx: null };
+  /* C 分区注入（2026-11-20 新增）：当前句原样发，前面几轮放 context.utterances，
+     由代理在 prompt 里**分区呈现**，而不是拼成一个字符串。
+     ⚠️ 与 B 的唯一差别就是「分区 vs 拼接」这一件事 —— 输入内容完全相同（同样的原话），
+     所以两者差值能且只能归因于分区本身。这是本模式存在的理由。 */
+  const cur = c.turns[c.turns.length - 1];
+  const prev = c.turns.slice(0, -1);
+  return { text: cur, ctx: prev.length ? { utterances: prev } : null };
 }
 
 /* ---------- 跑一种模式 ---------- */
 async function runMode(mode) {
   const rows = [];
   for (const c of multi) {
-    const text = buildInput(c, mode);
+    const { text, ctx } = buildInput(c, mode);
     const t0 = Date.now();
-    const out = await runLoop(text);
+    const out = await runLoop(text, ctx);
     const got = kindToAction(out.endKind);
     const actionOk = got === c.expect.final_action;
     rows.push({
@@ -166,6 +183,7 @@ async function runMode(mode) {
       group: c.group,
       turns: c.turns,
       input: text,
+      ctx: ctx ? ctx.utterances : null,
       expect: c.expect.final_action,
       expectScene: c.expect.final_scene,
       got,
@@ -185,14 +203,21 @@ async function runMode(mode) {
 }
 
 /* ---------- 主流程 ---------- */
-const modes = MODE === 'both' ? ['none', 'concat'] : [MODE];
+const LABEL = {
+  none: 'A 无记忆（现状产品行为）',
+  concat: 'B 拼接上文（朴素记忆）',
+  partition: 'C 分区注入（context）',
+};
+const modes = MODE === 'both' ? ['none', 'concat', 'partition'] : [MODE];
 const results = {};
 
 for (const m of modes) {
-  if (VERBOSE) console.log(`\n=== 模式 ${m === 'none' ? 'A 无记忆（现状）' : 'B 拼接上文'} ===`);
+  if (VERBOSE) console.log(`\n=== 模式 ${LABEL[m] || m} ===`);
   results[m] = await runMode(m);
 }
 
+console.log('\n★ 评测路径: /act 自主循环（模型选工具，完整循环）');
+console.log('⚠️ 与 run_eval --engine=llm（/judge 单次判定）不是同一条路，数字不能互换。');
 console.log('\n=== 结果 ===');
 
 const n = multi.length;
@@ -200,9 +225,8 @@ for (const m of modes) {
   const rows = results[m];
   const ok = rows.filter((r) => r.ok).length;
   const errs = rows.filter((r) => r.error).length;
-  const label = m === 'none' ? 'A 无记忆（现状产品行为）' : 'B 拼接上文（朴素记忆）';
   console.log(
-    `  ${label.padEnd(26)} 结局正确 ${ok}/${n} (${((ok / n) * 100).toFixed(0)}%)  模型失效 ${errs}`
+    `  ${(LABEL[m] || m).padEnd(26)} 结局正确 ${ok}/${n} (${((ok / n) * 100).toFixed(0)}%)  模型失效 ${errs}`
   );
 }
 
@@ -211,7 +235,7 @@ for (const m of modes) {
   const rows = results[m].filter((r) => r.needsContext);
   const ok = rows.filter((r) => r.ok).length;
   console.log(
-    `  ${(m === 'none' ? '其中 needs_context' : '其中 needs_context').padEnd(26)} ${ok}/${rows.length} (${((ok / rows.length) * 100).toFixed(0)}%)`
+    `  ${((LABEL[m] || m) + ' · needs_ctx').padEnd(30)} ${ok}/${rows.length} (${((ok / rows.length) * 100).toFixed(0)}%)`
   );
 }
 
@@ -223,7 +247,7 @@ if (ctl.length) {
   for (const m of modes) {
     const r = results[m].find((x) => x.id === ctl[0]);
     console.log(
-      `  ${m === 'none' ? 'A 无记忆' : 'B 拼接  '} ${r.id} 期望=${r.expect} 实得=${r.got}  ${r.ok ? '✓' : '✗'}`
+      `  ${(LABEL[m] || m).padEnd(26)} ${r.id} 期望=${r.expect} 实得=${r.got}  ${r.ok ? '✓' : '✗'}`
     );
   }
 }
@@ -231,7 +255,7 @@ if (ctl.length) {
 console.log('');
 console.log('=== 明细 ===');
 for (const m of modes) {
-  console.log(`\n[${m === 'none' ? 'A 无记忆' : 'B 拼接上文'}]`);
+  console.log(`\n[${LABEL[m] || m}]`);
   for (const r of results[m]) {
     const mark = r.ok ? '✓' : '✗';
     console.log(

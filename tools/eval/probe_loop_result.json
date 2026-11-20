@@ -1,8 +1,8 @@
 {
- "at": "2026-11-19T14:25:33.846Z",
+ "at": "2026-11-20T22:17:12.604Z",
  "n": 100,
- "acc": 98,
- "avgSteps": 1.7,
+ "acc": 100,
+ "avgSteps": 1.69,
  "p95Steps": 2,
  "degradedCount": 0,
  "rows": [
@@ -17,7 +17,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2441
+   "ms": 1423
   },
   {
    "id": "E002",
@@ -30,7 +30,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1502
+   "ms": 1391
   },
   {
    "id": "E003",
@@ -43,7 +43,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1402
+   "ms": 1496
   },
   {
    "id": "E004",
@@ -56,7 +56,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1617
+   "ms": 1692
   },
   {
    "id": "E005",
@@ -69,7 +69,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1930
+   "ms": 1277
   },
   {
    "id": "E006",
@@ -82,7 +82,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1533
+   "ms": 1314
   },
   {
    "id": "E007",
@@ -95,7 +95,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1119
+   "ms": 2112
   },
   {
    "id": "E008",
@@ -108,7 +108,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1542
+   "ms": 1282
   },
   {
    "id": "E009",
@@ -121,7 +121,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1673
+   "ms": 1311
   },
   {
    "id": "E010",
@@ -134,7 +134,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1359
+   "ms": 1546
   },
   {
    "id": "E011",
@@ -147,7 +147,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1391
+   "ms": 1278
   },
   {
    "id": "E012",
@@ -160,7 +160,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1509
+   "ms": 1562
   },
   {
    "id": "E013",
@@ -173,7 +173,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1374
+   "ms": 1847
   },
   {
    "id": "E014",
@@ -186,7 +186,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1387
+   "ms": 1764
   },
   {
    "id": "E015",
@@ -199,7 +199,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1541
+   "ms": 1254
   },
   {
    "id": "E016",
@@ -212,7 +212,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1515
+   "ms": 1580
   },
   {
    "id": "E017",
@@ -225,7 +225,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1254
+   "ms": 1190
   },
   {
    "id": "E018",
@@ -238,7 +238,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1278
+   "ms": 1528
   },
   {
    "id": "E019",
@@ -251,7 +251,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1614
+   "ms": 1517
   },
   {
    "id": "E020",
@@ -264,7 +264,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1840
+   "ms": 1515
   },
   {
    "id": "E021",
@@ -277,7 +277,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1366
+   "ms": 1632
   },
   {
    "id": "E022",
@@ -290,7 +290,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1905
+   "ms": 1451
   },
   {
    "id": "E023",
@@ -303,7 +303,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1511
+   "ms": 1341
   },
   {
    "id": "E024",
@@ -316,7 +316,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1514
+   "ms": 1098
   },
   {
    "id": "E025",
@@ -329,7 +329,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2150
+   "ms": 1254
   },
   {
    "id": "E026",
@@ -342,7 +342,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1509
+   "ms": 1321
   },
   {
    "id": "E027",
@@ -355,7 +355,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1272
+   "ms": 1231
   },
   {
    "id": "E028",
@@ -368,7 +368,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1319
+   "ms": 1885
   },
   {
    "id": "E029",
@@ -381,7 +381,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1389
+   "ms": 1136
   },
   {
    "id": "E030",
@@ -394,7 +394,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1351
+   "ms": 1630
   },
   {
    "id": "E031",
@@ -407,7 +407,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1340
+   "ms": 1349
   },
   {
    "id": "E032",
@@ -420,7 +420,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1224
+   "ms": 1294
   },
   {
    "id": "E033",
@@ -433,7 +433,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1257
+   "ms": 1107
   },
   {
    "id": "E034",
@@ -446,7 +446,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1180
+   "ms": 1652
   },
   {
    "id": "E035",
@@ -459,7 +459,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1210
+   "ms": 1334
   },
   {
    "id": "E036",
@@ -472,33 +472,33 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1444
+   "ms": 1476
   },
   {
    "id": "E037",
    "text": "有人落水了",
    "group": "emergency",
-   "expect": "dialonly",
-   "got": "dialonly",
-   "endKind": "dial",
+   "expect": "steps",
+   "got": "steps",
+   "endKind": "steps",
    "steps": 2,
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1369
+   "ms": 1436
   },
   {
    "id": "E038",
-   "text": "小孩掉水里了",
+   "text": "小孩掉水里没呼吸了",
    "group": "emergency",
    "expect": "dialonly",
    "got": "dialonly",
    "endKind": "dial",
-   "steps": 2,
+   "steps": 1,
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1331
+   "ms": 876
   },
   {
    "id": "E039",
@@ -511,7 +511,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1483
+   "ms": 1164
   },
   {
    "id": "E040",
@@ -524,7 +524,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1754
+   "ms": 2227
   },
   {
    "id": "P001",
@@ -537,7 +537,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1476
+   "ms": 1470
   },
   {
    "id": "P002",
@@ -550,7 +550,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1664
+   "ms": 1243
   },
   {
    "id": "P003",
@@ -563,7 +563,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1161
+   "ms": 1258
   },
   {
    "id": "P004",
@@ -576,7 +576,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1370
+   "ms": 1700
   },
   {
    "id": "P005",
@@ -589,7 +589,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1424
+   "ms": 1549
   },
   {
    "id": "P006",
@@ -602,7 +602,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1399
+   "ms": 1209
   },
   {
    "id": "P007",
@@ -615,7 +615,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1516
+   "ms": 2040
   },
   {
    "id": "P008",
@@ -628,7 +628,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1644
+   "ms": 1598
   },
   {
    "id": "P009",
@@ -641,7 +641,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1383
+   "ms": 1491
   },
   {
    "id": "P010",
@@ -654,7 +654,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1449
+   "ms": 1491
   },
   {
    "id": "P011",
@@ -667,7 +667,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1606
+   "ms": 1586
   },
   {
    "id": "P012",
@@ -680,7 +680,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1875
+   "ms": 2172
   },
   {
    "id": "P013",
@@ -693,7 +693,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1836
+   "ms": 1441
   },
   {
    "id": "P014",
@@ -706,7 +706,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1935
+   "ms": 776
   },
   {
    "id": "P015",
@@ -719,7 +719,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1404
+   "ms": 1516
   },
   {
    "id": "P016",
@@ -732,7 +732,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1509
+   "ms": 1803
   },
   {
    "id": "P017",
@@ -745,7 +745,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1566
+   "ms": 2109
   },
   {
    "id": "P018",
@@ -758,7 +758,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1950
+   "ms": 1900
   },
   {
    "id": "P019",
@@ -771,20 +771,20 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1846
+   "ms": 1373
   },
   {
    "id": "P020",
    "text": "热水器温度设多少合适",
    "group": "prevention",
    "expect": "daily",
-   "got": "refuse",
-   "endKind": "refuse",
-   "steps": 1,
+   "got": "daily",
+   "endKind": "daily",
+   "steps": 2,
    "degraded": false,
-   "ok": false,
-   "okUnderAsk": false,
-   "ms": 782
+   "ok": true,
+   "okUnderAsk": true,
+   "ms": 639
   },
   {
    "id": "P021",
@@ -797,7 +797,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1547
+   "ms": 1852
   },
   {
    "id": "P022",
@@ -810,7 +810,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1645
+   "ms": 1453
   },
   {
    "id": "P023",
@@ -823,7 +823,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1312
+   "ms": 1640
   },
   {
    "id": "P024",
@@ -836,7 +836,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1165
+   "ms": 1368
   },
   {
    "id": "P025",
@@ -849,7 +849,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1652
+   "ms": 1490
   },
   {
    "id": "P026",
@@ -862,33 +862,33 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1793
+   "ms": 1197
   },
   {
    "id": "P027",
    "text": "孩子游泳怎么防溺水",
    "group": "prevention",
-   "expect": "refuse",
-   "got": "refuse",
-   "endKind": "refuse",
+   "expect": "daily",
+   "got": "daily",
+   "endKind": "daily",
    "steps": 2,
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1488
+   "ms": 1334
   },
   {
    "id": "P028",
    "text": "溺水怎么预防",
    "group": "prevention",
-   "expect": "refuse",
-   "got": "refuse",
-   "endKind": "refuse",
+   "expect": "daily",
+   "got": "daily",
+   "endKind": "daily",
    "steps": 2,
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1355
+   "ms": 1687
   },
   {
    "id": "P029",
@@ -901,7 +901,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1340
+   "ms": 1835
   },
   {
    "id": "P030",
@@ -914,7 +914,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1738
+   "ms": 1325
   },
   {
    "id": "O001",
@@ -927,7 +927,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 676
+   "ms": 653
   },
   {
    "id": "O002",
@@ -940,7 +940,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 810
+   "ms": 917
   },
   {
    "id": "O003",
@@ -953,7 +953,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 856
+   "ms": 591
   },
   {
    "id": "O004",
@@ -966,7 +966,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 781
+   "ms": 703
   },
   {
    "id": "O005",
@@ -979,7 +979,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 954
+   "ms": 887
   },
   {
    "id": "O006",
@@ -992,7 +992,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1012
+   "ms": 848
   },
   {
    "id": "O007",
@@ -1005,20 +1005,20 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 632
+   "ms": 555
   },
   {
    "id": "O008",
    "text": "电梯维修电话多少",
    "group": "off_scope",
    "expect": "refuse",
-   "got": "daily",
-   "endKind": "daily",
-   "steps": 2,
+   "got": "refuse",
+   "endKind": "refuse",
+   "steps": 1,
    "degraded": false,
-   "ok": false,
-   "okUnderAsk": false,
-   "ms": 1820
+   "ok": true,
+   "okUnderAsk": true,
+   "ms": 614
   },
   {
    "id": "O009",
@@ -1031,7 +1031,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 801
+   "ms": 747
   },
   {
    "id": "O010",
@@ -1044,7 +1044,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 783
+   "ms": 662
   },
   {
    "id": "O011",
@@ -1057,7 +1057,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 677
+   "ms": 665
   },
   {
    "id": "O012",
@@ -1070,7 +1070,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1050
+   "ms": 949
   },
   {
    "id": "O013",
@@ -1083,7 +1083,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 762
+   "ms": 1047
   },
   {
    "id": "O014",
@@ -1096,7 +1096,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 968
+   "ms": 657
   },
   {
    "id": "O015",
@@ -1109,7 +1109,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1101
+   "ms": 546
   },
   {
    "id": "O016",
@@ -1122,7 +1122,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 785
+   "ms": 804
   },
   {
    "id": "O017",
@@ -1135,7 +1135,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 616
+   "ms": 596
   },
   {
    "id": "O018",
@@ -1148,7 +1148,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 656
+   "ms": 555
   },
   {
    "id": "O019",
@@ -1161,7 +1161,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 606
+   "ms": 534
   },
   {
    "id": "O020",
@@ -1174,7 +1174,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 902
+   "ms": 547
   },
   {
    "id": "O021",
@@ -1187,7 +1187,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 713
+   "ms": 567
   },
   {
    "id": "O022",
@@ -1200,7 +1200,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 678
+   "ms": 581
   },
   {
    "id": "O023",
@@ -1213,7 +1213,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 787
+   "ms": 737
   },
   {
    "id": "O024",
@@ -1226,7 +1226,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 892
+   "ms": 665
   },
   {
    "id": "O025",
@@ -1239,7 +1239,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 579
+   "ms": 1014
   },
   {
    "id": "O026",
@@ -1252,7 +1252,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 648
+   "ms": 564
   },
   {
    "id": "O027",
@@ -1265,7 +1265,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 660
+   "ms": 542
   },
   {
    "id": "O028",
@@ -1278,7 +1278,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 647
+   "ms": 931
   },
   {
    "id": "O029",
@@ -1291,7 +1291,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 511
+   "ms": 714
   },
   {
    "id": "O030",
@@ -1304,7 +1304,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1068
+   "ms": 750
   }
  ]
 }

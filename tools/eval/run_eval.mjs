@@ -245,6 +245,15 @@ async function actualOf(text) {
 }
 
 console.log(`\n=== 引擎: ${engineName} ===`);
+console.log(
+  '  ★ 评测路径: ' +
+    (engineName === 'llm'
+      ? '/judge 单次判定（模型给标签，代码映射动作）'
+      : '离线检索/规则（不经过 LLM）')
+);
+console.log(
+  '  ⚠️ 本数字不能与 probe_loop.mjs（/act 自主循环）直接混用——两者不是同一条路。'
+);
 console.log('  只换场景检索；意图判定（DANGER_RULES）三层相同。');
 if (engineName === 'llm') {
   console.log('  ⚠️ llm 引擎不同：意图与场景都由模型判定，不经过 DANGER_RULES 与检索层。');

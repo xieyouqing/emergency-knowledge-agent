@@ -50,6 +50,13 @@
            若随消息流滚动上去，老人回看时要滚回来才能再问一句。 -->
   <div class="composer" id="composer">
 
+    <!-- 每步可见进展（M2.5，01 §4.25 第 2 条）：
+         不遮消息流、不弹窗；只在 /act 循环期间显示，最终卡出现就隐藏。
+         文案必须是真的（正在查资料 / 正在准备回答），不写「请稍等，正在思考」。 -->
+    <div class="progress" id="progress" role="status" aria-live="polite" hidden>
+      正在处理…
+    </div>
+
     <form class="ask-row" id="dailyForm" autocomplete="off">
       <label class="sr-only" for="dailyInput">输入你的问题</label>
       <input id="dailyInput" class="ask-input" type="text"

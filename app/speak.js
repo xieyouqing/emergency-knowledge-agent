@@ -259,9 +259,22 @@
     speakDaily(entry, { auto: true });
   }
 
+  /* 已脱困/状态更新的自动朗读：与步骤卡同一套「紧急态才自动读」策略。 */
+  function autoReadAck() {
+    if (!canAutoRead()) {
+      lg('info', '自动朗读跳过（已脱困卡）', { reason: whyNoAutoRead() });
+      return;
+    }
+    if (!V) return;
+    V.speak('已经安全了。先休息一下，注意观察身体。如果还有不舒服，请拨打 120。', {
+      force: true,
+    });
+  }
+
   global.SPEAK = {
     speakSteps: speakSteps,
     autoReadCard: autoReadCard,
+    autoReadAck: autoReadAck,
     autoReadTriage: autoReadTriage,
     speakTriage: speakTriage,
     canAutoRead: canAutoRead,

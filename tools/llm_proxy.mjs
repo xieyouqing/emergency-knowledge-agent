@@ -35,6 +35,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pickProvider, listProviders, DEFAULT_PROVIDER } from './asr/index.mjs';
+/* P5 判据唯一实现：与 tools/check_p5.mjs 共用。 */
+import { validateP5 } from './p5_core.mjs';
 
 /* 用 fileURLToPath 而不是手拼 URL 路径：
    路径含中文时，`new URL().pathname` 返回的是百分号编码串
@@ -180,6 +182,22 @@ const INDEX = JSON.parse(fs.readFileSync(path.join(ROOT, 'knowledge', 'index.jso
 const SCENE_IDS = INDEX.slots.map((s) => s.id);
 const READY_IDS = INDEX.slots.filter((s) => s.state === 'ready').map((s) => s.id);
 
+/* P5 扩写要读条目字段。只加载已发布条目，与前端产物同口径。
+   为什么在代理侧加载而不是让前端把条目传上来：
+     ① 条目是公开静态数据，但「哪些字段可以被扩写」必须由服务端说了算；
+     ② 前端传上来的字段一旦被改，S7 的 src 校验就失去意义。 */
+const ENTRIES = {};
+for (const slot of INDEX.slots) {
+  const p = path.join(ROOT, 'knowledge', `${slot.id}.json`);
+  if (!fs.existsSync(p)) continue;
+  try {
+    const e = JSON.parse(fs.readFileSync(p, 'utf8'));
+    if (e.status === 'published') ENTRIES[slot.id] = e;
+  } catch {
+    /* 坏条目由 validate_knowledge 负责；这里不让代理启动失败 */
+  }
+}
+
 /* =========================================================
    /act 端点：让模型直接输出工具调用（docs/03 §2.5.12 D-12）
    与 /judge 的分工：
@@ -238,6 +256,12 @@ const TOOL_SCHEMA = [
     args: { number: '120|119（只能用这两个）' },
   },
   {
+    name: 'ack',
+    need: '',
+    desc: '用户明确说危险已解除（已脱困/门开了/火灭了/人没事了）时确认；只给观察提示，不出步骤',
+    args: {},
+  },
+  {
     name: 'refuse',
     need: 'reason',
     desc: '拒答。与应急急救无关、或信息不足无法判断时用',
@@ -256,46 +280,68 @@ ${TOOL_SCHEMA.map((t) => `- ${t.name}(${Object.keys(t.args).join(', ')})：${t.d
 硬规则（违反即视为错误）：
 1. 调用 get_steps / get_daily / triage / speak 之前，history 里必须已经有同场景的 lookup_scene 且其 found=true。
    没有就**先输出 lookup_scene**，不要直接出内容。
-2. 只有「危险正在发生」才出 get_steps。问「怎么预防」「要不要装」「多久一次」一律出 get_daily。
+2. 只有「危险正在发生」才出 get_steps。问预防、问要不要做、问频次，或描述尚未发生 / 已结束的情形，
+   一律出 get_daily。是现场还是预案由 turn 判断，不要靠句子里有没有某个词来硬套。
 3. 与应急急救无关（缴费、投诉、价格、理赔、广告、邻里关系）一律 refuse。
-   **但「选购类」要分两种，不能一律 refuse（2026-11-19 修）**：
-   · **安全防护设备**的选购 → get_daily（属 prevention）。清单：燃气报警器、烟感器、
-     一氧化碳报警器、灭火器、防滑垫、扶手、插座保护盖、漏电保护器、防坠网。
-     判断原则：**买错或没装会直接导致防护失效、进而伤人**的，就是防护设备。
-   · **消费品**的选购 → refuse。清单：燃气热水器、护理床、跌打药、电梯房、按摩椅。
-     判断原则：买错只影响价格、舒适或效果，**不会因为选错就在险情里保护失效**。
-   ⚠️ 为什么这条要单独写：「灭火器怎么选」曾被判成「商品选购，与应急无关」→ refuse，
-   而标注要求 daily。根因是旧规则 3「选购一律 refuse」与规则 2「要不要装→get_daily」
-   **自相矛盾**（「家里要不要装燃气报警器」走规则 2 对，「灭火器怎么选」走规则 3 错）。
-   灭火器选错类型（如水基灭不了电器火）会在关键时刻失效，这与「没装报警器」是同一类风险。
+   选购类要分两种：**买错或没装会直接导致防护失效、进而伤人的**（燃气报警器、烟感器、
+   一氧化碳报警器、灭火器、防滑垫、扶手、插座保护盖、漏电保护器、防坠网）→ get_daily；
+   **买错只影响价格、舒适或效果的** → refuse。
+   设备的使用参数如果**会直接影响人身安全**（如热水器温度、取暖温度）→ get_daily；
+   纯购买、价格、维修 → refuse。
 4. 场景拿不准就给 refuse，不要猜一个相近的场景。
 5. 已经拿到结果就停止，不要重复查同一个场景。
+   **同一 scene 只需查一次：found=true 就是最终结果**；用户换了描述对象不改变库内有没有这个条目。
 6. **紧急场景一律不许用 ask 追问，直接出内容或拨号。**
-   具体征兆包括：闻到异味/臭味/煤气味、看到明火或烟、有人倒地/叫不醒/抽搐、
-   有人触电、有人溺水、大出血、被烫伤、电梯困人、地震。
    用户加「不知道是不是」「好像是」「可能」这类不确定词，**不改变判定** ——
-   他只是不能确认，不是没有征兆。**闻到异味就按泄漏处理，宁可多给。**
+   他只是不能确认，不是没有征兆。
    **为什么紧急不许问**：紧急链路每问一句，用户要多等约 1 秒且可能根本不回答
    （手在抖、人已昏迷、在跑）。宁可给一个覆盖更坏情况的步骤，也不要停下来问。
-   ⚠️ 不要把「器具故障」当需要处理的情形 —— 例如「打不着火」但没提任何味道/异响：
-   那是家务事，不是急救，应 refuse。本产品不做「先确认再决定管不管」的追问。
-7. **本库没有覆盖的急症，必须直接 dial，不许 get_steps。**
-   未覆盖清单：**没有呼吸 / 无呼吸 / 呼吸停止 / 心跳停止 / 叫不醒且无反应（需 CPR）、
-   大出血、昏迷不醒、抽搐不止、卒中（嘴歪眼斜半身不遂）**。
-   为什么这条比「给步骤」更安全：库里的 fall_elderly 首屏会问
-   「现在能自己试着动一动胳膊腿吗？」—— **对一个已经没呼吸的人问这句是致命的**。
-   给不出的内容宁可不给，直接给 120 拨号按钮。
+   ⚠️ 器具本身故障、但没有泄漏 / 异味 / 异响 / 烟等任何现场信号时（如打不着火），
+   属家用设备报修，不是急救，应 refuse。本产品不做「先确认再决定管不管」的追问。
+7. **先按用户明确说出的状态选条目，不许推测；本库没有的才 dial。**
+   · 明确说「没有呼吸 / 无呼吸 / 呼吸停止 / 心跳停止 / 没有脉搏」→ cpr（先 lookup 再 get_steps）。
+   · 明确说「大出血 / 流血不止 / 止不住血」→ severe_bleeding。
+   · 明确说卒中表现（嘴歪眼斜、半身不遂）→ stroke。
+   · **溺水 / 落水 / 掉水里**：即使没有呼吸，也用 **drowning** 条目（先清理口鼻、开放气道、吹 2-5 口气，再按压），
+     不要套用成人 cpr 条目。
+   · **例外（只针对 CPR）**：婴儿 / 宝宝 / 新生儿 / 幼儿 / 儿童 / 小孩 / 孩子，
+     即使没有呼吸，也**直接 dial 120**；本库没有儿科 CPR，不得套用成人手法。
+     **这条例外不许扩大**：儿童跌倒、烫伤、噎食等仍走对应条目（如 fall_elderly 分诊），不要一律拨号。
+   · **例外二：少量出血、划破皮、能自行止住的血不是大出血**，不要用 severe_bleeding。
+   · **叫不醒但还有呼吸 / 有呼吸但没反应**：本库没有对应条目，直接 dial 120；
+     不得用 cpr，也不得走 fall_elderly 分诊。
+   · 昏迷不醒、抽搐不止：未覆盖，直接 dial 120。
+   为什么不能猜：fall_elderly 首屏会问「现在能自己试着动一动胳膊腿吗？」——
+   对一个已经没呼吸的人问这句是致命的。给不出的内容宁可不给。
    注意：airway_obstruction 只讲噎食（海姆立克），**不是 CPR**，不要拿它顶替。
-   ⚠️⚠️ **触发条件必须由用户明说，不许推测。**
-   用户只说「倒了 / 摔了 / 跌了一跤」，**没提呼吸和意识**时，不要假设最坏情况，
-   按常规出 triage 或 get_steps（fall_elderly 的分诊会自己问「能不能动胳膊腿」，
-   这对清醒的摔伤者是合适的）。只有当用户**明确说出**「没呼吸 / 没反应 / 叫不醒 /
-   昏迷 / 大出血」时才 dial。
-   判断依据是「用户说了什么」，不是「可能会怎样」。过度保守会让用户拿不到任何处置指引，
-   比给分诊卡更差。
+   ⚠️ **触发条件必须由用户明说。** 只说「倒了 / 摔了 / 跌了一跤」、没提呼吸和意识时，
+   不要假设最坏情况，按常规出 triage 或 get_steps（fall_elderly 的分诊会问能不能动，
+   这对清醒的摔伤者是合适的）。判断依据是「用户说了什么」，不是「可能会怎样」。
+8. **用户明确说危险已经解除（已脱困 / 门开了 / 火灭了 / 人没事了 / 已经不漏了）时，用 ack**，
+   不要再出 get_steps。ack 只给确认与观察提示，不出步骤；它不是拒答，也不等于「不关心」。
+   注意：只有**用户明确说解除**才算；不确定的话仍按现场处置。
+   **更正原因不等于解除** —— 按更正后的情况重新判断，与应急无关就 refuse，不要用 ack。
+
+turn 是什么（只判这一件事，不写案例）：
+- ongoing：用户报告**当前正在发生**的感官或身体事实
+- plan：假设、预防、知识性，描述**尚未发生或已结束**的事
+- off_scope：与应急急救无关
+turn 与 act 必须一致：turn=plan 时不许 get_steps / triage / dial；
+turn=off_scope 时只能 refuse。
+evidence：用户原话里支持 turn 的片段，**不得为空**。
 
 输出格式（严格）：
-{"act":"<工具名>","args":{...},"reason":"<一句话，为什么选它>"}`;
+{"turn":"ongoing|plan|off_scope","evidence":"<用户原话片段>","act":"<工具名>","args":{...},"reason":"<一句话，为什么选它>","note":"<一句话解释，可空>"}
+
+note 是什么（只影响卡片上多不多一行字，**不参与你是否回答的决策**）：
+· 当用户**一句话里说了两件互不相干的事**时，note 填一句给用户看的解释，
+  说清你先办哪件、另一件稍后；其余情况（包括你决定 refuse 时）一律填 ""。
+· note 为空只表示「不需要多解释一句」，**绝不表示这件事不该回答**。
+· note 会原样显示给用户，所以：人话、≤25 字、**不得含任何具体操作动作**。
+  操作只能来自知识库 steps，模型写了就是自造动作（违反 S1/S7）。
+· reason 仍是给开发看的技术说明，措辞不用改。两者用途不同，不要互相抄。
+
+`;
 
 /* 缓存键必须与 /judge 分开：同一句话在两套 prompt 下结论不同 */
 const actCache = new Map();
@@ -310,26 +356,29 @@ ${SCENE_IDS.join(', ')}
 
 对用户输入判定三件事：
 1. intent
-   - ongoing    = 危险正在发生，需要立即行动（"着火了"、"煤气漏了"、"起不来"）
-   - prevention = 问预防方法、日常注意事项、知识性疑问（"怎么预防"、"多久换一次"、"要不要装"）
-   - off_scope  = 与应急急救无关（缴费、投诉、选购、价格、理赔、广告、邻里关系等）
+   - ongoing    = 当前正在发生的危险或行动需求
+   - prevention = 预防、日常注意事项、知识性疑问
+   - off_scope  = 与应急急救无关
 2. scene：命中的场景 id；off_scope 或无法归属时必须为 null
 3. confidence：0.0-1.0
 
 判定要点：
-- "怎么预防X"、"X多久一次"、"要不要装X" 属 prevention，不是 ongoing
-- "X费怎么交"、"X怎么投诉"、"X多少钱" 属 off_scope
-- **"X怎么选"要分两种（2026-11-19 修，旧版一律归 off_scope 与上一条自相矛盾）**：
-  · **安全防护设备** → prevention（燃气报警器、烟感器、一氧化碳报警器、灭火器、
-    防滑垫、扶手、插座保护盖、漏电保护器）。判断原则：**买错或没装会直接导致
-    防护失效、进而伤人**。
-  · **消费品** → off_scope（燃气热水器、护理床、跌打药、电梯房、按摩椅）。
-    判断原则：买错只影响价格、舒适或效果，不会在险情里保护失效。
+- 判断依据是「用户此刻是否在描述正在发生的事」，不是关键词
+- 问「怎么用、有没有用、会怎么样、多久一次、参数设多少」这类知识或预防问题，属 prevention
+- 问「买哪种、怎么选、价格、维修」属 off_scope；**安全防护设备除外**（买错或没装会直接导致防护失效）
+- 安全防护设备的选购按 prevention；纯消费品选购按 off_scope。
+  原则：**买错或没装会直接导致防护失效、进而伤人**的属前者
 - 只在真的正在出事时给 ongoing
 - 宁可 scene 为 null，也不要猜一个相近的场景
 
-输出格式（严格，不要多余字段）：
-{"intent":"ongoing|prevention|off_scope","scene":"<id>|null","confidence":0.0}`;
+turn 是同一件事的另一层标签（不另举例）：
+- ongoing：当前正在发生
+- plan：假设/预防/尚未发生或已结束
+- off_scope：与应急急救无关
+evidence：用户原话里支持 turn 的片段，不得为空。
+
+输出格式（严格）：
+{"intent":"ongoing|prevention|off_scope","turn":"ongoing|plan|off_scope","evidence":"<用户原话片段>","scene":"<id>|null","confidence":0.0}`;
 
 /* ---------- 云 ASR ----------
    为什么必须由代理转发，而不是前端直连：
@@ -518,7 +567,7 @@ async function judge(text, opts) {
         { role: 'user', content: text },
       ],
       temperature: 0,
-      max_tokens: 80,
+      max_tokens: 120,
       response_format: { type: 'json_object' },
     }),
   });
@@ -552,8 +601,18 @@ async function judge(text, opts) {
   if (!Number.isFinite(confidence)) confidence = 0;
   confidence = Math.max(0, Math.min(1, confidence));
 
+  /* turn：模型的「现场/预案/无关」标签；缺失时按 intent 映射，
+     保证旧模型/旧缓存也能给出稳定结构。 */
+  let turn = String(obj.turn || '').trim();
+  if (!['ongoing', 'plan', 'off_scope'].includes(turn)) {
+    turn = intent === 'ongoing' ? 'ongoing' : intent === 'prevention' ? 'plan' : 'off_scope';
+  }
+  const evidence = String(obj.evidence || '').slice(0, 120);
+
   const result = {
     intent,
+    turn,
+    evidence,
     scene,
     // scene_unpublished: 判出了场景但该场景还没有条目 → 前端只能给拨号卡
     scene_unpublished: scene !== null && !READY_IDS.includes(scene),
@@ -583,6 +642,135 @@ function proxyLog(level, msg, fields = {}) {
   appendLogs([rec]);
 }
 
+/* ---------- P5：日常解释扩写（/expand） ----------
+   范围（第一版，刻意收窄）：
+     · 只解释「为什么 / 常见误区」，不复述操作步骤；
+     · 操作步骤由前端静态字段单独列出，模型不生成动作。
+   这样 S7 的动作约束从结构上就成立：没有 actions；若正文出现动作动词，直接判失败，
+   前端回落静态日常卡。后续要允许「带出处的动作」再扩展 actions/src。 */
+const EXPAND_PROMPT = `你是应急科普解释器。只输出 JSON，不解释、不加代码块。
+给定条目的 summary / why / misconception 和 prevention 列表，用老人能听懂的话解释。
+硬规则：
+1. 只解释原因、原理、后果、常见误区。
+2. **可以复述 prevention 列表里已有的动作，但必须逐字复述**，
+   并在 actions 里写出 {"say":"<逐字>","src":"daily.prevention[i]"}。
+   **可以为解释原因举例**（如「开灯、按门铃产生的火花」），
+   但不得写成让用户做某件事的祈使句；
+   **不要以动作开头**（打开/关闭/拨打/检查/通风……一律不要）。
+3. 正文里出现的每一个动作，都必须能在 actions 里找到 say；
+   没写进 actions 的动作 = 违规，会被拒绝。
+4. 不复述知识库里没有的事实；不编数字、不编药名、不编诊断。
+5. ≤120 个汉字；口语化。
+输出格式（严格）：
+{"text":"<解释>","actions":[{"say":"<逐字动作>","src":"daily.prevention[0]"}],"needAction":true}
+没有动作时：{"text":"<解释>","actions":[],"needAction":false}`;
+
+/* 祈使/动作短语的检测在 tools/p5_core.mjs（与离线检查器共用一份）。 */
+const expandCache = new Map();
+const EXPAND_CACHE_MAX = 500;
+
+async function callExpandModel(facts, question, feedback) {
+  const feedbackLine = feedback
+    ? `\n上一版被拒：${feedback}。请重写：不要写祈使句，把具体动作改成名词短语；动作只能逐字引用 prevention 列表。` +
+      `常见替换：开灯→电火花；按门铃→门铃电火花；打电话→手机电火花；通风→空气流通；离开→人处在安全位置。`
+    : '';
+  const res = await fetch(`${BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: 'system', content: EXPAND_PROMPT },
+        {
+          role: 'user',
+          content: `条目字段：${JSON.stringify(facts)}\n用户问：${question}${feedbackLine}\n只输出 JSON。`,
+        },
+      ],
+      temperature: 0,
+      max_tokens: 220,
+      response_format: { type: 'json_object' },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`上游 ${res.status}: ${String(body).slice(0, 200)}`);
+  }
+  const data = await res.json();
+  const raw = data?.choices?.[0]?.message?.content || '{}';
+  return extractJson(raw) || {};
+}
+
+async function expand(question, scene, opts = {}) {
+  const noCache = opts.noCache === true;
+  const key = `${scene}|${question}`;
+  if (!noCache) {
+    const hit = expandCache.get(key);
+    if (hit) return { ...hit, cached: true, latency_ms: 0 };
+  }
+  const entry = ENTRIES[scene];
+  if (!entry) return { ok: false, reason: 'scene-not-ready' };
+
+  const daily = entry.daily || {};
+  const prevention = Array.isArray(daily.prevention) ? daily.prevention : [];
+  const facts = {
+    name: entry.name,
+    summary: daily.summary || '',
+    why: daily.why || '',
+    misconception: daily.misconception || '',
+    /* 带编号给模型逐字引用；只允许这一组动作。 */
+    prevention: prevention.map((s, i) => `${i}: ${s}`),
+  };
+  const t0 = Date.now();
+  /* 最多两次：第一次不过，把拒绝原因回喂，让模型用名词短语重写一次。
+     判据不变；重试只给一次改正机会，失败仍回落静态卡。 */
+  let checked = null;
+  let text = '';
+  let lastReason = '';
+  let attempts = 0;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    attempts = attempt + 1;
+    const obj = await callExpandModel(facts, question, attempt ? lastReason : '');
+    text = String((obj && obj.text) || '').trim();
+    if (!text) {
+      lastReason = 'empty-text';
+      continue;
+    }
+    if (text.length > 160) {
+      lastReason = 'too-long';
+      continue;
+    }
+    checked = validateP5(entry, text, obj && obj.actions);
+    if (checked.ok) break;
+    lastReason = checked.findings[0] || 'p5-reject';
+  }
+
+  const latency = Date.now() - t0;
+  if (!checked || !checked.ok) {
+    return { ok: false, reason: lastReason, latency_ms: latency, attempts };
+  }
+
+  const out = {
+    ok: true,
+    text,
+    actions: checked.actions,
+    needAction: checked.needAction,
+    latency_ms: latency,
+    attempts,
+    cached: false,
+  };
+  if (expandCache.size >= EXPAND_CACHE_MAX) {
+    /* 淘汰最旧 1/8，不全清：与 actCache 同一理由，避免已稳定解释重新摇 */
+    const drop = Math.max(1, Math.floor(expandCache.size / 8));
+    let i = 0;
+    for (const k of expandCache.keys()) {
+      expandCache.delete(k);
+      if (++i >= drop) break;
+    }
+  }
+  expandCache.set(key, out);
+  return out;
+}
+
 /* ---------- 让模型选一个工具（/act）----------
    history 只传「动作摘要」，不传原文与渲染结果：
      一段长 history 会把 prompt 撑爆并拖慢首字；而模型判断下一步只需要知道
@@ -591,14 +779,53 @@ function proxyLog(level, msg, fields = {}) {
 
    ★ 本函数**不校验动作合法性**。只做「结构合法性」检查（有没有 act、是不是字符串）。
      白名单与前置条件归前端 tools.js —— 一处实现，避免两套判据打架。 */
+/* ---------- 会话上文规范化（M2.5 记忆，2026-11-20） ----------
+   判据 M4：注入的上文 ≤ 800 字，且只保留最近 5 轮。
+   裁剪放在**这里（代理侧）而不是前端**：前端只管往上传，上限只有一处实现，
+   否则前端改一次、代理不知道，两边数字对不上。
+
+   ★ 只接受「用户原话」，不接受任何结论字段。
+     依据 docs/03 §2.6.5 R1：模型判定的 intent/scene 一旦进记忆，错误会累积，
+     且没有任何机制能发现——第一轮判错，后面每轮都在错的基础上继续。 */
+const CTX_MAX_UTTERANCES = 5;
+const CTX_MAX_TOTAL = 800;
+const CTX_MAX_ONE = 200;
+
+function normalizeContext(raw) {
+  if (!raw || typeof raw !== 'object') return { utterances: [] };
+  const src = Array.isArray(raw.utterances) ? raw.utterances : [];
+  let list = src.filter((u) => typeof u === 'string').map((u) => u.trim()).filter(Boolean);
+
+  // 单条超长：截断而非丢弃，丢掉会让模型以为用户没说过
+  list = list.map((u) => (u.length > CTX_MAX_ONE ? u.slice(0, CTX_MAX_ONE) + '…' : u));
+
+  // 只留最近 5 条
+  list = list.slice(-CTX_MAX_UTTERANCES);
+
+  // 总量超 800 字：从最旧的开始丢
+  while (list.length > 1 && list.join('').length > CTX_MAX_TOTAL) list.shift();
+
+  return { utterances: list };
+}
+
 async function act(text, opts = {}) {
   const history = Array.isArray(opts.history) ? opts.history : [];
   const noCache = opts.noCache === true;
+  const ctx = normalizeContext(opts.context);
 
-  /* 缓存键含 history：同一句话在不同上下文下该调的工具不同。
-     只取「动作名+场景」拼键，不含 reason（模型措辞会变，会让缓存命中率归零）。 */
+  /* 缓存键必须含上文（2026-11-20 加）。
+     ⚠️ 不含会出安全事故：同一句「她还有呼吸」在第一轮「老人倒地」下该给
+     fall_elderly，在另一轮「孩子烫伤」下该给 scald_burn。键里没有上文，
+     两个不同上下文会命中同一份缓存 —— 第二个用户拿到第一个的答案。
+     这正是 MT07 那类错误在缓存层的翻版。 */
+  const ctxKey = ctx.utterances.length ? ctx.utterances.join('>') : '';
   const key =
-    text + '|' + history.map((h) => `${h.act}:${(h.args && h.args.scene) || ''}`).join('>');
+    text +
+    '|' +
+    ctxKey +
+    '|' +
+    `turn:${opts.turn || ''}|` +
+    history.map((h) => `${h.act}:${(h.args && h.args.scene) || ''}`).join('>');
   if (!noCache) {
     const hit = actCache.get(key);
     if (hit) return { ...hit, cached: true, latency_ms: 0 };
@@ -613,7 +840,55 @@ async function act(text, opts = {}) {
         .join('\n')
     : '（还没有调用过任何工具）';
 
-  const userMsg = `用户说：${text}
+  /* ⚠️ context 为空时，本块**一个字都不插**。
+     原因：A 模式（无记忆）与 100 条单轮评测的基线必须在加记忆前后完全一致。
+     若空 context 也插一个空标签，prompt 变了，历史数字就不能再拿来对照了。
+     `probe_multi_turn` 的 A 组就是靠这一点保持「== 现状产品行为」。 */
+  /* 分区注入的三件事：
+     ① 块标题 + 顺序 —— 让模型知道哪句是过去、哪句是现在。
+     ② 「不是现在说的」 —— 防 MT10「现在电梯门开了」被当当前情境，给已脱困者急救步骤。
+     ③ 「冲突时以这句为准」 —— 一条明确的冲突裁决指令。
+
+     ⚠️ 2026-11-20 修正归因：原先我写「③ 缺了模型就只能猜」，这是错的。
+     实测 reason 证明模型**完全看懂**更正（原话：「用户先说煤气漏了，虽然后续改口为油烟味，
+     但已出现疑似燃气泄漏的表述，按泄漏场景先查条目，宁可多给」）——
+     它看懂后**主动选择无视**，因为 ACT_PROMPT 规则 6 写着「闻到异味就按泄漏处理，宁可多给」，
+     那是 system 级的硬指令，压过了 user message 里的更正。
+     所以 ③ 的真实作用不是「帮模型理解」，而是**提供一条与规则 6 平级、指向相反的裁决指令**。
+
+     ACT_CTX_STYLE 仅供消融实验：full=默认 / plain=只有标签无裁决指令 / raw=纯上文无标签。
+     不设则为 full，与上线行为一致。 */
+  const style = String(process.env.ACT_CTX_STYLE || 'full');
+  let ctxBlock;
+  if (!ctx.utterances.length) {
+    ctxBlock = `用户说：${text}`;
+  } else if (style === 'raw') {
+    ctxBlock = `${ctx.utterances.join('\n')}\n${text}`;
+  } else if (style === 'plain') {
+    ctxBlock = `【更早说过的话】以下是用户**之前**说的，不是现在说的，按时间从早到晚：
+${ctx.utterances.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+
+【当前这句话】用户刚说的：
+${text}`;
+  } else {
+    ctxBlock = `【更早说过的话】以下是用户**之前**说的，不是现在说的，按时间从早到晚：
+${ctx.utterances.map((u, i) => `${i + 1}. ${u}`).join('\n')}
+
+【当前这句话】用户刚说的。**与上文冲突时，以这句为准**：
+${text}
+
+上文只用于理解指代、主体变更，或补充**同一现场**的细节。
+如果当前这句话是一个新的、与上文场景无关的话题，就按当前这句话单独判断，
+不要把上文里的场景当成现在正在发生。`;
+  }
+  const policyLine = opts.turn
+    ? `\n本轮类型：${opts.turn}。${
+        opts.allowSteps === false
+          ? '只允许 lookup_scene / get_daily / refuse；禁止 get_steps / triage / dial。'
+          : ''
+      }`
+    : '';
+  const userMsg = `${ctxBlock}${policyLine}
 
 已经调用过的工具与结果：
 ${histLines}
@@ -639,7 +914,7 @@ ${histLines}
 
          prompt 里「reason 一句话」管不住 —— 那是**请求**不是**保证**，上限必须给足。
          320 的依据：实测最长响应 211 token，留 100 余量。 */
-      max_tokens: 320,
+      max_tokens: 420,
       response_format: { type: 'json_object' },
     }),
   });
@@ -657,10 +932,26 @@ ${histLines}
 
   const args = obj.args && typeof obj.args === 'object' && !Array.isArray(obj.args) ? obj.args : {};
 
+  /* turn/evidence：模型的回合标签。缺失时回落前端本地策略（opts.turn），
+     保证旧模型、旧缓存、测试桩都不会因为新字段缺失而失败。 */
+  let turn = String(obj.turn || '').trim();
+  if (!['ongoing', 'plan', 'off_scope'].includes(turn)) {
+    turn = ['ongoing', 'plan', 'off_scope'].includes(opts.turn) ? opts.turn : null;
+  }
+  const evidence = String(obj.evidence || '').slice(0, 120);
+
   const out = {
+    turn,
+    evidence,
     act: actName,
     args,
     reason: String(obj.reason || '').slice(0, 120),
+    /* note：给用户看的解释（2026-11-20）。空字符串是合法值 —— 模型只在
+       「一句话里出现两件以上不同的事」时才填，其余时候必须留空，
+       避免给老人加一句没用的噪音。
+       不做长度强制截断到 25 字：prompt 是请求不是保证，硬截会把句子截成半句；
+       超过 60 字的直接丢弃（说明模型没按格式写），宁可不显示也不显示半句话。 */
+    note: typeof obj.note === 'string' ? String(obj.note).trim().slice(0, 60) : '',
     latency_ms: Date.now() - t0,
     cached: false,
     model: data?.model || MODEL,
@@ -830,10 +1121,21 @@ const server = http.createServer(async (req, res) => {
     let history = [];
     let trace = null;
     let noCache = false;
+    let context = null;
+    let turn = null;
+    let allowSteps = true;
     try {
       const body = JSON.parse(await readBody(req));
       text = String(body.text || '').trim();
       history = Array.isArray(body.history) ? body.history.slice(-6) : [];
+      /* 回合策略由前端本地规则算出；这里只做白名单，避免任意字符串进 prompt。 */
+      const t = String(body.turn || '').trim();
+      turn = ['hypothetical', 'prevention', 'ongoing', 'unknown'].includes(t) ? t : null;
+      allowSteps = body.allow_steps !== false;
+      /* 会话上文：缺失或结构非法一律按「无记忆」处理，不报错。
+         与代理现有「静默回落」的立场一致（03 §2.6.4 约束 1）——
+         记忆是增强项，它坏了不该让整个问答失败。 */
+      context = body.context && typeof body.context === 'object' ? body.context : null;
       trace = typeof body.trace === 'string' ? body.trace.slice(0, 64) : null;
       noCache = body.nocache === true;
     } catch {
@@ -843,7 +1145,7 @@ const server = http.createServer(async (req, res) => {
     if (text.length > 500) return json(res, 400, { error: 'text 超过 500 字' });
 
     try {
-      const r = await act(text, { history, noCache });
+      const r = await act(text, { history, noCache, context, turn, allowSteps });
       proxyLog('info', 'act 完成', {
         trace,
         act: r.act,
@@ -851,11 +1153,56 @@ const server = http.createServer(async (req, res) => {
         cached: r.cached,
         latency_ms: r.latency_ms,
         history_len: history.length,
+        turn,
+        allow_steps: allowSteps,
+        /* ctx_len 必须落盘：否则事后无法区分「记忆没生效」与「记忆生效但没用」，
+           这两种情况要改的地方完全不同。 */
+        ctx_len: Array.isArray(context && context.utterances) ? context.utterances.length : 0,
         text_len: text.length,
       });
       return json(res, 200, r);
     } catch (e) {
       proxyLog('error', 'act 失败', { trace, error: scrubText(String(e.message || e)) });
+      return json(res, 502, { error: String(e.message || e) });
+    }
+  }
+
+  /* ---------- /expand：P5 日常解释扩写（只解释，不生成动作） ---------- */
+  if (req.method === 'POST' && url.pathname === '/expand') {
+    let question = '';
+    let scene = '';
+    let trace = null;
+    let noCache = false;
+    try {
+      const body = JSON.parse(await readBody(req));
+      question = String(body.question || '').trim();
+      scene = String(body.scene || '').trim();
+      trace = typeof body.trace === 'string' ? body.trace.slice(0, 64) : null;
+      noCache = body.nocache === true;
+    } catch {
+      return json(res, 400, { error: 'body 不是合法 JSON' });
+    }
+    if (!question) return json(res, 400, { error: 'question 为空' });
+    if (question.length > 500) return json(res, 400, { error: 'question 超过 500 字' });
+    if (!scene || !READY_IDS.includes(scene)) {
+      return json(res, 400, { error: 'scene 未发布或缺失' });
+    }
+
+    try {
+      const r = await expand(question, scene, { noCache });
+      proxyLog('info', r.ok ? 'expand 完成' : 'expand 拒绝', {
+        trace,
+        scene,
+        ok: r.ok,
+        reason: r.reason || null,
+        cached: r.cached || false,
+        latency_ms: r.latency_ms || 0,
+        text_len: r.text ? r.text.length : 0,
+      });
+      /* ok:false 仍回 200：这是「安全回落」不是服务故障，前端据此保留静态卡。 */
+      return json(res, 200, r);
+    } catch (e) {
+      proxyLog('error', 'expand 失败', { trace, error: scrubText(String(e.message || e)) });
       return json(res, 502, { error: String(e.message || e) });
     }
   }

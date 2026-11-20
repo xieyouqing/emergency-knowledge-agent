@@ -126,17 +126,20 @@ const sandbox = {
   setTimeout, clearTimeout, Promise, Error, Date, RegExp, localStorage: null, Blob, FormData
 };
 sandbox.globalThis = sandbox;
+/* B 方案开关：默认开（与产品一致）；ACT_SEED=0 时关掉，跑基线对照。 */
+window.ACT_SEED = process.env.ACT_SEED !== '0';
 vm.createContext(sandbox);
 
 for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'voice.js', 'asr.js', 'state.js', 'chat.js', 'tools.js', 'render.js', 'speak.js', 'talk.js', 'agent.js', 'app.js']) {
   vm.runInContext(fs.readFileSync(path.join(APP, f), 'utf8'), sandbox);
 }
-/* 测量必须避开缓存：缓存命中的 judge 时延恒为 0，测出来的「合计 900ms」
+/* 测量必须避开缓存：缓存命中的判定时延恒为 0，测出来的「合计 900ms」
    是假的好看数字（实测过：3 次全是 3ms 判定，因为同一句被缓存了）。
-   这里劫持 fetch，给所有发往 /judge 的请求体加 nocache:true。 */
+   这里劫持 fetch，给所有发往 /judge **和 /act** 的请求体加 nocache:true。
+   ⚠️ 2026-11-20 补 /act：主路径已切到 /act，只给 /judge 加会把测量测成缓存命中的假数字。 */
 const realFetch = fetch;
 window.fetch = (url, opts) => {
-  if (typeof url === 'string' && url.includes('/judge') && opts && opts.body) {
+  if (typeof url === 'string' && (url.includes('/judge') || url.includes('/act')) && opts && opts.body) {
     try {
       const body = JSON.parse(opts.body);
       body.nocache = true;
@@ -177,6 +180,9 @@ const rows = [];
 for (let k = 0; k < N; k++) {
   M.state.mode = 'daily';
   M.state.locked = false;
+  /* 每次测量都是「一次新的首轮」：不清上文，上一轮的识别文本会被当作 context
+     发给 /act，测的就不再是首轮，而且会改变缓存键。 */
+  if (M.state.utterances) M.state.utterances.length = 0;
   M.autoReadState.muted = false;
   document.getElementById('dailyAnswer').innerHTML = '';
   document.getElementById('emgAnswer').innerHTML = '';

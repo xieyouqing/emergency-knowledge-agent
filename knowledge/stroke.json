@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0",
+  "id": "stroke",
+  "name": "卒中（中风）",
+  "aliases": [
+    "中风了",
+    "嘴歪了",
+    "半边身子动不了",
+    "说话不清",
+    "突然晕倒",
+    "脑梗",
+    "脑出血"
+  ],
+  "category": "stroke",
+  "keywords": [
+    "中风",
+    "卒中",
+    "脑梗",
+    "脑出血",
+    "嘴歪",
+    "口角歪斜",
+    "说话不清",
+    "半边无力"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "看脸歪不歪",
+        "tool": null
+      },
+      {
+        "text": "两支胳膊平举看有没力",
+        "tool": null
+      },
+      {
+        "text": "听说话清不清",
+        "tool": null
+      },
+      {
+        "text": "立刻打 120",
+        "tool": {
+          "name": "dial",
+          "number": "120"
+        }
+      },
+      {
+        "text": "别自己开车去医院",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "让他平躺，头稍抬高",
+        "tool": null
+      },
+      {
+        "text": "昏迷或呕吐就侧卧",
+        "tool": null
+      },
+      {
+        "text": "不要喂水喂食",
+        "tool": null
+      },
+      {
+        "text": "记下发病时间",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "别自行服药",
+        "tool": null
+      },
+      {
+        "text": "别等它自己好",
+        "tool": null
+      },
+      {
+        "text": "别自己开车或让家人送",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "120",
+  "source": {
+    "name": "国家医疗保障局《4.5小时，190万个脑细胞：大脑给的“最后通牒”你接住了吗？》",
+    "url": "https://www.nhsa.gov.cn/art/2026/7/26/art_14_21566.html",
+    "date": "2026-11-21",
+    "quote": "“1”看一张脸：是否出现口角歪斜、面部不对称。 “2”查两只手臂：双臂平行举起，是否一侧无力下垂。 “0”聆听语言：说话是否含糊不清、表达困难。"
+  },
+  "daily": {
+    "summary": "脸歪、胳膊抬不起、说话不清，任何一项突然出现，就是卒中，立刻打 120。",
+    "why": "卒中分缺血性和出血性两种，用药完全相反，未经确诊随便吃药可能加重病情。所以现场能做的只有三件事：认出来、立刻打 120、让病人安静平躺。卒中每分钟大约有 190 万个脑细胞死亡，越早到能治卒中的医院，救回来的脑组织越多。",
+    "prevention": [
+      "血压血糖血脂都要管住",
+      "戒烟、少喝酒",
+      "房颤病人按医嘱抗凝"
+    ],
+    "misconception": "等一等看看会不会自己好——错，时间就是大脑，等症状消失会错过救治窗口。"
+  },
+  "offline": true,
+  "version": "0.1",
+  "status": "published",
+  "review": {
+    "author": "待指派",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-21",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-21",
+      "detail": "原文中逐字定位成功"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-21",
+  "updated_at": "2026-11-21"
+}

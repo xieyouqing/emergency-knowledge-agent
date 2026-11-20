@@ -257,22 +257,33 @@ const meta = M.kbMeta;
 const allowed = [
   'airway_obstruction',
   'co_poisoning',
+  'cpr',
+  'drowning',
   'earthquake',
+  'electric_fire',
   'electric_shock',
   'elevator_trapped',
   'fall_elderly',
   'fire_home',
+  'food_poisoning',
   'gas_leak',
+  'heatstroke',
   'scald_burn',
+  'severe_bleeding',
+  'stroke',
 ];
-ok(meta.slots === 9, `图标槽位应为 9 个（实际 ${meta.slots}）`);
-ok(meta.entries === 9, `条目应为 9 条（实际 ${meta.entries}）`);
+/* 2026-11-21 基线由 15 升至 16：drowning 用「中国红十字会《暑期防淹溺》+
+   漳州市红十字会补强」发布 v1.0，step_order_ok 由 xieyouqing 人签。
+   这三条是「产物必须逐条等于这份清单」的硬断言，数量随清单走，
+   不许只改数字不改清单——否则集合断言会失去意义。 */
+ok(meta.slots === allowed.length, `图标槽位应为 ${allowed.length} 个（实际 ${meta.slots}）`);
+ok(meta.entries === allowed.length, `条目应为 ${allowed.length} 条（实际 ${meta.entries}）`);
 ok(
   Object.keys(M.entries).sort().join(',') === allowed.join(','),
   `条目集合应为 ${allowed.join(',')}，实际 ${Object.keys(M.entries).sort().join(',')}`
 );
-// drowning 必须缺席：源未验证，禁止入库（docs/06 §3.8）
-ok(!M.entries.drowning, 'drowning 不得出现在产物中（源未通过验证）');
+// drowning 已发布：必须入库（2026-11-21 变更，原「不得出现」断言作废）
+ok(!!M.entries.drowning, 'drowning 已发布，应出现在产物中');
 for (const id of Object.keys(M.entries)) {
   const e = M.entries[id];
   // 防御：产物里混入结构不全的条目时，报明确失败而不是让脚本崩掉。
@@ -371,14 +382,13 @@ for (const [text, expect] of DANGER_CASES) {
   ok(r.dangerId === expect, `危险信号: 「${text}」期望 ${expect}，实际 ${r.dangerId}`);
 }
 
-/* ---------- 5. 未发布场景 → 拨号卡，不给步骤（决定4） ----------
-   2026-11-18：fire_home / electric_shock / earthquake 已发布，走 steps。
-   现在只剩 drowning 未发布（源未验证），它是决定4 的唯一生产用例。 */
+/* ---------- 5. 溺水已发布 → 分诊卡（2026-11-21） ----------
+   原「未发布场景 → 拨号卡」的唯一生产用例已随 drowning 发布失效；
+   现在断言相反：必须命中 drowning 条目，不得只给拨号卡。 */
 {
   const r = M.routeOf('有人落水了');
-  ok(r.entryId === null, '「有人落水了」不应命中任何已发布条目（drowning 未发布）');
-  ok(r.dialOnly === true, '「有人落水了」应走拨号卡');
-  ok(r.dangerNumber === '120', `「有人落水了」拨号码应为 120，实际 ${r.dangerNumber}`);
+  ok(r.entryId === 'drowning', `「有人落水了」应命中 drowning，实际 ${r.entryId}`);
+  ok(r.dialOnly !== true, '「有人落水了」不应只给拨号卡');
 }
 
 /* ---------- 5b. 新发布的场景必须给出步骤卡，不能退化成拨号卡 ---------- */
@@ -584,9 +594,10 @@ for (const id of Object.keys(M.entries)) {
   );
 
   // ③ ongoing + 未发布场景 → dialonly（S1：不给步骤）
+  //    2026-11-21：drowning 已发布，不能用它当「未发布」样本；改用不存在的 id。
   {
     const r = L.routeByVerdict(
-      { ok: true, intent: 'ongoing', scene: 'drowning' },
+      { ok: true, intent: 'ongoing', scene: 'drowning_unpublished' },
       E,
       noDanger,
       'x'
@@ -792,9 +803,11 @@ for (const id of Object.keys(M.entries)) {
         ok(!stepScript.includes('同时拨打'), `${id} 非生命危险条目不应念「同时拨打」`);
       }
     }
+    /* 2026-11-21：基线 12 → 13。drowning 发布后成为第 13 条 life_threatening。
+       数字随产物走，但仍然逐条校验「有/无安全句」的正确性，不是只数个数。 */
     ok(
-      withCall.length === 6,
-      `应有 6 条生命危险条目带安全句，实际 ${withCall.length}（${withCall.join(',')}）`
+      withCall.length === 13,
+      `应有 13 条生命危险条目带安全句，实际 ${withCall.length}（${withCall.join(',')}）`
     );
     // 号码必须真实区分：不能全是同一个号（那就是硬写 120 的症状）
     const nums = new Set(withCall.map((x) => x.split(':')[1]));
@@ -903,6 +916,8 @@ for (const id of Object.keys(M.entries)) {
       M2.autoReadState.muted = false;
     }
 
+    /* ①② 2026-11-21 改：fire_home 已加分诊（门外/楼道着火），出的是分诊卡不是步骤卡。
+       换用 airway_obstruction（triage 仍为 null），断言前提保持「首屏是步骤卡」。 */
     // ① 紧急模式下渲染步骤卡 → 自动发声
     resetCards();
     M2.state.mode = 'emergency';
@@ -910,10 +925,12 @@ for (const id of Object.keys(M.entries)) {
     {
       const before = spoken.length;
       const box = makeEl('auto1');
-      M2.renderStepsCard(M2.entries.fire_home, box);
+      M2.renderStepsCard(M2.entries.airway_obstruction, box);
       ok(spoken.length === before + 1, '紧急模式下出步骤卡应自动朗读一次');
       ok(
-        spoken[spoken.length - 1].text.includes(M2.entries.fire_home.steps.immediate[0].text),
+        spoken[spoken.length - 1].text.includes(
+          M2.entries.airway_obstruction.steps.immediate[0].text
+        ),
         '自动朗读内容应包含第一条步骤'
       );
     }
@@ -1908,8 +1925,10 @@ for (const id of Object.keys(M.entries)) {
     // ② 第一条回答
     const h1 = CHAT.answerHost('steps', 'emergency');
     ok(!!h1, 'answerHost 应返回容器');
-    /* 用 fire_home：它的 triage 为 null，首屏就是三段式步骤卡（gas_leak 走分诊，没有「立刻做」段） */
-    R3.renderStepsCard(M3.entries.fire_home, h1);
+    /* 2026-11-21 改：fire_home 现已加分诊（门外/楼道着火分支），不再是无分诊样例。
+       换用 airway_obstruction —— 它 triage 仍为 null、life_threatening 仍为 true，
+       与本条断言的前提一致（步骤卡首屏即「立刻做」段）。断言内容未放宽。 */
+    R3.renderStepsCard(M3.entries.airway_obstruction, h1);
     const n1 = CHAT.messages.length;
     ok(n1 === 2, `一条回答后应有 2 条消息，实际 ${n1}`);
     ok(/card-title/.test(h1.innerHTML), '步骤卡应渲染出标题');

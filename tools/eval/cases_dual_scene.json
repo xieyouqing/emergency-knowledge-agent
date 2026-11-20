@@ -1,0 +1,135 @@
+{
+ "meta": {
+  "name": "双场景用例集（一句里同时出现两件事）",
+  "created_at": "2026-11-20",
+  "purpose": "测「一句里同时出现两个场景时，是否按危险定优先级」。依据用户 2026-11-20 裁决：按危险定优先级，不询问用户",
+  "judge": "expect_scene = 按危险度应优先处理的场景。danger_rank 说明排序理由，须能对着来源讲",
+  "note": "rank 1 = 优先处理。同 rank 表示两件事危险度并列，这类是设计盲区，不许当成模型错误",
+  "result_2026_11_20": "首发实测 9/10。DS04 原标注为 dial 属标注错误（模型先 lookup_scene drowning 是前置条件门要求，found=false 后第二步 dial，实测 3/3 正确），已改为 expect_scene=drowning 并在 why 注明完整循环结局为 dial。唯一真分歧 DS08（烫伤 vs 老人摔倒），5/5 稳定选烫伤，属专业判断分歧，非模型缺陷。",
+  "note_rule": "note 只在「处置动作不同且可排序」时才有意义。三类：\n· parallel（动作不同、有先后）→ 必须有 note：DS01/02/04/05/06/07/08\n· causal（一个动作即涵盖）→ 必须留空：DS03 触电→摔倒 / DS10 困梯→心慌\n· parallel_but_note_unsuitable（动作不同但需**同时**）→ 不判：DS09\n  这类场景 note 的「先A后B」句式会说出有害的话，属机制局限（docs/08 P34）。\n分类标准是「处置动作是否不同、能否排序」，不是场景 id 个数。2026-11-20 修正。",
+  "result_2026_11_20_note": "单场景 100 条 0 条误给 note；parallel 7 条全部给出人话 note（13~16 字）；causal 3 条全部留空；动作词零命中；长度全部 ≤60 字。"
+ },
+ "cases": [
+  {
+   "id": "DS01",
+   "text": "煤气漏了，电梯多久年检一次",
+   "expect_scene": "gas_leak",
+   "danger_rank": {
+    "gas_leak": 1,
+    "elevator_trapped": 3
+   },
+   "why": "漏气正在发生会爆炸，年检是日常保养，不同量级",
+   "relationship": "parallel",
+   "expect_note": true
+  },
+  {
+   "id": "DS02",
+   "text": "着火了，老人摔倒了",
+   "expect_scene": "fire_home",
+   "danger_rank": {
+    "fire_home": 1,
+    "fall_elderly": 2
+   },
+   "why": "火在蔓延且烟气致命，摔倒若无呼吸才是 rank1；用户未提呼吸，按火优先",
+   "relationship": "parallel",
+   "expect_note": true
+  },
+  {
+   "id": "DS03",
+   "text": "有人触电了，他也摔倒了",
+   "expect_scene": "electric_shock",
+   "danger_rank": {
+    "electric_shock": 1,
+    "fall_elderly": 2
+   },
+   "why": "电源未断时施救者也会触电，必须先断电",
+   "relationship": "causal",
+   "expect_note": false
+  },
+  {
+   "id": "DS04",
+   "text": "小孩掉水里了，我手也划破了在流血",
+   "expect_scene": "drowning",
+   "danger_rank": {
+    "drowning": 1,
+    "severe_bleeding": 2
+   },
+   "why": "溺水未发布：第一步 lookup_scene drowning（前置门要求），found=false 后第二步 dial。实测 3/3 正确。原标注 dial 错误，2026-11-20 更正",
+   "expect_final": "dial",
+   "relationship": "parallel",
+   "expect_note": true
+  },
+  {
+   "id": "DS05",
+   "text": "吃饭噎住了，同时我腿也摔伤了",
+   "expect_scene": "airway_obstruction",
+   "danger_rank": {
+    "airway_obstruction": 1,
+    "fall_elderly": 2
+   },
+   "why": "气道完全梗阻 4 分钟脑损伤，腿伤不致命",
+   "relationship": "parallel",
+   "expect_note": true
+  },
+  {
+   "id": "DS06",
+   "text": "用炭火取暖头晕恶心，家里还漏水了",
+   "expect_scene": "co_poisoning",
+   "danger_rank": {
+    "co_poisoning": 1
+   },
+   "why": "漏水不是急救场景，不构成并列",
+   "relationship": "parallel",
+   "expect_note": true
+  },
+  {
+   "id": "DS07",
+   "text": "地震了，厨房还着火了",
+   "expect_scene": "earthquake",
+   "danger_rank": {
+    "earthquake": 1,
+    "fire_home": 1
+   },
+   "why": "★ 设计盲区：两件事都是 rank1，主震时先避险再灭火是常识，但本表不给唯一答案",
+   "relationship": "parallel",
+   "expect_note": true,
+   "note_boundary": "边界情况：地震引发着火属因果链，但「避震」与「灭火」是两套不同的处置动作序列，且用户会担心火，故按 parallel 处理。对照 DS03 触电+摔倒：断电后人自然倒下，摔伤不需要独立处置动作，故属 causal。区分标准是「处置动作是否不同」而不是「是否有因果」。"
+  },
+  {
+   "id": "DS08",
+   "text": "手被开水烫了，老人这时候又摔了",
+   "expect_scene": "fall_elderly",
+   "danger_rank": {
+    "scald_burn": 2,
+    "fall_elderly": 1
+   },
+   "why": "老人摔倒可能骨折卧床致死，烫伤面积未明时按老人优先",
+   "relationship": "parallel",
+   "expect_note": true
+  },
+  {
+   "id": "DS09",
+   "text": "煤气漏了，我妈倒在地上了",
+   "expect_scene": "gas_leak",
+   "danger_rank": {
+    "gas_leak": 1,
+    "fall_elderly": 1
+   },
+   "why": "★ 设计盲区：漏气+倒地并存，先关阀撤离还是先救人，专业上有争议",
+   "relationship": "parallel_but_note_unsuitable",
+   "expect_note": null,
+   "note_limitation": "★ note 机制的已知局限（2026-11-20 实测）：\n「煤气漏了，我妈倒在地上了」两件事要**同时**做（通风关阀防爆 + 把人移出），\n不是「先A后B」。而 note 的句式是「先处理X，Y稍后」，模型实测输出\n「先处理漏气，老人倒地的事随后处理」—— 这句**有害**：倒地的老人不能「随后」处理，\n他可能已中毒昏迷。\n结论：有些场景需要「同时」，note 的二选一句式表达不了。本条不计入 C3 判据，\n但记入 docs/08 P34 作为机制局限。"
+  },
+  {
+   "id": "DS10",
+   "text": "电梯停了被困住，我有心脏病感觉不舒服",
+   "expect_scene": "elevator_trapped",
+   "danger_rank": {
+    "elevator_trapped": 1
+   },
+   "why": "心脏不适无具体急症描述，电梯困人有明确条目；但这条本身接近盲区",
+   "relationship": "causal",
+   "expect_note": false
+  }
+ ]
+}

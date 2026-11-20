@@ -151,6 +151,60 @@
     return bubble;
   }
 
+  /* 模式切换：旧助手消息保留，但置灰且不可交互（D-11 = A，2026-11-20）。
+     为什么只锁助手消息：用户气泡没有可点元素，锁它没有意义。
+     为什么在 enterEmergency() 里、answerHost() 之前调用：
+       新结果消息还没创建，所以不会被误锁；之后创建的紧急消息保持可交互。
+     为什么用 class + pointer-events 而不是删 DOM：
+       保留「可回看」；置灰只是表示「这条属于上一个模式」，不是删除。 */
+  function lockOldMessages() {
+    var count = 0;
+    for (var i = 0; i < messages.length; i++) {
+      var m = messages[i];
+      if (!m || m.role !== 'assistant' || !m.el) continue;
+      if (m.el.classList && m.el.classList.contains('is-old-locked')) continue;
+      if (m.el.classList) m.el.classList.add('is-old-locked');
+      if (m.el.setAttribute) m.el.setAttribute('aria-disabled', 'true');
+      /* 键盘/读屏也要不可达；CSS 的 pointer-events 只管鼠标/触摸。 */
+      var nodes = m.el.querySelectorAll ? m.el.querySelectorAll('button, a, [role="button"]') : [];
+      for (var j = 0; j < nodes.length; j++) {
+        if (nodes[j].setAttribute) {
+          nodes[j].setAttribute('tabindex', '-1');
+          nodes[j].setAttribute('aria-disabled', 'true');
+        }
+      }
+      count++;
+    }
+    lg('info', '旧结果已锁定（保留但置灰不可交互）', { count: count });
+    /* 默认日志级别是 warn；这是用户可见的交互变化，必须留痕。 */
+    if (LOG && LOG.always) LOG.always('app', '旧结果已锁定（置灰不可交互）', { count: count });
+    return count;
+  }
+
+  /* 退出紧急（S8 显式退出，2026-11-20）：把旧消息恢复可交互。
+     只在用户通过 ack 卡二次确认「已经安全」后调用；日常问题不会触发。 */
+  function unlockOldMessages() {
+    var count = 0;
+    for (var i = 0; i < messages.length; i++) {
+      var m = messages[i];
+      if (!m || m.role !== 'assistant' || !m.el) continue;
+      if (!m.el.classList || !m.el.classList.contains('is-old-locked')) continue;
+      m.el.classList.remove('is-old-locked');
+      if (m.el.removeAttribute) m.el.removeAttribute('aria-disabled');
+      var nodes = m.el.querySelectorAll ? m.el.querySelectorAll('button, a, [role="button"]') : [];
+      for (var j = 0; j < nodes.length; j++) {
+        if (nodes[j].removeAttribute) {
+          nodes[j].removeAttribute('tabindex');
+          nodes[j].removeAttribute('aria-disabled');
+        }
+      }
+      count++;
+    }
+    lg('info', '旧结果已解锁（回到日常）', { count: count });
+    if (LOG && LOG.always) LOG.always('app', '旧结果已解锁（回到日常）', { count: count });
+    return count;
+  }
+
   /* 清空消息流（目前只在测试与「重新开始」时用） */
   function clear() {
     if (!ensure()) return;
@@ -174,6 +228,8 @@
     appendUser: appendUser,
     answerHost: answerHost,
     appendNotice: appendNotice,
+    lockOldMessages: lockOldMessages,
+    unlockOldMessages: unlockOldMessages,
     scrollToEnd: scrollToEnd,
     clear: clear,
     messages: messages,

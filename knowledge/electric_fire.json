@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "id": "electric_fire",
+  "name": "电器起火",
+  "aliases": [
+    "插排着火",
+    "插排冒烟",
+    "插座冒烟",
+    "插座着火",
+    "插线板着火",
+    "电线起火",
+    "电器着火"
+  ],
+  "category": "electric_fire",
+  "keywords": [
+    "插排",
+    "插座",
+    "插线板",
+    "电线",
+    "电器",
+    "冒烟",
+    "起火",
+    "电气火灾"
+  ],
+  "life_threatening": true,
+  "triage": null,
+  "steps": {
+    "immediate": [
+      {
+        "text": "先切断电源，关电闸",
+        "tool": null
+      },
+      {
+        "text": "用干粉或气体灭火器灭",
+        "tool": null
+      },
+      {
+        "text": "断电以后才能用水浇",
+        "tool": null
+      }
+    ],
+    "next": [
+      {
+        "text": "烧到旁边东西也要先断电",
+        "tool": null
+      },
+      {
+        "text": "电视机只从侧面靠近",
+        "tool": null
+      },
+      {
+        "text": "灭火器别对着屏幕喷",
+        "tool": null
+      }
+    ],
+    "never": [
+      {
+        "text": "不要直接泼水灭火",
+        "tool": null
+      },
+      {
+        "text": "千万不能先用水救火",
+        "tool": null
+      },
+      {
+        "text": "电视机起火别用水浇",
+        "tool": null
+      }
+    ]
+  },
+  "emergency_number": "119",
+  "source": {
+    "name": "中华人民共和国应急管理部《初期火灾如何救？》（第 2 条 电气起火）",
+    "url": "https://www.mem.gov.cn/kp/shaq/201712/t20171213_365921.shtml",
+    "date": "2026-11-21",
+    "quote": "电气起火：家用电器或线路着火，要先切断电源，再用干粉或气体灭火器灭火，不可直接泼水灭火，以防触电或电器爆炸伤人。"
+  },
+  "daily": {
+    "summary": "插排、插座、电线冒烟着火，必须先断电再灭火，带电泼水会触电。",
+    "why": "电气线路和设备起火时通常还带着电，水能导电，直接泼上去电流会顺着水柱回到人身上。所以顺序是固定的：先切断电源，再用干粉或气体灭火器灭火；只有在确定电源已经切断的情况下，才可以用水。火引着了旁边的桌子窗帘，也仍然要先断电再扑救。",
+    "prevention": [
+      "插排别插太多大功率电器",
+      "别把导线裸端直接插进插座",
+      "灯泡别用纸灯罩、别用布包"
+    ],
+    "misconception": "电器着火先泼水降温——错，带电泼水会触电，也可能让电器爆炸伤人。"
+  },
+  "offline": true,
+  "version": "0.1",
+  "status": "published",
+  "review": {
+    "author": "待指派",
+    "approved_by": [
+      "xieyouqing"
+    ],
+    "approved_at": "2026-11-21",
+    "checklist": {
+      "step_order_ok": true,
+      "never_non_empty": true,
+      "source_quote_verbatim": true
+    },
+    "agent_check": {
+      "source_quote": "pass",
+      "checked_at": "2026-11-21",
+      "detail": "原文中逐字定位成功"
+    },
+    "reject_reason": null
+  },
+  "created_at": "2026-11-21",
+  "updated_at": "2026-11-21"
+}
