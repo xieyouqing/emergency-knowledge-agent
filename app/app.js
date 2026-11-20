@@ -381,7 +381,11 @@
       return;
     }
     if (res.kind === 'dial') {
-      RENDER.renderDialOnly(res.number, host);
+      if (res.requested && state.mode === 'daily' && RENDER.renderCallRequest) {
+        RENDER.renderCallRequest(res.number, host);
+      } else {
+        RENDER.renderDialOnly(res.number, host);
+      }
       return;
     }
     if (res.kind === 'ack') {
@@ -614,6 +618,14 @@
          症状是「卡出来了但不出声」，正是 docs/01 §6.2 禁止的静默失败。
          另外 host 的 id 也取决于 mode（dailyAnswer / emgAnswer），必须先切。 */
       var toEmg = res.kind === 'steps' || res.kind === 'dial' || res.kind === 'triage';
+      /* 用户明确要求拨号（requested）且当前句没有危险信号：
+         只出「现在拨打 N」卡，不锁紧急。若句子里有现场危险，仍按紧急处理。 */
+      if (res.kind === 'dial' && res.requested) {
+        var hasDanger =
+          (R.detectDanger && R.detectDanger(text)) ||
+          (R.detectSevere && R.detectSevere(text));
+        if (!hasDanger) toEmg = false;
+      }
       if (toEmg && state.mode === 'daily') enterEmergency();
 
       if (!host) host = answerHost(res.kind);

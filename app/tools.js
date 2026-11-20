@@ -101,6 +101,8 @@
       needsModel: false,
       endsLoop: true,
       desc: '出拨号按钮卡（不代为拨出）',
+      /* requested 是可选标志，不进 args 必填列表：
+         进了列表会让所有普通 dial 都因缺参被门拒绝。 */
       args: ['number'],
     },
     {
@@ -292,10 +294,13 @@
     if (act === 'dial') {
       return {
         ok: true,
-        result: { number: String(args.number) },
+        result: { number: String(args.number), requested: !!args.requested },
         kind: 'dial',
         entry: null,
         number: String(args.number),
+        /* 用户明确要求拨号：只出卡，不锁紧急（由前端按此字段区分）。
+           安全出口拨号不带这个字段，仍走紧急锁定。 */
+        requested: !!args.requested,
         ends: true,
       };
     }

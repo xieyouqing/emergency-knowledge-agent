@@ -390,6 +390,15 @@
         /* 关键：出内容的工具被拒 → 不许硬给内容，改拨号/拒答。
            这与 llm.js 的 low-confidence 分支同一立场（S1 不让编）。 */
         if (gate.reason === 'number-not-allowed') {
+          /* 用户明确要求拨 110/114 等非白名单号码：不能悄悄改成 120。
+             直接拒答并说明只提供 120/119，避免拨错号。 */
+          if (args.requested) {
+            return runOne(
+              { act: 'refuse', args: { reason: 'number-not-allowed-request' }, why: 'gate-refuse' },
+              i,
+              planList
+            );
+          }
           return runOne(
             { act: 'dial', args: { number: T.FALLBACK_NUMBER }, why: 'number-fallback' },
             i,

@@ -234,6 +234,25 @@
     });
   }
 
+  /* ---------- 用户明确要求拨号 → 只给拨号卡，不写成「没有步骤」 ----------
+     与 renderDialOnly 的区别：
+       dialonly 是「这个场景我没内容，先打电话」；
+       这里是「用户就是要打电话」，没有场景判断，也不该锁紧急。 */
+  function renderCallRequest(number, container) {
+    container.innerHTML =
+      '<article class="dialonly call-request">' +
+      '<p class="headline">现在拨打 ' +
+      esc(number) +
+      '</p>' +
+      '<p>点了会打开拨号盘，由您按下拨出。</p>' +
+      '<div class="dial-row"><a class="dial-btn" href="tel:' +
+      esc(number) +
+      '">拨打 ' +
+      esc(number) +
+      '</a></div>' +
+      '</article>';
+  }
+
   /* ---------- 紧急命中但无条目 → 只给号码，不给步骤 ---------- */
   function renderDialOnly(number, container) {
     container.innerHTML =
@@ -389,6 +408,7 @@
     renderSteps: renderSteps,
     renderStepsCard: renderStepsCard,
     renderDialOnly: renderDialOnly,
+    renderCallRequest: renderCallRequest,
     renderAck: renderAck,
     renderFollowupNotice: renderFollowupNotice,
     renderRefuse: renderRefuse,

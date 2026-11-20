@@ -139,6 +139,7 @@ node tools/e2e_llm.mjs       # 判定链路：52 条（需代理）
 node tools/eval/run_eval.mjs --engine=llm   # /judge 单次判定（≠ /act）
 node tools/probe_loop.mjs                   # /act 自主循环（≠ /judge）
 node tools/e2e_cpr_routing.mjs              # V4 CPR/溺水路由：12 条×在线/断网
+node tools/e2e_call_request.mjs             # 显式拨号请求：120/119 不锁紧急
 node tools/probe_multi_step.mjs             # P9 多步：20 条，报平均/P95 步数
 node tools/probe_ctx_contamination.mjs      # P33 上文污染：100 条×2 arm
 node tools/e2e_voice.mjs     # 语音输出：16 条（需代理）

@@ -253,7 +253,7 @@ const TOOL_SCHEMA = [
     name: 'dial',
     need: 'number',
     desc: '出拨号按钮卡。库内没有对应条目、或判断不了时用（不代为拨出）',
-    args: { number: '120|119（只能用这两个）' },
+    args: { number: '120|119（只能用这两个）', requested: 'true（仅在用户明确要求拨号时）' },
   },
   {
     name: 'ack',
@@ -321,6 +321,11 @@ ${TOOL_SCHEMA.map((t) => `- ${t.name}(${Object.keys(t.args).join(', ')})：${t.d
    不要再出 get_steps。ack 只给确认与观察提示，不出步骤；它不是拒答，也不等于「不关心」。
    注意：只有**用户明确说解除**才算；不确定的话仍按现场处置。
    **更正原因不等于解除** —— 按更正后的情况重新判断，与应急无关就 refuse，不要用 ack。
+9. **用户明确要求拨打急救号码**（「帮我打120」「叫救护车」「打119」）时，直接 dial，
+   号码按用户说的写（只允许 120 / 119），并在 args 里写 "requested": true。
+   这只是执行用户指令，不要因此判成 ongoing，也不要出 get_steps。
+   如果用户要求 110 / 114 等其它号码 → refuse，说明本产品只提供 120 / 119。
+   **例外**：同一句里还报告了现场危险（「煤气漏了，帮我打120」），按现场优先，不要只拨号。
 
 turn 是什么（只判这一件事，不写案例）：
 - ongoing：用户报告**当前正在发生**的感官或身体事实
@@ -794,7 +799,10 @@ const CTX_MAX_ONE = 200;
 function normalizeContext(raw) {
   if (!raw || typeof raw !== 'object') return { utterances: [] };
   const src = Array.isArray(raw.utterances) ? raw.utterances : [];
-  let list = src.filter((u) => typeof u === 'string').map((u) => u.trim()).filter(Boolean);
+  let list = src
+    .filter((u) => typeof u === 'string')
+    .map((u) => u.trim())
+    .filter(Boolean);
 
   // 单条超长：截断而非丢弃，丢掉会让模型以为用户没说过
   list = list.map((u) => (u.length > CTX_MAX_ONE ? u.slice(0, CTX_MAX_ONE) + '…' : u));
