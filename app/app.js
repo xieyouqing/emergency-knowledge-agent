@@ -624,7 +624,10 @@
         var hasDanger =
           (R.detectDanger && R.detectDanger(text)) ||
           (R.detectSevere && R.detectSevere(text));
-        if (!hasDanger) toEmg = false;
+        if (!hasDanger) {
+          toEmg = false;
+          lg('info', '显式拨号请求：只出拨号卡，不锁紧急', { number: res.number, text: text });
+        }
       }
       if (toEmg && state.mode === 'daily') enterEmergency();
 
