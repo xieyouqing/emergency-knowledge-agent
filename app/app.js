@@ -172,19 +172,6 @@
     return CHAT.answerHost(kind, state.mode);
   }
 
-  var ICONS = {
-    gas_leak: '💨',
-    fire_home: '🔥',
-    co_poisoning: '🥵',
-    fall_elderly: '🧓',
-    scald_burn: '♨️',
-    electric_shock: '⚡',
-    airway_obstruction: '🫁',
-    drowning: '🌊',
-    earthquake: '🏚️',
-    elevator_trapped: '🛗'
-  };
-
   /* ---------- 决定2：场景检索（实现已迁至 retrieval.js） ----------
      production 默认引擎 = l3（字符规则分），与 M1 基线逐条一致；
      bm25 / hybrid 仅供评测切换，改默认值须提案（docs/03 §7.1 D-3）。 */
@@ -255,10 +242,10 @@
      图标点了直接出步骤卡 —— 不经过判定层，这是最快的一条路（docs/01 §3.3）。 */
   function renderIcons() {
     if (!el.msgIcons) return;
-    /* 首屏只放前 8 个常用场景：16 个图标一次铺开，老人反而不知道点哪个。
+    /* 首屏只放前 4 个最常用场景：一次铺开 16 个，老人反而不知道点哪个。
        其余收进「更多场景」，展开后仍是全部 16 个。 */
-    var top = KB.slots.slice(0, 8);
-    var extra = KB.slots.slice(8);
+    var top = KB.slots.slice(0, 4);
+    var extra = KB.slots.slice(4);
     function iconBtn(s, extraClass) {
       return (
         '<button class="icon-btn' +
@@ -266,9 +253,6 @@
         '" type="button" data-id="' +
         esc(s.id) +
         '">' +
-        '<span class="icon-glyph" aria-hidden="true">' +
-        (ICONS[s.id] || '•') +
-        '</span>' +
         '<span class="icon-label">' +
         esc(s.name) +
         '</span>' +
@@ -987,7 +971,7 @@
         var on = el.msgIcons.classList.toggle('is-expanded');
         more.textContent = on
           ? '收起场景'
-          : '更多场景（' + (KB.slots.length - 8) + '）';
+          : '更多场景（' + (KB.slots.length - 4) + '）';
         return;
       }
       var b = ev.target.closest('.icon-btn');

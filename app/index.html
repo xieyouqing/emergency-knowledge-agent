@@ -31,11 +31,10 @@
     <div id="msgFlow" class="msg-flow" role="log" aria-live="polite">
 
       <article class="msg msg-assistant" id="welcomeMsg">
-        <h1 class="ask-title">出什么事了？</h1>
-        <!-- 图标区常驻消息流顶部：不占输入区空间，且随流滚动不遮挡内容。
-             无内容的槽位由构建期过滤，这里只渲染拿到的槽位。 -->
+        <p class="chat-greeting">你好，我是应急助手。</p>
+        <p class="chat-sub">按住下面的「按住说话」，说出发生了什么。也可以打字，或点一个场景。</p>
+        <!-- 场景入口保留为文字按钮：不用 emoji，老人不靠猜图标。 -->
         <nav class="icons" id="msgIcons" aria-label="常见场景"></nav>
-        <p class="section-label">按住下面的大按钮说话；也可以点场景，或直接打字</p>
       </article>
 
     </div>
@@ -61,11 +60,9 @@
          打字是第二条路。两个按钮互为显隐，与下面的 form 同步。 -->
     <div class="voicein-row">
       <button class="talk-btn" id="dailyTalk" type="button">
-        <span class="talk-ico" aria-hidden="true">🎤</span>
         <span class="talk-label">按住说话</span>
       </button>
       <button class="talk-btn sos-talk" id="emgTalk" type="button" hidden>
-        <span class="talk-ico" aria-hidden="true">🎤</span>
         <span class="talk-label">按住说话</span>
       </button>
       <p class="talk-hint" id="dailyTalkHint" hidden></p>
