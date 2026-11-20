@@ -1,5 +1,5 @@
 {
- "at": "2026-11-20T23:38:20.578Z",
+ "at": "2026-11-20T23:45:01.821Z",
  "n": 100,
  "acc": 100,
  "avgSteps": 1.7,
@@ -17,7 +17,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 27
+   "ms": 1250
   },
   {
    "id": "E002",
@@ -30,7 +30,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 3
+   "ms": 1308
   },
   {
    "id": "E003",
@@ -43,7 +43,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1201
   },
   {
    "id": "E004",
@@ -56,7 +56,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1341
   },
   {
    "id": "E005",
@@ -69,7 +69,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 3
+   "ms": 1281
   },
   {
    "id": "E006",
@@ -82,7 +82,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1423
   },
   {
    "id": "E007",
@@ -95,7 +95,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 3
+   "ms": 1492
   },
   {
    "id": "E008",
@@ -108,7 +108,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1889
   },
   {
    "id": "E009",
@@ -121,7 +121,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1596
   },
   {
    "id": "E010",
@@ -134,7 +134,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 2101
   },
   {
    "id": "E011",
@@ -147,7 +147,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1243
   },
   {
    "id": "E012",
@@ -160,7 +160,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1407
   },
   {
    "id": "E013",
@@ -173,7 +173,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1342
   },
   {
    "id": "E014",
@@ -186,7 +186,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1844
   },
   {
    "id": "E015",
@@ -199,7 +199,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1327
   },
   {
    "id": "E016",
@@ -212,7 +212,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1474
   },
   {
    "id": "E017",
@@ -225,7 +225,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1528
   },
   {
    "id": "E018",
@@ -238,7 +238,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 2014
   },
   {
    "id": "E019",
@@ -251,7 +251,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1401
   },
   {
    "id": "E020",
@@ -264,7 +264,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1392
   },
   {
    "id": "E021",
@@ -277,7 +277,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1220
   },
   {
    "id": "E022",
@@ -290,7 +290,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1244
   },
   {
    "id": "E023",
@@ -303,7 +303,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1363
   },
   {
    "id": "E024",
@@ -316,7 +316,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1482
   },
   {
    "id": "E025",
@@ -329,7 +329,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1308
   },
   {
    "id": "E026",
@@ -342,7 +342,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1451
   },
   {
    "id": "E027",
@@ -355,7 +355,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1371
   },
   {
    "id": "E028",
@@ -368,7 +368,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1865
   },
   {
    "id": "E029",
@@ -381,7 +381,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1362
   },
   {
    "id": "E030",
@@ -394,7 +394,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1653
   },
   {
    "id": "E031",
@@ -407,7 +407,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1706
   },
   {
    "id": "E032",
@@ -420,7 +420,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1198
   },
   {
    "id": "E033",
@@ -433,7 +433,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1292
   },
   {
    "id": "E034",
@@ -446,7 +446,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1473
   },
   {
    "id": "E035",
@@ -459,7 +459,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1948
   },
   {
    "id": "E036",
@@ -472,7 +472,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1277
   },
   {
    "id": "E037",
@@ -485,7 +485,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1804
   },
   {
    "id": "E038",
@@ -498,7 +498,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1494
   },
   {
    "id": "E039",
@@ -511,7 +511,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1272
   },
   {
    "id": "E040",
@@ -524,7 +524,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1415
   },
   {
    "id": "P001",
@@ -537,7 +537,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1395
   },
   {
    "id": "P002",
@@ -550,7 +550,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1856
   },
   {
    "id": "P003",
@@ -563,7 +563,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1090
   },
   {
    "id": "P004",
@@ -576,7 +576,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1775
   },
   {
    "id": "P005",
@@ -589,7 +589,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1702
   },
   {
    "id": "P006",
@@ -602,7 +602,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 2109
   },
   {
    "id": "P007",
@@ -615,7 +615,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1574
   },
   {
    "id": "P008",
@@ -628,7 +628,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1562
   },
   {
    "id": "P009",
@@ -641,7 +641,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1780
   },
   {
    "id": "P010",
@@ -654,7 +654,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1350
   },
   {
    "id": "P011",
@@ -667,7 +667,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1393
   },
   {
    "id": "P012",
@@ -680,7 +680,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1966
   },
   {
    "id": "P013",
@@ -693,7 +693,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1661
   },
   {
    "id": "P014",
@@ -706,7 +706,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1512
   },
   {
    "id": "P015",
@@ -719,7 +719,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1336
   },
   {
    "id": "P016",
@@ -732,7 +732,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1535
   },
   {
    "id": "P017",
@@ -745,7 +745,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1339
   },
   {
    "id": "P018",
@@ -758,7 +758,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1746
   },
   {
    "id": "P019",
@@ -771,7 +771,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1459
   },
   {
    "id": "P020",
@@ -784,7 +784,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1620
   },
   {
    "id": "P021",
@@ -797,7 +797,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1536
   },
   {
    "id": "P022",
@@ -810,7 +810,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1802
   },
   {
    "id": "P023",
@@ -823,7 +823,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1904
   },
   {
    "id": "P024",
@@ -836,7 +836,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1274
   },
   {
    "id": "P025",
@@ -849,7 +849,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1501
   },
   {
    "id": "P026",
@@ -862,7 +862,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1506
   },
   {
    "id": "P027",
@@ -875,7 +875,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 2364
   },
   {
    "id": "P028",
@@ -888,7 +888,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1795
   },
   {
    "id": "P029",
@@ -901,7 +901,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2
+   "ms": 1177
   },
   {
    "id": "P030",
@@ -914,7 +914,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1467
   },
   {
    "id": "O001",
@@ -927,7 +927,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 550
   },
   {
    "id": "O002",
@@ -940,7 +940,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 698
   },
   {
    "id": "O003",
@@ -953,7 +953,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 733
   },
   {
    "id": "O004",
@@ -966,7 +966,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 611
   },
   {
    "id": "O005",
@@ -979,7 +979,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 797
   },
   {
    "id": "O006",
@@ -992,7 +992,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 564
   },
   {
    "id": "O007",
@@ -1005,7 +1005,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 714
   },
   {
    "id": "O008",
@@ -1018,7 +1018,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 886
   },
   {
    "id": "O009",
@@ -1031,7 +1031,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 732
   },
   {
    "id": "O010",
@@ -1044,7 +1044,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 631
   },
   {
    "id": "O011",
@@ -1057,7 +1057,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1042
   },
   {
    "id": "O012",
@@ -1070,7 +1070,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 1175
   },
   {
    "id": "O013",
@@ -1083,7 +1083,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 716
   },
   {
    "id": "O014",
@@ -1096,7 +1096,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 568
   },
   {
    "id": "O015",
@@ -1109,7 +1109,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 736
   },
   {
    "id": "O016",
@@ -1122,7 +1122,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 604
   },
   {
    "id": "O017",
@@ -1135,7 +1135,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 787
   },
   {
    "id": "O018",
@@ -1148,7 +1148,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 545
   },
   {
    "id": "O019",
@@ -1161,7 +1161,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 746
   },
   {
    "id": "O020",
@@ -1174,7 +1174,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 542
   },
   {
    "id": "O021",
@@ -1187,7 +1187,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 544
   },
   {
    "id": "O022",
@@ -1200,7 +1200,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 985
   },
   {
    "id": "O023",
@@ -1213,7 +1213,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 0
+   "ms": 619
   },
   {
    "id": "O024",
@@ -1226,7 +1226,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 674
   },
   {
    "id": "O025",
@@ -1239,7 +1239,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 917
   },
   {
    "id": "O026",
@@ -1252,7 +1252,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 762
   },
   {
    "id": "O027",
@@ -1265,7 +1265,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 933
   },
   {
    "id": "O028",
@@ -1278,7 +1278,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 844
   },
   {
    "id": "O029",
@@ -1291,7 +1291,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 863
   },
   {
    "id": "O030",
@@ -1304,7 +1304,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1
+   "ms": 1257
   }
  ]
 }
