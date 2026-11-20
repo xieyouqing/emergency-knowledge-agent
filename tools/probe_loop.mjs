@@ -134,6 +134,18 @@ async function runLoop(c) {
     const act = decision.act;
     const args = decision.args || {};
 
+    /* 与 agent.js 同口径：儿科 CPR/溺水 → dial 120，不套成人步骤。 */
+    if (
+      (act === 'get_steps' || act === 'triage') &&
+      (args.scene === 'cpr' || args.scene === 'drowning') &&
+      RET.isCprOutOfScope &&
+      RET.isCprOutOfScope(c.text) === 'pediatric'
+    ) {
+      steps.push({ act: 'dial', args: { number: '120' }, ok: true, why: 'pediatric-scope' });
+      endKind = 'dial';
+      break;
+    }
+
     /* 与 agent.js 的上文证据闸一致（P33）；无上文时证据必须落在当前句，
        不落 → 模型拿别的句子当依据，拒答。 */
     if (decision.evidence) {
@@ -141,7 +153,9 @@ async function runLoop(c) {
       const curN = String(c.text).replace(/\s+/g, '');
       const grounded = !!evN && (curN.indexOf(evN) !== -1 || evN.indexOf(curN) !== -1);
       const pureFollowup =
-        /^(怎么办|然后呢|现在呢|那呢|怎么弄|要紧吗|严重吗|接下来呢|还怎么办)[？?。！!]*$/.test(curN);
+        /^(怎么办|然后呢|现在呢|那呢|怎么弄|要紧吗|严重吗|接下来呢|还怎么办)[？?。！!]*$/.test(
+          curN
+        );
       if (!grounded && !pureFollowup) {
         steps.push({ act, args, ok: false, reason: 'context-not-grounded' });
         endKind = 'refuse';
@@ -160,7 +174,12 @@ async function runLoop(c) {
       );
       if (lr.ok) {
         history.push({ act: 'lookup_scene', args: { scene: args.scene }, result: lr.result });
-        steps.push({ act: 'lookup_scene', args: { scene: args.scene }, ok: true, why: 'auto-lookup' });
+        steps.push({
+          act: 'lookup_scene',
+          args: { scene: args.scene },
+          ok: true,
+          why: 'auto-lookup',
+        });
         gate = TOOLS.checkGate(act, args, { entries: ENTRIES, sceneIds: SCENE_IDS, history });
       }
     }

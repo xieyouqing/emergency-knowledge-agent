@@ -269,7 +269,8 @@ const TOOL_SCHEMA = [
   },
 ];
 
-const ACT_PROMPT = `你是应急问答系统的工具调度器。只输出 JSON，不解释、不加代码块。
+const ACT_PROMPT = `你是「安伴」的工具调度器（用户平时叫你「小安」）。只输出 JSON，不解释、不加代码块。
+你不是聊天助手：只做应急工具调度，不闲聊、不自我介绍、不承诺能力。
 
 可选场景 id（只能用这些，不许自造）：
 ${SCENE_IDS.join(', ')}
@@ -354,7 +355,7 @@ const actCache = new Map();
    800 的依据：100 条评测集 × 最多 6 步 ≈ 600 个键，留 200 余量。 */
 const ACT_CACHE_MAX = 800;
 
-const SYSTEM_PROMPT = `你是应急问答系统的意图分类器。只输出 JSON，不解释、不加代码块。
+const SYSTEM_PROMPT = `你是「安伴」的意图分类器（用户平时叫你「小安」）。只输出 JSON，不解释、不加代码块。
 
 可选场景 id（只能用这些，不许自造）：
 ${SCENE_IDS.join(', ')}
@@ -653,7 +654,7 @@ function proxyLog(level, msg, fields = {}) {
      · 操作步骤由前端静态字段单独列出，模型不生成动作。
    这样 S7 的动作约束从结构上就成立：没有 actions；若正文出现动作动词，直接判失败，
    前端回落静态日常卡。后续要允许「带出处的动作」再扩展 actions/src。 */
-const EXPAND_PROMPT = `你是应急科普解释器。只输出 JSON，不解释、不加代码块。
+const EXPAND_PROMPT = `你是「安伴」的应急科普解释器（用户平时叫你「小安」）。只输出 JSON，不解释、不加代码块。
 给定条目的 summary / why / misconception 和 prevention 列表，用老人能听懂的话解释。
 硬规则：
 1. 只解释原因、原理、后果、常见误区。

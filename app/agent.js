@@ -431,6 +431,23 @@
         );
       }
 
+      /* 儿科溺水：drowning 条目是通用成人流程，儿童参数未覆盖 → dial 120。
+         模型即使选了 drowning，也不能给儿童套用。 */
+      if (
+        (act === 'get_steps' || act === 'triage') &&
+        args.scene === 'drowning' &&
+        R &&
+        R.isCprOutOfScope &&
+        R.isCprOutOfScope(text) === 'pediatric'
+      ) {
+        lg('info', '儿科溺水：改拨号 120');
+        return runOne(
+          { act: 'dial', args: { number: '120' }, why: 'pediatric-drowning' },
+          i,
+          planList
+        );
+      }
+
       /* CPR 范围闸（docs/14 V4 C11/C12）：模型即使选 cpr，婴儿/儿童/溺水也不许出成人步骤。
          离线 planRule 已做同样判断；这里补在线模型路径，防止两路分叉。
          只拦 steps/triage：turn=plan 的 cpr 咨询应在下面降级为 get_daily，不能误拨号。 */
