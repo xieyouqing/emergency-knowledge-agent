@@ -254,26 +254,23 @@
   }
 
   /* 把步骤卡拼成朗读稿。**只做拼接，不改写任何文字**（S1）。
-     读法上做四件事，都属于「怎么读」而非「读什么」：
-       - 段落标题念出来（"立刻做"），让听的人知道换段了
-       - 步骤之间加停顿（用句号），避免连成一串听不清
-       - 禁忌段前缀「绝对不要」，因为只念"不要开灯"容易漏掉"不要"
-       - 生命危险条目末尾加「同时拨打 N」（S5，见上） */
+     2026-11-21 用户裁决「内容全读，批注不要读」：
+       - 不再念「立刻做 / 接着做 / 绝对不要做」这些段落标题（它们是界面批注）；
+       - 三段的所有步骤文字全部念；
+       - 生命危险条目末尾仍加「同时拨打 N」（S5 安全句，不是批注）。 */
   function composeStepsScript(entry, immediateOverride) {
     if (!entry || !entry.steps) return '';
     var parts = [];
     if (entry.name) parts.push(entry.name + '。');
 
     var segs = [
-      { key: 'immediate', title: '立刻做', data: immediateOverride || entry.steps.immediate },
-      { key: 'next', title: '接着做', data: entry.steps.next },
-      { key: 'never', title: '绝对不要做', data: entry.steps.never }
+      { key: 'immediate', data: immediateOverride || entry.steps.immediate },
+      { key: 'next', data: entry.steps.next },
+      { key: 'never', data: entry.steps.never }
     ];
 
     segs.forEach(function (seg) {
       var arr = seg.data || [];
-      if (!arr.length) return;
-      parts.push(seg.title + '。');
       arr.forEach(function (s) {
         var t = String((s && s.text) || '').trim();
         if (!t) return;
@@ -281,9 +278,8 @@
       });
     });
 
-    /* S5：放在「绝对不要做」之后。
-       为什么不在开头：老人最先要听的是「立刻做什么」，先念号码会把最急的动作往后推。
-       为什么不在中间：会打断步骤的连贯性。 */
+    /* S5：放在最后。
+       为什么不在开头：老人最先要听的是「立刻做什么」，先念号码会把最急的动作往后推。 */
     var call = composeEmergencyCallSentence(entry);
     if (call) parts.push(call);
 
@@ -297,20 +293,17 @@
     if (entry.name) parts.push(entry.name + '。');
     if (d.summary) parts.push(d.summary);
     if (d.why) parts.push(d.why);
+    (d.prevention || []).forEach(function (p) {
+      if (p) parts.push(String(p) + '。');
+    });
+    if (d.misconception) parts.push(d.misconception);
     return parts.join('');
   }
 
-  /* 「只读一句」的稿子：名称 + 摘要。
-     为什么不直接复用 composeDailyScript：那份含 why，念完约 20 秒。
-     老人问一句日常问题（"怎么预防煤气泄漏"）只想听结论，
-     念长了第一反应是按停止——那就等于没读。
-     全文仍留给手动「朗读一遍」。（2026-11-18 用户裁决：只自动读名称+摘要） */
+  /* 日常也读全文（2026-11-21 用户裁决「内容全读」）。
+     不再区分「只读名称+摘要」；保留函数名，避免改调用方。 */
   function composeDailyBriefScript(entry) {
-    if (!entry || !entry.daily) return '';
-    var parts = [];
-    if (entry.name) parts.push(entry.name + '。');
-    if (entry.daily.summary) parts.push(entry.daily.summary);
-    return parts.join('');
+    return composeDailyScript(entry);
   }
 
   /* 分诊卡阶段还没有步骤，只能把问题和选项念出来。

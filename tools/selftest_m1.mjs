@@ -750,7 +750,12 @@ for (const id of Object.keys(M.entries)) {
           它是「怎么说」不是「说什么」，不新增任何操作指导。所以这里要先把它剔除，
           否则 S1 的反向断言会因为合规的安全句而误报。
           与此同时 S5 的正向断言在下一段（③-b）单独检查它必须存在。 */
+    /* 2026-11-21 用户裁决「内容全读，批注不要读」：
+       段落标题不再进朗读稿；三段步骤文字必须全部在。 */
     const titles = ['立刻做。', '接着做。', '绝对不要做。'];
+    for (const t of titles) {
+      ok(!script.includes(t), `${id} 朗读稿不应念段落标题「${t.replace('。', '')}」`);
+    }
     let stripped = script.replace(e.name + '。', '');
     for (const t of titles) stripped = stripped.split(t).join('');
     for (const seg of ['immediate', 'next', 'never']) {
@@ -960,10 +965,10 @@ for (const id of Object.keys(M.entries)) {
       const said = spoken[spoken.length - 1].text;
       ok(said.includes(e.name), '日常卡自动朗读应包含场景名');
       ok(said.includes(e.daily.summary), '日常卡自动朗读应包含摘要');
-      if (e.daily.why)
-        ok(!said.includes(e.daily.why), '日常卡自动朗读不应念「原因」全文（念长了会被按停止）');
+      /* 2026-11-21 用户裁决「内容全读」：日常卡自动朗读也念 why + prevention。 */
+      if (e.daily.why) ok(said.includes(e.daily.why), '日常卡自动朗读应念「原因」全文');
       const p0 = (e.daily.prevention || [])[0];
-      if (p0) ok(!said.includes(p0), '日常卡自动朗读不应念「平时怎么做」清单');
+      if (p0) ok(said.includes(p0), '日常卡自动朗读应念「平时怎么做」清单');
       ok(box.innerHTML.includes('data-act="read"'), '日常卡应有朗读按钮');
       ok(box.innerHTML.includes('data-act="stop"'), '日常卡应有停止按钮');
       ok(box.innerHTML.includes('查看操作步骤'), '日常卡仍应有查看步骤入口');
@@ -1071,15 +1076,20 @@ for (const id of Object.keys(M.entries)) {
       );
     }
 
-    // ⑦-b 日常摘要稿同样受 S1 约束：剥掉名称与摘要后只剩标点
+    // ⑦-b 日常稿同样受 S1 约束：剥掉名称与 daily 全字段后只剩标点
     {
       const e = M2.entries.co_poisoning;
       const script = sandbox.window.TTS.composeDailyBriefScript(e);
-      let stripped = script.replace(e.name + '。', '').replace(e.daily.summary, '');
+      let stripped = script.replace(e.name + '。', '');
+      stripped = stripped.replace(e.daily.summary || '', '');
+      stripped = stripped.replace(e.daily.why || '', '');
+      for (const p of e.daily.prevention || []) stripped = stripped.replace(p + '。', '');
+      stripped = stripped.replace(e.daily.misconception || '', '');
       ok(
         stripped.replace(/[。，、！？：；\s]/g, '') === '',
-        `日常摘要稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`
+        `日常朗读稿含条目之外的内容：「${stripped.slice(0, 40)}」（违反 S1）`
       );
+      ok(script.includes(e.daily.prevention[0]), '日常稿应包含预防条目（内容全读）');
     }
 
     // ⑦-c 按停止后日常卡也不自动读（静默是全局的，不是只管紧急卡）

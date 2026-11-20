@@ -35,29 +35,67 @@ const store = new Map();
 function makeEl(id) {
   const cls = new Set();
   return {
-    id, innerHTML: '', hidden: false, value: '', textContent: '',
+    id,
+    innerHTML: '',
+    hidden: false,
+    value: '',
+    textContent: '',
     handlers: {},
     className: '',
     /* 2026-11-19 聊天式改造：紧急态靠 body.classList 标记（不再隐藏视图） */
     _classes: cls,
     classList: {
-      add(c) { cls.add(c); },
-      remove(c) { cls.delete(c); },
-      contains(c) { return cls.has(c); },
-      toggle(c, on) { if (on === undefined) { cls.has(c) ? cls.delete(c) : cls.add(c); } else if (on) cls.add(c); else cls.delete(c); }
+      add(c) {
+        cls.add(c);
+      },
+      remove(c) {
+        cls.delete(c);
+      },
+      contains(c) {
+        return cls.has(c);
+      },
+      toggle(c, on) {
+        if (on === undefined) {
+          cls.has(c) ? cls.delete(c) : cls.add(c);
+        } else if (on) cls.add(c);
+        else cls.delete(c);
+      },
     },
-    addEventListener(type, fn) { (this.handlers[type] ||= []).push(fn); },
-    querySelectorAll() { return []; },
-    querySelector() { return null; },
+    addEventListener(type, fn) {
+      (this.handlers[type] ||= []).push(fn);
+    },
+    querySelectorAll() {
+      return [];
+    },
+    querySelector() {
+      return null;
+    },
     scrollIntoView() {},
-    getAttribute() { return null; },
+    getAttribute() {
+      return null;
+    },
     setAttribute() {},
-    closest() { return null; },
+    closest() {
+      return null;
+    },
     /* 2026-11-19 聊天式改造：消息气泡需要 appendChild 组装 DOM */
     children: [],
-    appendChild(c) { this.children = this.children || []; this.children.push(c); c.parentNode = this; return c; },
-    removeChild(c) { this.children = (this.children || []).filter((x) => x !== c); return c; },
-    insertBefore(c) { this.children = this.children || []; this.children.unshift(c); c.parentNode = this; return c; },
+    appendChild(c) {
+      this.children = this.children || [];
+      this.children.push(c);
+      c.parentNode = this;
+      return c;
+    },
+    removeChild(c) {
+      this.children = (this.children || []).filter((x) => x !== c);
+      return c;
+    },
+    insertBefore(c) {
+      this.children = this.children || [];
+      this.children.unshift(c);
+      c.parentNode = this;
+      return c;
+    },
     parentNode: null,
   };
 }
@@ -74,58 +112,123 @@ const document = {
     n.setAttribute = function (k, v) {
       this._attrs = this._attrs || {};
       this._attrs[k] = v;
-      if (k === 'id') { store.set(String(v), this); this.id = String(v); }
+      if (k === 'id') {
+        store.set(String(v), this);
+        this.id = String(v);
+      }
     };
     n.removeAttribute = function (k) {
-      if (k === 'id') { for (const [key, val] of store.entries()) if (val === this) store.delete(key); this.id = ''; }
+      if (k === 'id') {
+        for (const [key, val] of store.entries()) if (val === this) store.delete(key);
+        this.id = '';
+      }
     };
     n.tagName = String(tag).toUpperCase();
     return n;
   },
   body: makeEl('body'),
-  querySelectorAll() { return []; },
-  addEventListener() {}
+  querySelectorAll() {
+    return [];
+  },
+  addEventListener() {},
 };
 
 /* ---------- 发声桩：记录「念了什么」 ---------- */
 const spoken = [];
-function Utterance(text) { this.text = text; this.lang = ''; this.rate = 1; }
+function Utterance(text) {
+  this.text = text;
+  this.lang = '';
+  this.rate = 1;
+}
 const synth = {
   getVoices: () => [{ name: 'Microsoft Huihui', lang: 'zh-CN' }],
-  speak(u) { spoken.push({ text: u.text, lang: u.lang, rate: u.rate }); if (u.onend) u.onend(); },
+  speak(u) {
+    spoken.push({ text: u.text, lang: u.lang, rate: u.rate });
+    if (u.onend) u.onend();
+  },
   cancel() {},
-  addEventListener() {}
+  addEventListener() {},
 };
 
-const window = { document, scrollTo() {}, addEventListener() {}, removeEventListener() {}, speechSynthesis: synth, SpeechSynthesisUtterance: Utterance };
+const window = {
+  document,
+  scrollTo() {},
+  addEventListener() {},
+  removeEventListener() {},
+  speechSynthesis: synth,
+  SpeechSynthesisUtterance: Utterance,
+};
 const sandbox = {
-  window, document, console, Math, String, Number, Object, Array, JSON,
-  speechSynthesis: synth, SpeechSynthesisUtterance: Utterance,
-  fetch, AbortController, setTimeout, clearTimeout, Promise, Error, Date, RegExp,
-  localStorage: null
+  window,
+  document,
+  console,
+  Math,
+  String,
+  Number,
+  Object,
+  Array,
+  JSON,
+  speechSynthesis: synth,
+  SpeechSynthesisUtterance: Utterance,
+  fetch,
+  AbortController,
+  setTimeout,
+  clearTimeout,
+  Promise,
+  Error,
+  Date,
+  RegExp,
+  localStorage: null,
 };
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const f of ['log.js', 'knowledge.js', 'retrieval.js', 'llm.js', 'voice.js', 'state.js', 'chat.js', 'tools.js', 'render.js', 'speak.js', 'talk.js', 'agent.js', 'app.js']) {
+for (const f of [
+  'log.js',
+  'knowledge.js',
+  'retrieval.js',
+  'llm.js',
+  'voice.js',
+  'state.js',
+  'chat.js',
+  'tools.js',
+  'render.js',
+  'speak.js',
+  'talk.js',
+  'agent.js',
+  'app.js',
+]) {
   vm.runInContext(fs.readFileSync(path.join(APP, f), 'utf8'), sandbox);
 }
 const M = sandbox.window.__M1__;
-if (!M) { console.error('FAIL: app.js 未导出 __M1__'); process.exit(1); }
-if (!M.TTSAvailable) { console.error('FAIL: app.js 未加载到 voice.js'); process.exit(1); }
+if (!M) {
+  console.error('FAIL: app.js 未导出 __M1__');
+  process.exit(1);
+}
+if (!M.TTSAvailable) {
+  console.error('FAIL: app.js 未加载到 voice.js');
+  process.exit(1);
+}
 await sandbox.window.TTS.detect();
 
 /* ---------- 用例 ---------- */
 const CASES = [
-  { text: '煤气漏了',               card: 'steps', speaks: 1, kind: 'triage' },
-  { text: '着火了',                 card: 'steps', speaks: 1, kind: 'steps' },
-  { text: '怎么预防煤气泄漏',       card: 'daily', speaks: 1, kind: 'brief' },
-  { text: '今天天气怎么样',         card: 'refuse', speaks: 0, kind: 'none' }
+  { text: '煤气漏了', card: 'steps', speaks: 1, kind: 'triage' },
+  { text: '着火了', card: 'steps', speaks: 1, kind: 'steps' },
+  { text: '怎么预防煤气泄漏', card: 'daily', speaks: 1, kind: 'brief' },
+  { text: '今天天气怎么样', card: 'refuse', speaks: 0, kind: 'none' },
 ];
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 const fails = [];
-function ok(c, m) { if (c) pass++; else { fail++; fails.push(m); } }
+function ok(c, m) {
+  if (c) pass++;
+  else {
+    fail++;
+    fails.push(m);
+  }
+}
 
 function classify(html) {
   if (!html) return 'empty';
@@ -149,7 +252,9 @@ for (const c of CASES) {
   const before = spoken.length;
   await M.handleQuery(c.text);
   const n = spoken.length - before;
-  const html = document.getElementById('emgAnswer').innerHTML || document.getElementById('dailyAnswer').innerHTML;
+  const html =
+    document.getElementById('emgAnswer').innerHTML ||
+    document.getElementById('dailyAnswer').innerHTML;
   const card = classify(html);
   const said = n ? spoken[spoken.length - 1].text : '';
 
@@ -162,13 +267,13 @@ for (const c of CASES) {
   ok(n === c.speaks, `「${c.text}」应发声 ${c.speaks} 次，实际 ${n} 次`);
 
   if (c.kind === 'brief') {
-    const real = Object.values(M.entries).find(x => x.daily && said.includes(x.daily.summary));
+    const real = Object.values(M.entries).find((x) => x.daily && said.includes(x.daily.summary));
     ok(!!real, `「${c.text}」朗读稿里应含该条目的 summary 原文`);
     if (real && real.daily.why) {
-      ok(!said.includes(real.daily.why), `「${c.text}」自动朗读不应念 why 全文（只读一句摘要）`);
+      ok(said.includes(real.daily.why), `「${c.text}」自动朗读应念 why 全文（内容全读）`);
     }
     const p0 = real && (real.daily.prevention || [])[0];
-    if (p0) ok(!said.includes(p0), `「${c.text}」自动朗读不应念 prevention 清单`);
+    if (p0) ok(said.includes(p0), `「${c.text}」自动朗读应念 prevention 清单（内容全读）`);
   }
   if (c.kind === 'triage') {
     ok(said.includes('第1个'), '分诊卡自动朗读应带「第1个」序号（老人看不到屏幕也能选）');
@@ -202,14 +307,17 @@ console.log('=== 按停止后的静默（本会话不再自动读） ===');
     console.log(`  本次发送 ${n} 条 ｜ 各模块：${JSON.stringify(byMod)}`);
     console.log(`  stats: ${JSON.stringify(L.stats())}`);
     ok(L.buffer.length > 0, '整轮跑完应有日志记录');
-    ok(Object.keys(byMod).length >= 3, `应至少涉及 3 个模块，实际 ${Object.keys(byMod).join(',') || '无'}`);
+    ok(
+      Object.keys(byMod).length >= 3,
+      `应至少涉及 3 个模块，实际 ${Object.keys(byMod).join(',') || '无'}`
+    );
   }
 }
 
 console.log('\n' + '='.repeat(70));
 if (fail) {
   console.log(`断言 ${pass + fail} 条：通过 ${pass}，失败 ${fail}`);
-  fails.forEach(f => console.log('  ✗ ' + f));
+  fails.forEach((f) => console.log('  ✗ ' + f));
   process.exit(1);
 } else {
   console.log(`断言 ${pass} 条：全部通过`);

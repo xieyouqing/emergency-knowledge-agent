@@ -1,10 +1,10 @@
 {
- "at": "2026-11-20T22:17:12.604Z",
+ "at": "2026-11-20T22:51:34.224Z",
  "n": 100,
  "acc": 100,
- "avgSteps": 1.69,
+ "avgSteps": 1.68,
  "p95Steps": 2,
- "degradedCount": 0,
+ "degradedCount": 1,
  "rows": [
   {
    "id": "E001",
@@ -17,7 +17,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1423
+   "ms": 1314
   },
   {
    "id": "E002",
@@ -30,7 +30,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1391
+   "ms": 1283
   },
   {
    "id": "E003",
@@ -43,7 +43,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1496
+   "ms": 1781
   },
   {
    "id": "E004",
@@ -56,7 +56,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1692
+   "ms": 1329
   },
   {
    "id": "E005",
@@ -69,7 +69,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1277
+   "ms": 1603
   },
   {
    "id": "E006",
@@ -82,7 +82,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1314
+   "ms": 1491
   },
   {
    "id": "E007",
@@ -95,7 +95,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2112
+   "ms": 1411
   },
   {
    "id": "E008",
@@ -108,7 +108,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1282
+   "ms": 1760
   },
   {
    "id": "E009",
@@ -121,7 +121,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1311
+   "ms": 1406
   },
   {
    "id": "E010",
@@ -134,7 +134,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1546
+   "ms": 2285
   },
   {
    "id": "E011",
@@ -147,7 +147,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1278
+   "ms": 1757
   },
   {
    "id": "E012",
@@ -160,7 +160,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1562
+   "ms": 1615
   },
   {
    "id": "E013",
@@ -173,7 +173,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1847
+   "ms": 1785
   },
   {
    "id": "E014",
@@ -186,7 +186,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1764
+   "ms": 1703
   },
   {
    "id": "E015",
@@ -199,7 +199,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1254
+   "ms": 1431
   },
   {
    "id": "E016",
@@ -212,7 +212,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1580
+   "ms": 1752
   },
   {
    "id": "E017",
@@ -225,7 +225,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1190
+   "ms": 1714
   },
   {
    "id": "E018",
@@ -238,7 +238,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1528
+   "ms": 1997
   },
   {
    "id": "E019",
@@ -251,7 +251,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1517
+   "ms": 1672
   },
   {
    "id": "E020",
@@ -264,7 +264,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1515
+   "ms": 1484
   },
   {
    "id": "E021",
@@ -277,7 +277,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1632
+   "ms": 1366
   },
   {
    "id": "E022",
@@ -290,7 +290,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1451
+   "ms": 2003
   },
   {
    "id": "E023",
@@ -303,7 +303,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1341
+   "ms": 1987
   },
   {
    "id": "E024",
@@ -316,7 +316,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1098
+   "ms": 1321
   },
   {
    "id": "E025",
@@ -329,7 +329,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1254
+   "ms": 1677
   },
   {
    "id": "E026",
@@ -342,7 +342,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1321
+   "ms": 2330
   },
   {
    "id": "E027",
@@ -355,7 +355,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1231
+   "ms": 1274
   },
   {
    "id": "E028",
@@ -368,7 +368,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1885
+   "ms": 1610
   },
   {
    "id": "E029",
@@ -381,7 +381,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1136
+   "ms": 1564
   },
   {
    "id": "E030",
@@ -394,7 +394,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1630
+   "ms": 1591
   },
   {
    "id": "E031",
@@ -407,7 +407,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1349
+   "ms": 1270
   },
   {
    "id": "E032",
@@ -420,7 +420,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1294
+   "ms": 1689
   },
   {
    "id": "E033",
@@ -433,7 +433,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1107
+   "ms": 1643
   },
   {
    "id": "E034",
@@ -446,7 +446,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1652
+   "ms": 1587
   },
   {
    "id": "E035",
@@ -459,7 +459,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1334
+   "ms": 2299
   },
   {
    "id": "E036",
@@ -472,7 +472,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1476
+   "ms": 1596
   },
   {
    "id": "E037",
@@ -485,7 +485,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1436
+   "ms": 1627
   },
   {
    "id": "E038",
@@ -498,7 +498,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 876
+   "ms": 784
   },
   {
    "id": "E039",
@@ -511,7 +511,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1164
+   "ms": 1290
   },
   {
    "id": "E040",
@@ -524,7 +524,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2227
+   "ms": 1230
   },
   {
    "id": "P001",
@@ -537,7 +537,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1470
+   "ms": 1482
   },
   {
    "id": "P002",
@@ -550,7 +550,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1243
+   "ms": 1927
   },
   {
    "id": "P003",
@@ -563,7 +563,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1258
+   "ms": 1554
   },
   {
    "id": "P004",
@@ -576,7 +576,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1700
+   "ms": 1443
   },
   {
    "id": "P005",
@@ -589,7 +589,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1549
+   "ms": 1746
   },
   {
    "id": "P006",
@@ -602,7 +602,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1209
+   "ms": 1429
   },
   {
    "id": "P007",
@@ -615,7 +615,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2040
+   "ms": 1447
   },
   {
    "id": "P008",
@@ -628,7 +628,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1598
+   "ms": 1976
   },
   {
    "id": "P009",
@@ -641,7 +641,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1491
+   "ms": 1503
   },
   {
    "id": "P010",
@@ -654,7 +654,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1491
+   "ms": 1674
   },
   {
    "id": "P011",
@@ -667,7 +667,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1586
+   "ms": 1785
   },
   {
    "id": "P012",
@@ -680,7 +680,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2172
+   "ms": 1294
   },
   {
    "id": "P013",
@@ -693,7 +693,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1441
+   "ms": 1327
   },
   {
    "id": "P014",
@@ -706,7 +706,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 776
+   "ms": 1530
   },
   {
    "id": "P015",
@@ -719,7 +719,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1516
+   "ms": 1836
   },
   {
    "id": "P016",
@@ -732,7 +732,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1803
+   "ms": 1123
   },
   {
    "id": "P017",
@@ -745,7 +745,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 2109
+   "ms": 1785
   },
   {
    "id": "P018",
@@ -758,7 +758,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1900
+   "ms": 1526
   },
   {
    "id": "P019",
@@ -771,7 +771,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1373
+   "ms": 1312
   },
   {
    "id": "P020",
@@ -784,7 +784,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 639
+   "ms": 1343
   },
   {
    "id": "P021",
@@ -797,7 +797,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1852
+   "ms": 1730
   },
   {
    "id": "P022",
@@ -810,7 +810,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1453
+   "ms": 2091
   },
   {
    "id": "P023",
@@ -823,7 +823,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1640
+   "ms": 1825
   },
   {
    "id": "P024",
@@ -836,7 +836,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1368
+   "ms": 1353
   },
   {
    "id": "P025",
@@ -849,7 +849,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1490
+   "ms": 1563
   },
   {
    "id": "P026",
@@ -862,7 +862,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1197
+   "ms": 1428
   },
   {
    "id": "P027",
@@ -875,7 +875,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1334
+   "ms": 1339
   },
   {
    "id": "P028",
@@ -888,7 +888,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1687
+   "ms": 1458
   },
   {
    "id": "P029",
@@ -901,7 +901,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1835
+   "ms": 1872
   },
   {
    "id": "P030",
@@ -914,7 +914,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1325
+   "ms": 1263
   },
   {
    "id": "O001",
@@ -927,7 +927,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 653
+   "ms": 533
   },
   {
    "id": "O002",
@@ -940,7 +940,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 917
+   "ms": 881
   },
   {
    "id": "O003",
@@ -953,7 +953,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 591
+   "ms": 1135
   },
   {
    "id": "O004",
@@ -966,7 +966,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 703
+   "ms": 817
   },
   {
    "id": "O005",
@@ -979,7 +979,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 887
+   "ms": 1060
   },
   {
    "id": "O006",
@@ -992,7 +992,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 848
+   "ms": 1201
   },
   {
    "id": "O007",
@@ -1005,7 +1005,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 555
+   "ms": 574
   },
   {
    "id": "O008",
@@ -1018,7 +1018,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 614
+   "ms": 872
   },
   {
    "id": "O009",
@@ -1031,7 +1031,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 747
+   "ms": 755
   },
   {
    "id": "O010",
@@ -1044,7 +1044,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 662
+   "ms": 1265
   },
   {
    "id": "O011",
@@ -1057,7 +1057,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 665
+   "ms": 477
   },
   {
    "id": "O012",
@@ -1070,7 +1070,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 949
+   "ms": 742
   },
   {
    "id": "O013",
@@ -1079,11 +1079,11 @@
    "expect": "refuse",
    "got": "refuse",
    "endKind": "refuse",
-   "steps": 1,
-   "degraded": false,
+   "steps": 0,
+   "degraded": true,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1047
+   "ms": 723
   },
   {
    "id": "O014",
@@ -1096,7 +1096,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 657
+   "ms": 523
   },
   {
    "id": "O015",
@@ -1109,7 +1109,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 546
+   "ms": 562
   },
   {
    "id": "O016",
@@ -1122,7 +1122,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 804
+   "ms": 642
   },
   {
    "id": "O017",
@@ -1135,7 +1135,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 596
+   "ms": 589
   },
   {
    "id": "O018",
@@ -1148,7 +1148,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 555
+   "ms": 663
   },
   {
    "id": "O019",
@@ -1161,7 +1161,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 534
+   "ms": 867
   },
   {
    "id": "O020",
@@ -1174,7 +1174,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 547
+   "ms": 491
   },
   {
    "id": "O021",
@@ -1187,7 +1187,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 567
+   "ms": 770
   },
   {
    "id": "O022",
@@ -1200,7 +1200,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 581
+   "ms": 690
   },
   {
    "id": "O023",
@@ -1213,7 +1213,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 737
+   "ms": 508
   },
   {
    "id": "O024",
@@ -1226,7 +1226,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 665
+   "ms": 550
   },
   {
    "id": "O025",
@@ -1239,7 +1239,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 1014
+   "ms": 564
   },
   {
    "id": "O026",
@@ -1252,7 +1252,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 564
+   "ms": 1127
   },
   {
    "id": "O027",
@@ -1265,7 +1265,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 542
+   "ms": 1169
   },
   {
    "id": "O028",
@@ -1278,7 +1278,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 931
+   "ms": 579
   },
   {
    "id": "O029",
@@ -1291,7 +1291,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 714
+   "ms": 609
   },
   {
    "id": "O030",
@@ -1304,7 +1304,7 @@
    "degraded": false,
    "ok": true,
    "okUnderAsk": true,
-   "ms": 750
+   "ms": 800
   }
  ]
 }

@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-20T21:46:51.693Z",
+ "generated": "2026-11-20T22:42:17.853Z",
  "style": "unlabeled",
  "endpoint": "http://127.0.0.1:8787/act",
  "rows": [
@@ -513,10 +513,10 @@
    "text": "有人落水了",
    "anchorScene": "gas_leak",
    "anchor": "家里闻到很浓的煤气味，煤气漏了",
-   "expect": "dialonly",
-   "baseAct": "dialonly",
+   "expect": "steps",
+   "baseAct": "steps",
    "baseOk": true,
-   "contAct": "dialonly",
+   "contAct": "steps",
    "contOk": true,
    "dropped": false,
    "rescued": false
@@ -524,7 +524,7 @@
   {
    "id": "E038",
    "group": "emergency",
-   "text": "小孩掉水里了",
+   "text": "小孩掉水里没呼吸了",
    "anchorScene": "fire_home",
    "anchor": "厨房着火了，火很大",
    "expect": "dialonly",
@@ -600,9 +600,9 @@
    "expect": "daily",
    "baseAct": "daily",
    "baseOk": true,
-   "contAct": "daily",
-   "contOk": true,
-   "dropped": false,
+   "contAct": "refuse",
+   "contOk": false,
+   "dropped": true,
    "rescued": false
   },
   {
@@ -712,9 +712,9 @@
    "expect": "daily",
    "baseAct": "daily",
    "baseOk": true,
-   "contAct": "refuse",
-   "contOk": false,
-   "dropped": true,
+   "contAct": "daily",
+   "contOk": true,
+   "dropped": false,
    "rescued": false
   },
   {
@@ -726,9 +726,9 @@
    "expect": "daily",
    "baseAct": "daily",
    "baseOk": true,
-   "contAct": "daily",
-   "contOk": true,
-   "dropped": false,
+   "contAct": "refuse",
+   "contOk": false,
+   "dropped": true,
    "rescued": false
   },
   {
@@ -796,9 +796,9 @@
    "expect": "daily",
    "baseAct": "daily",
    "baseOk": true,
-   "contAct": "refuse",
-   "contOk": false,
-   "dropped": true,
+   "contAct": "daily",
+   "contOk": true,
+   "dropped": false,
    "rescued": false
   },
   {
@@ -933,10 +933,10 @@
    "text": "孩子游泳怎么防溺水",
    "anchorScene": "fall_elderly",
    "anchor": "老人摔倒了，站不起来",
-   "expect": "refuse",
-   "baseAct": "refuse",
+   "expect": "daily",
+   "baseAct": "daily",
    "baseOk": true,
-   "contAct": "refuse",
+   "contAct": "daily",
    "contOk": true,
    "dropped": false,
    "rescued": false
@@ -947,10 +947,10 @@
    "text": "溺水怎么预防",
    "anchorScene": "scald_burn",
    "anchor": "手被开水烫了，起了大水泡",
-   "expect": "refuse",
-   "baseAct": "refuse",
+   "expect": "daily",
+   "baseAct": "daily",
    "baseOk": true,
-   "contAct": "refuse",
+   "contAct": "daily",
    "contOk": true,
    "dropped": false,
    "rescued": false
@@ -978,9 +978,9 @@
    "expect": "daily",
    "baseAct": "daily",
    "baseOk": true,
-   "contAct": "daily",
-   "contOk": true,
-   "dropped": false,
+   "contAct": "refuse",
+   "contOk": false,
+   "dropped": true,
    "rescued": false
   },
   {

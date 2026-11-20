@@ -382,7 +382,7 @@
       '<button class="ghost-btn" type="button" id="toSteps">查看操作步骤</button>' +
       '</article>';
 
-    // 语音：手动读全文（名称+摘要+原因），自动只读一句摘要
+    // 语音：自动与手动都读全文（名称+摘要+原因+预防+误区），不读段落标题
     var readBtn = container.querySelector('[data-act="read"]');
     if (readBtn) {
       readBtn.addEventListener('click', function () {
