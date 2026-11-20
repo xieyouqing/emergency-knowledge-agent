@@ -255,22 +255,40 @@
      图标点了直接出步骤卡 —— 不经过判定层，这是最快的一条路（docs/01 §3.3）。 */
   function renderIcons() {
     if (!el.msgIcons) return;
-    var html = KB.slots
-      .map(function (s) {
-        return (
-          '<button class="icon-btn" type="button" data-id="' +
-          esc(s.id) +
-          '">' +
-          '<span class="icon-glyph" aria-hidden="true">' +
-          (ICONS[s.id] || '•') +
-          '</span>' +
-          '<span class="icon-label">' +
-          esc(s.name) +
-          '</span>' +
-          '</button>'
-        );
-      })
-      .join('');
+    /* 首屏只放前 8 个常用场景：16 个图标一次铺开，老人反而不知道点哪个。
+       其余收进「更多场景」，展开后仍是全部 16 个。 */
+    var top = KB.slots.slice(0, 8);
+    var extra = KB.slots.slice(8);
+    function iconBtn(s, extraClass) {
+      return (
+        '<button class="icon-btn' +
+        (extraClass || '') +
+        '" type="button" data-id="' +
+        esc(s.id) +
+        '">' +
+        '<span class="icon-glyph" aria-hidden="true">' +
+        (ICONS[s.id] || '•') +
+        '</span>' +
+        '<span class="icon-label">' +
+        esc(s.name) +
+        '</span>' +
+        '</button>'
+      );
+    }
+    var html = top.map(function (s) {
+      return iconBtn(s, '');
+    }).join('');
+    if (extra.length) {
+      html += extra
+        .map(function (s) {
+          return iconBtn(s, ' is-extra');
+        })
+        .join('');
+      html +=
+        '<button class="icon-more" type="button" data-more="1">更多场景（' +
+        extra.length +
+        '）</button>';
+    }
     if (!html) {
       html = '<p class="section-label">内容正在准备中</p>';
     }
@@ -964,6 +982,14 @@
      2026-11-19 聊天式改造前是 dailyIcons / emgIcons 两处，分别绑定。 */
   if (el.msgIcons) {
     el.msgIcons.addEventListener('click', function (ev) {
+      var more = ev.target.closest('.icon-more');
+      if (more) {
+        var on = el.msgIcons.classList.toggle('is-expanded');
+        more.textContent = on
+          ? '收起场景'
+          : '更多场景（' + (KB.slots.length - 8) + '）';
+        return;
+      }
       var b = ev.target.closest('.icon-btn');
       if (b) handleIconClick(b.getAttribute('data-id'));
     });

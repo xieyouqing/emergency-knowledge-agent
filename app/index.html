@@ -14,9 +14,9 @@
 </header>
 
 <!-- 紧急模式色带：命中危险信号后出现，不可手动关闭（S8） -->
-<div class="mode-band" id="modeBand" hidden>
+<div class="mode-band" id="modeBand" hidden role="alert">
   <span class="band-dot" aria-hidden="true"></span>
-  <strong>已切到紧急指引</strong>
+  <strong>紧急指引 · 按下面步骤做</strong>
 </div>
 
 <main id="main">
@@ -31,11 +31,11 @@
     <div id="msgFlow" class="msg-flow" role="log" aria-live="polite">
 
       <article class="msg msg-assistant" id="welcomeMsg">
-        <h1 class="ask-title">有什么想了解的？</h1>
+        <h1 class="ask-title">出什么事了？</h1>
         <!-- 图标区常驻消息流顶部：不占输入区空间，且随流滚动不遮挡内容。
              无内容的槽位由构建期过滤，这里只渲染拿到的槽位。 -->
         <nav class="icons" id="msgIcons" aria-label="常见场景"></nav>
-        <p class="section-label">也可以直接说一句话，或点上面的场景</p>
+        <p class="section-label">按住下面的大按钮说话；也可以点场景，或直接打字</p>
       </article>
 
     </div>
@@ -57,24 +57,8 @@
       正在处理…
     </div>
 
-    <form class="ask-row" id="dailyForm" autocomplete="off">
-      <label class="sr-only" for="dailyInput">输入你的问题</label>
-      <input id="dailyInput" class="ask-input" type="text"
-             placeholder="比如：怎么预防燃气泄漏" enterkeyhint="search">
-      <button class="ask-btn" type="submit">提问</button>
-    </form>
-
-    <form class="ask-row" id="emgForm" autocomplete="off" hidden>
-      <label class="sr-only" for="emgInput">说出或输入发生了什么</label>
-      <input id="emgInput" class="ask-input" type="text"
-             placeholder="比如：煤气漏了" enterkeyhint="search">
-      <button class="ask-btn sos-btn" type="submit">确认</button>
-    </form>
-
-    <!-- 按住说话（M2）：pointerdown 开始录、pointerup 发送。
-         放在输入框下方而不是替换输入框 —— 打字仍然是最可靠的路径，
-         语音是给不会打字的老人用的，两条路都要留着。
-         两个按钮互为显隐，与上面的 form 同步。 -->
+    <!-- 按住说话（M2）放在输入框上方：老人第一眼看到的主操作是「说」，
+         打字是第二条路。两个按钮互为显隐，与下面的 form 同步。 -->
     <div class="voicein-row">
       <button class="talk-btn" id="dailyTalk" type="button">
         <span class="talk-ico" aria-hidden="true">🎤</span>
@@ -88,6 +72,20 @@
       <p class="talk-hint" id="emgTalkHint" hidden></p>
     </div>
 
+    <form class="ask-row" id="dailyForm" autocomplete="off">
+      <label class="sr-only" for="dailyInput">输入你的问题</label>
+      <input id="dailyInput" class="ask-input" type="text"
+             placeholder="也可以打字：比如怎么预防燃气泄漏" enterkeyhint="search">
+      <button class="ask-btn" type="submit">提问</button>
+    </form>
+
+    <form class="ask-row" id="emgForm" autocomplete="off" hidden>
+      <label class="sr-only" for="emgInput">说出或输入发生了什么</label>
+      <input id="emgInput" class="ask-input" type="text"
+             placeholder="也可以打字：比如煤气漏了" enterkeyhint="search">
+      <button class="ask-btn sos-btn" type="submit">确认</button>
+    </form>
+
     <!-- 朗读语速（K3，2026-11-19 补）
          为什么放在输入区而不是消息流里：老人不需要每次调它，设一次就一直生效
          （已落盘 localStorage）。放在消息流里会随滚动消失。
@@ -95,7 +93,7 @@
          「慢」= 0.75（比默认 0.9 更慢，给听不清的人），「正常」= 1.0。
          注意：默认仍是 0.9（偏慢），用户不碰这个控件也满足「默认偏慢」。 -->
     <section class="rate-row" id="rateRow" aria-label="朗读语速">
-      <span class="rate-label">朗读速度</span>
+      <span class="rate-label">语速</span>
       <div class="rate-opts" role="group">
         <button class="rate-btn" type="button" data-rate="0.75" aria-pressed="false">慢一点</button>
         <button class="rate-btn" type="button" data-rate="1" aria-pressed="false">正常</button>
