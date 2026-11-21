@@ -58,7 +58,12 @@
       if (!raw) return;
       var p = JSON.parse(raw);
       if (typeof p.enabled === 'boolean') state.enabled = p.enabled;
-      if (typeof p.rate === 'number' && p.rate >= 0.5 && p.rate <= 2) state.rate = p.rate;
+      /* 2026-11-21 语速功能取消：旧版本可能存过 rate，读到时顺手清掉。 */
+      if (p && Object.prototype.hasOwnProperty.call(p, 'rate')) {
+        try {
+          global.localStorage.setItem(STORAGE_KEY, JSON.stringify({ enabled: state.enabled }));
+        } catch (e2) { /* 忽略 */ }
+      }
     } catch (e) { /* localStorage 不可用就忽略，不影响功能 */ }
   }
 
@@ -66,7 +71,7 @@
     try {
       if (global.localStorage) {
         global.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          enabled: state.enabled, rate: state.rate
+          enabled: state.enabled
         }));
       }
     } catch (e) { /* 同上 */ }
@@ -475,10 +480,7 @@
     lg('info', '语音开关变更', { enabled: state.enabled });
   }
 
-  function setRate(r) {
-    var n = Number(r);
-    if (n >= 0.5 && n <= 2) { state.rate = n; savePref(); }
-  }
+  /* 语速功能已取消（2026-11-21 用户裁决）：固定默认 0.9，不再暴露 setRate。 */
 
   loadPref();
 
@@ -487,7 +489,6 @@
     speak: speak,
     stop: stop,
     setEnabled: setEnabled,
-    setRate: setRate,
     composeStepsScript: composeStepsScript,
     composeDailyScript: composeDailyScript,
     composeDailyBriefScript: composeDailyBriefScript,
