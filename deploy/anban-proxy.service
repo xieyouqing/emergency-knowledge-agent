@@ -1,0 +1,22 @@
+[Unit]
+Description=Anban LLM proxy (judge/act/expand/asr/log)
+After=network.target
+
+[Service]
+Type=simple
+User=anban
+Group=anban
+WorkingDirectory=/opt/anban
+EnvironmentFile=/opt/anban/.env
+ExecStart=/usr/bin/node tools/llm_proxy.mjs
+Restart=always
+RestartSec=3
+
+# 只让代理写日志目录，其余只读
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/anban/logs
+
+[Install]
+WantedBy=multi-user.target

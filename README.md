@@ -81,6 +81,10 @@ cd app && python -m http.server 8899
 
 ---
 
+## 部署到云服务器
+
+评审/线上访问需要 HTTPS 域名。Nginx 同域反代 + systemd 模板见 **[`deploy/DEPLOY.md`](deploy/DEPLOY.md)**。
+
 ## 用法
 
 | 做什么 | 怎么做 |
