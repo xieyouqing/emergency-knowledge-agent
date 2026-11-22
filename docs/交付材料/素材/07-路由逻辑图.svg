@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#14488F"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#B3261E"/>
+    </marker>
+    <style>
+      .title { font: 900 42px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#11151C; }
+      .sub { font: 700 24px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#3D4450; }
+      .box { fill:#F1F6FC; stroke:#14488F; stroke-width:3; rx:16; }
+      .boxRed { fill:#FFF7F6; stroke:#B3261E; stroke-width:3; rx:16; }
+      .boxDark { fill:#14488F; stroke:#14488F; stroke-width:3; rx:16; }
+      .t { font: 700 26px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#11151C; }
+      .tw { font: 700 26px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#FFFFFF; }
+      .s { font: 400 21px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#3D4450; }
+      .sw { font: 400 21px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#EAF2FF; }
+      .r { font: 700 21px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#B3261E; }
+      .line { stroke:#14488F; stroke-width:3; fill:none; marker-end:url(#arrow); }
+      .lineRed { stroke:#B3261E; stroke-width:3; fill:none; marker-end:url(#arrowRed); }
+      .label { font: 700 20px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#14488F; }
+      .labelRed { font: 700 20px "Microsoft YaHei", "PingFang SC", sans-serif; fill:#B3261E; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#FFFFFF"/>
+  <text x="70" y="75" class="title">安伴 · 受控自主循环（Agent 路由）</text>
+  <text x="70" y="112" class="sub">模型只选下一步；能不能出内容、出什么内容，由代码门和数据决定</text>
+
+  <!-- User -->
+  <rect x="70" y="180" width="300" height="130" class="box"/>
+  <text x="100" y="225" class="t">用户一句话</text>
+  <text x="100" y="260" class="s">按住说话 / 打字 / 点场景</text>
+  <text x="100" y="290" class="s">例：「煤气漏了」</text>
+
+  <line x1="370" y1="245" x2="450" y2="245" class="line"/>
+
+  <!-- Model -->
+  <rect x="460" y="170" width="370" height="150" class="boxDark"/>
+  <text x="492" y="215" class="tw">/act 模型选工具</text>
+  <text x="492" y="250" class="sw">9 个白名单工具</text>
+  <text x="492" y="280" class="sw">只决定“下一步调哪个”</text>
+  <text x="492" y="305" class="sw">不写步骤、不生成内容</text>
+
+  <line x1="830" y1="245" x2="910" y2="245" class="line"/>
+
+  <!-- Gate -->
+  <rect x="920" y="170" width="330" height="150" class="box"/>
+  <text x="950" y="213" class="t">前置门</text>
+  <text x="950" y="248" class="s">① 先查库？found=true？</text>
+  <text x="950" y="278" class="s">② turn / evidence 合法？</text>
+  <text x="950" y="308" class="s">③ 场景在已发布集合？</text>
+
+  <line x1="1250" y1="245" x2="1320" y2="245" class="line"/>
+  <text x="1255" y="230" class="label">通过</text>
+
+  <!-- Execute -->
+  <rect x="1330" y="170" width="200" height="150" class="box"/>
+  <text x="1358" y="215" class="t">执行工具</text>
+  <text x="1358" y="250" class="s">查库 / 分诊 /</text>
+  <text x="1358" y="280" class="s">步骤 / 日常 /</text>
+  <text x="1358" y="310" class="s">拨号 / 拒答</text>
+
+  <!-- fail branch -->
+  <line x1="1085" y1="320" x2="1085" y2="410" class="lineRed"/>
+  <text x="1098" y="360" class="labelRed">不通过</text>
+  <rect x="920" y="420" width="330" height="120" class="boxRed"/>
+  <text x="950" y="462" class="r">refuse / dial</text>
+  <text x="950" y="495" class="s">安全出口由代码固定</text>
+  <text x="950" y="522" class="s">模型不能强行出内容</text>
+
+  <!-- loop back -->
+  <path d="M 1430 320 L 1430 370 L 645 370 L 645 320" class="line"/>
+  <text x="690" y="402" class="label">结果回灌 → 再选下一步（硬上限 5 步）</text>
+
+  <!-- outputs -->
+  <line x1="1430" y1="370" x2="1430" y2="610" class="line"/>
+  <rect x="1240" y="620" width="290" height="170" class="box"/>
+  <text x="1270" y="660" class="t">最终卡片</text>
+  <text x="1270" y="695" class="s">步骤卡 / 日常卡 / 分诊卡</text>
+  <text x="1270" y="725" class="s">拨号卡 / 拒答卡</text>
+  <text x="1270" y="755" class="s">每一步都进审计日志</text>
+
+  <!-- bottom principles -->
+  <rect x="70" y="650" width="1080" height="240" rx="16" fill="#F7F9FC" stroke="#C9CFD8" stroke-width="2"/>
+  <text x="100" y="700" class="t">三条硬约束</text>
+  <text x="100" y="740" class="s">1. 模型只有选择权，没有生成权；步骤必须来自条目字段。</text>
+  <text x="100" y="775" class="s">2. 出内容前必须查库；查不到就拨号或拒答，不编。</text>
+  <text x="100" y="810" class="s">3. 拨号、拒答、紧急锁定是代码固定出口，不交给模型自由发挥。</text>
+  <text x="100" y="855" class="s">审计视图：识别 / 场景 / 动作 / 来源 / S5，每一步可回看。</text>
+
+  <text x="70" y="960" class="sub">口径：/act 100/100，平均 1.7 步，P95 2；/judge 97/100，安全项 0/40、0/30。</text>
+</svg>
