@@ -8,7 +8,7 @@
            renderDialOnly / esc）      → app/render.js
      朗读（speakSteps / autoRead* / speakDaily / speakTriage /
            muteAutoRead / showVoiceNotice）→ app/speak.js
-     语音输入（initTalk / onTalkUp / fillInput / talkCtl）→ app/talk.js
+     语音输入（initTalk / onTalkUp / clearInput / talkCtl）→ app/talk.js
      共享可变状态（mode / locked / autoRead / talk）    → app/state.js
 
    仍然留在这里的理由：它们需要同时知道「状态」和「渲染」，
@@ -115,6 +115,101 @@
     return false;
   }
 
+  /* ---------- 日常卡：expand 与自动朗读的协调（2026-11-22 用户裁决 A） ----------
+     修的问题（用户真机报的）：
+       静态卡一渲染就朗读**条目原文**，expand 稍后（实测 0.98–1.61s）返回并把
+       屏幕上的 explain 换成**模型文本**，且以 { silent:true } 重渲染不重读。
+       → 声音停在条目原文，屏幕已是模型文本。两者必然不一致，不是偶发竞争。
+
+     做法：静态卡照旧先渲染（不给用户空白），但**先不朗读**，然后竞速：
+       · expand 在 EXPAND_WAIT_MS 内返回 → 重渲染 + 用模型文本朗读，一次读对
+       · 超时 → 保持静态卡 + 用条目原文朗读
+       · 超时之后 expand 才回来 → **丢弃，连屏幕也不换**
+         理由：一旦出声就是承诺。事后偷偷换掉屏幕文字，等于把刚才读的话作废，
+         老人会以为自己听错。宁可少一段扩写，不能让人怀疑自己。
+
+     EXPAND_WAIT_MS = 600 的依据：实测本地 expand 0.98 / 0.98 / 1.18 / 1.61s，
+     线上更慢。600ms 不是「保证赶上」，而是「一部分能赶上，其余走安全分支」。
+     ⚠️ 这 600ms 会加在首句出声之前，V6 的 3 秒预算是临界通过的（均值 1941ms、
+     最大 2629ms），本改动后**必须重测**，不能沿用旧数据。 */
+  var EXPAND_WAIT_MS = 600;
+
+  function speakDailyAligned(entry, readText) {
+    if (!SPEAK || !SPEAK.autoReadDaily) return;
+    SPEAK.autoReadDaily(entry, readText ? { readText: readText } : undefined);
+  }
+
+  /* 首次出日常卡：去重判断 + 协调渲染。
+     为什么和 renderDailyResult 分开：
+       renderDailyResult 是「渲染 + 自动朗读」的一步到位版，用于同步 l3 路径
+       （那条路径没有扩写，屏幕与声音天然同源）。
+       loop / judge 路径有扩写，必须让扩写参与朗读决策，否则声音停在条目原文、
+       屏幕已被模型文本替换。两条路径的差别就在这一步，故单列一个入口。
+     @returns {boolean} true = 已去重（出的是「还是这个条目」短通知） */
+  function renderDailyFirstTime(entry, text, host) {
+    if (!entry || !host) return false;
+    var prev = _lastDaily;
+    var prevStillDaily =
+      prev.host &&
+      prev.host !== host &&
+      prev.host.innerHTML &&
+      prev.host.innerHTML.indexOf('class="explain"') >= 0;
+    if (prev.entryId === entry.id && prevStillDaily && RENDER.renderFollowupNotice) {
+      RENDER.renderFollowupNotice(entry, text, host, prev.host);
+      return true;
+    }
+    _lastDaily = { entryId: entry.id, host: host };
+    renderDailyCoordinated(entry, text, host);
+    return false;
+  }
+
+  /* opts.noExpand：调用方已确定不走扩写（例如去重分支） */
+  function renderDailyCoordinated(entry, text, host) {
+    /* 1) 先渲染静态卡，且不朗读 —— 让用户立刻看到内容，不空白 */
+    RENDER.renderDaily(entry, host, null, { silent: true });
+
+    var canExpand = !!(LLM && LLM.expand && text);
+    if (!canExpand) {
+      speakDailyAligned(entry); // 没有扩写能力 → 屏幕与声音都是条目原文
+      return;
+    }
+
+    var settled = false;
+    var timer = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      lg('info', '扩写超时，日常卡按条目原文朗读', { waitMs: EXPAND_WAIT_MS, entryId: entry.id });
+      speakDailyAligned(entry);
+    }, EXPAND_WAIT_MS);
+
+    LLM.expand(text, entry.id).then(
+      function (r) {
+        if (settled) {
+          /* 已超时并已开始朗读 → 丢弃扩写结果。
+             这里**不改屏幕**，是为了守住「读过的就是看到的」。 */
+          lg('info', '扩写晚于朗读窗口，已丢弃', { entryId: entry.id });
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        if (!r || !r.ok || !r.text) {
+          speakDailyAligned(entry);
+          return;
+        }
+        /* 先换屏幕、再用同一段文本朗读：顺序不能反。
+           反过来的话，朗读启动瞬间屏幕还是旧文本，又出现一次不一致。 */
+        RENDER.renderDaily(entry, host, r, { silent: true });
+        speakDailyAligned(entry, r.text);
+      },
+      function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        speakDailyAligned(entry);
+      }
+    );
+  }
+
   /* ---------- 每步可见进展（M2.5，01 §4.25 第 2 条） ----------
      为什么放在输入区而不是消息流：
        消息流会被最终卡占位；进度是「过程中的临时状态」，不属于对话记录。
@@ -157,8 +252,117 @@
     dailyTalk: document.getElementById('dailyTalk'),
     emgTalk: document.getElementById('emgTalk'),
     msgIcons: document.getElementById('msgIcons'),
-    progress: document.getElementById('progress')
+    progress: document.getElementById('progress'),
+    auditPanel: document.getElementById('auditPanel'),
+    auditBody: document.getElementById('auditBody'),
+    auditToggle: document.getElementById('auditToggle'),
+    auditClose: document.getElementById('auditClose')
   };
+
+  /* ---------- 演示审计视图 ----------
+     老人视图保持干净；评委点「审计」看模型做了什么。
+     只展示代码实际拿到的字段（turn/evidence/act/args/result/来源），不推测。 */
+  var _auditSteps = [];
+
+  function auditOpen(on) {
+    if (!el.auditPanel) return;
+    el.auditPanel.hidden = !on;
+    document.body.classList.toggle('audit-open', on);
+    if (el.auditToggle) el.auditToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function auditReset(text) {
+    _auditSteps = [];
+    if (el.auditBody) {
+      el.auditBody.innerHTML = '<p class="audit-empty">正在看：「' + esc(text || '') + '」</p>';
+    }
+  }
+
+  function auditActLabel(act) {
+    var m = {
+      lookup_scene: '查库',
+      get_steps: '步骤卡',
+      get_daily: '日常卡',
+      triage: '分诊',
+      speak: '朗读',
+      dial: '拨号',
+      refuse: '拒答',
+      ack: '确认',
+      ask: '追问'
+    };
+    return m[act] || act;
+  }
+
+  function auditRecord(rec) {
+    if (!rec) return;
+    _auditSteps.push(rec);
+    if (_auditSteps.length > 6) _auditSteps.shift();
+    auditRender();
+  }
+
+  function auditRender() {
+    if (!el.auditBody) return;
+    if (!_auditSteps.length) {
+      el.auditBody.innerHTML = '<p class="audit-empty">还没有工具调用。</p>';
+      return;
+    }
+    var html = _auditSteps
+      .map(function (rec) {
+        var scene = rec.args && rec.args.scene ? rec.args.scene : '';
+        var entry = scene && ENTRIES[scene] ? ENTRIES[scene] : null;
+        var rows = [];
+        if (rec.turn || rec.evidence) {
+          rows.push(
+            '<div class="audit-kv"><span class="audit-k">识别</span>' +
+              esc(rec.turn || '') +
+              (rec.evidence ? '（证据：「' + esc(rec.evidence) + '」）' : '') +
+              '</div>'
+          );
+        }
+        if (scene) {
+          rows.push(
+            '<div class="audit-kv"><span class="audit-k">场景</span>' +
+              esc(entry ? entry.name : scene) +
+              '</div>'
+          );
+        }
+        rows.push(
+          '<div class="audit-kv"><span class="audit-k">动作</span>' +
+            esc(auditActLabel(rec.act)) +
+            (rec.args && rec.args.number ? ' ' + esc(rec.args.number) : '') +
+            (rec.ok === false ? '（被门拒绝：' + esc(rec.why || '') + '）' : '') +
+            '</div>'
+        );
+        if (entry && entry.source && entry.source.name) {
+          rows.push(
+            '<div class="audit-kv"><span class="audit-k">来源</span><span class="audit-src">' +
+              esc(entry.source.name) +
+              '</span></div>'
+          );
+          if (entry.source.quote) {
+            rows.push(
+              '<div class="audit-quote">「' + esc(String(entry.source.quote).slice(0, 70)) + '…」</div>'
+            );
+          }
+        }
+        if (entry && entry.life_threatening) {
+          rows.push(
+            '<div class="audit-kv"><span class="audit-k">S5</span>生命危险：同时拨打 ' +
+              esc(entry.emergency_number || '120') +
+              '</div>'
+          );
+        }
+        return (
+          '<div class="audit-step' +
+          (rec.ok === false ? ' is-bad' : '') +
+          '">' +
+          rows.join('') +
+          '</div>'
+        );
+      })
+      .join('');
+    el.auditBody.innerHTML = html;
+  }
 
   var CHAT = window.CHAT || null;
   if (!CHAT) {
@@ -184,7 +388,7 @@
      2026-11-19 聊天式改造：不再隐藏/显示两个视图（那样旧内容会消失），
      改为三件事同时发生：
        ① 顶部色带出现（不可手动关闭）
-       ② 底部输入区切到紧急样式与文案（form/talk 按钮互为显隐）
+       ② 底部输入区切到紧急样式与文案（紧急态只呈现按住说话，emgForm 仅作语音识别桥接）
        ③ state.mode 变 emergency —— 之后每一条消息都带 is-emergency 标记
      回看旧消息不受影响：它们各自带自己的 mode 标记，不会被改成紧急样式。 */
   function enterEmergency() {
@@ -453,13 +657,29 @@
   }
 
   function scrollToAnswer(container) {
-    /* 聊天式下不再把容器滚到视口顶部（那会把上一条消息顶出去），
-       改为滚到消息流底部 —— 新消息本来就在最下方。
+    /* 定位到**本轮用户气泡的顶部**，不是消息流最底部（2026-11-21 用户裁决）。
+       原因：滚到底会把刚出的答案推到视口之上，老人只看到答案末尾，
+       得自己往回翻才找得到开头。定位到气泡顶部则是「我说的话在上面，
+       答案紧接着往下」，顺着读就行。
+
        只在「用户主动发起」时调用；系统追加的消息不强制滚动，
-       否则老人正读到第 3 步会被拽走（docs/03 §2.5.8）。 */
-    if (CHAT) CHAT.scrollToEnd(true);
-    else if (container && container.scrollIntoView)
-      container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+       否则老人正读到第 3 步会被拽走（docs/03 §2.5.8）。
+
+       两级兜底：
+         ① 有用户气泡 → 滚到它顶部（扣掉 sticky 头条的高度）
+         ② 找不到用户气泡（极端路径，如直接点场景图标而 appendUser 失败）
+            → 退回滚到底部，至少让新内容可见
+
+       ⚠️ 传 false（瞬时）：手机上键盘收起动画会与 smooth 滚动抢同一帧，
+       落点停在中间 = 用户看到的「没滚到对话记录」。
+       另外真正让滚动失效的原因是选错了容器（见 chat.js 的实测数据）。 */
+    if (CHAT) {
+      if (CHAT.scrollToLatestUser(false)) return;
+      CHAT.scrollToEnd(false);
+      return;
+    }
+    if (container && container.scrollIntoView)
+      container.scrollIntoView({ behavior: 'auto', block: 'start' });
   }
 
   /* 同步路径：l3 字符检索（接入 LLM 前的主路径，现在是降级路径）
@@ -639,17 +859,9 @@
       }
       /* 日常：同一 entry 的追问不再重复整卡；只有第一次出完整卡。 */
       if (res.kind === 'daily' && res.entry) {
-        var deduped = renderDailyResult(res.entry, text, host);
-        /* P5：静态卡先出现；扩写是增强，不阻塞首卡。
-           成功才替换 lead；失败/超时/用户已点“查看操作步骤”都保持现状。 */
-        if (!deduped && LLM && LLM.expand) {
-          var target = host;
-          LLM.expand(text, res.entry.id).then(function (r) {
-            if (!r || !r.ok || !r.text) return;
-            if (!target || target.innerHTML.indexOf('class="explain"') < 0) return;
-            RENDER.renderDaily(res.entry, target, r, { silent: true });
-          });
-        }
+        /* 走协调入口：它内部自己做去重判断，首次出卡时静态先渲染、
+           expand 与朗读竞速，保证「读什么就看什么」。 */
+        renderDailyFirstTime(res.entry, text, host);
         return;
       }
       execTool(rec, res, host);
@@ -670,6 +882,7 @@
       /* 每执行完一步更新一次，让老人知道系统还在动，而不是卡死。 */
       onStep: function (rec) {
         showProgress(progressTextFor(rec.act));
+        auditRecord(rec);
       },
       /* seed.plan：危重/无条目时已由本地决定拨号，0 次模型往返。
          AGENT.run 见到 o.plan 会直接执行，不再调 decide。 */
@@ -782,15 +995,8 @@
     var h = answerHost(a.kind);
     if (state.mode === 'emergency') renderByAction(a, h);
     else if (a.kind === 'daily') {
-      var deduped = renderDailyResult(a.entry, text, h);
-      if (!deduped && LLM.expand) {
-        var target = h;
-        LLM.expand(text, a.entry.id).then(function (r) {
-          if (!r || !r.ok || !r.text) return;
-          if (!target || target.innerHTML.indexOf('class="explain"') < 0) return;
-          RENDER.renderDaily(a.entry, target, r, { silent: true });
-        });
-      }
+      /* 与 loop 路径同一入口：去重 + 扩写/朗读协调（2026-11-22）。 */
+      renderDailyFirstTime(a.entry, text, h);
     } else RENDER.renderRefuse(h);
     scrollToAnswer(h);
     return 'llm';
@@ -823,6 +1029,7 @@
     /* 用户原话进消息流，只加一次（在这里加，不在 handleQuerySync 里）。
        往下所有回落 handleQuerySync 的调用都带 noEcho，
        否则「LLM 不可用 → 回落 l3」会让同一句话出现两条用户气泡。 */
+    auditReset(text);
     if (CHAT) CHAT.appendUser(text);
 
     /* 会话上文（2026-11-20）：只收用户原话，不收模型结论。
@@ -1021,6 +1228,20 @@
   /* ---------- 启动 ---------- */
   renderIcons();
 
+  if (el.auditToggle) {
+    el.auditToggle.addEventListener('click', function () {
+      auditOpen(el.auditPanel && el.auditPanel.hidden);
+    });
+  }
+  if (el.auditClose) {
+    el.auditClose.addEventListener('click', function () {
+      auditOpen(false);
+    });
+  }
+  try {
+    if (/[?&]audit=1(?:&|$)/.test(window.location.search)) auditOpen(true);
+  } catch (e) { /* 非浏览器沙箱忽略 */ }
+
   if (TALK) {
     TALK.initTalk('dailyTalk', 'dailyTalkHint', 'dailyInput');
     TALK.initTalk('emgTalk', 'emgTalkHint', 'emgInput');
@@ -1139,7 +1360,7 @@
       ? {
           ctl: TALK.ctl,
           up: TALK.onTalkUp,
-          fill: TALK.fillInput,
+          clear: TALK.clearInput,
           reset: TALK.talkReset
         }
       : null,

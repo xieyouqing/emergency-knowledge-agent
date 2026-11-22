@@ -4,7 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>安伴 · 应灾智能助手</title>
-<link rel="stylesheet" href="style.css?v=20261121m33">
+<link rel="stylesheet" href="style.css?v=20261122m36">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=20261122m36">
+<link rel="apple-touch-icon" href="icon-180.png?v=20261122m36">
+<link rel="manifest" href="manifest.webmanifest?v=20261122m36">
+<meta name="theme-color" content="#14488F">
 </head>
 <body>
 
@@ -31,8 +35,10 @@
     <div id="msgFlow" class="msg-flow" role="log" aria-live="polite">
 
       <article class="msg msg-assistant" id="welcomeMsg">
+        <p class="brand-wordmark">安伴<span>小安</span></p>
         <p class="chat-greeting">你好，我是小安。</p>
         <p class="chat-sub">平时可以问防灾科普；出事了，按住说话，我给可靠步骤。也可以点场景。</p>
+        <p class="voice-priority">遇到事情，先按住说话，不用打字。</p>
         <!-- 场景入口保留为文字按钮：不用 emoji，老人不靠猜图标。 -->
         <nav class="icons" id="msgIcons" aria-label="常见场景"></nav>
       </article>
@@ -42,9 +48,9 @@
 
   <!-- ============ 输入区（常驻底部，不随消息消失） ============
        结构说明：
-         - 两个 form 互为显隐，而不是共用一个：测试与既有逻辑按
-           dailyInput / emgInput 分别取输入框（老人切换模式后
-           上一个问题不该留在框里）。隐藏的那个不参与渲染。
+         - 日常表单负责文字提问；紧急表单保留给语音识别写入结果，
+           紧急态由样式隐藏，避免老人误以为还要打字确认。
+           测试与既有逻辑仍按 dailyInput / emgInput 分别取输入框。
          - 为什么输入区固定在底部：用户裁决「输入区域会永久显示」，
            若随消息流滚动上去，老人回看时要滚回来才能再问一句。 -->
   <div class="composer" id="composer">
@@ -59,38 +65,55 @@
     <!-- 按住说话（M2）放在输入框上方：老人第一眼看到的主操作是「说」，
          打字是第二条路。两个按钮互为显隐，与下面的 form 同步。 -->
     <div class="voicein-row">
-      <button class="talk-btn" id="dailyTalk" type="button">
+      <button class="talk-btn" id="dailyTalk" type="button" aria-label="按住说话，松开后自动发送">
         <span class="talk-label">按住说话</span>
       </button>
-      <button class="talk-btn sos-talk" id="emgTalk" type="button" hidden>
+      <button class="talk-btn sos-talk" id="emgTalk" type="button" aria-label="紧急求助：按住说话，松开后自动发送" hidden>
         <span class="talk-label">按住说话</span>
       </button>
-      <p class="talk-hint" id="dailyTalkHint" hidden></p>
-      <p class="talk-hint" id="emgTalkHint" hidden></p>
+      <p class="talk-hint" id="dailyTalkHint" role="status" aria-live="polite" hidden></p>
+      <p class="talk-hint" id="emgTalkHint" role="status" aria-live="polite" hidden></p>
     </div>
 
     <form class="ask-row" id="dailyForm" autocomplete="off">
       <label class="sr-only" for="dailyInput">输入你的问题</label>
-      <input id="dailyInput" class="ask-input" type="text" enterkeyhint="search">
+      <input id="dailyInput" class="ask-input" type="text" enterkeyhint="send">
       <button class="ask-btn" type="submit">提问</button>
     </form>
 
     <form class="ask-row" id="emgForm" autocomplete="off" hidden>
       <label class="sr-only" for="emgInput">说出或输入发生了什么</label>
-      <input id="emgInput" class="ask-input" type="text" enterkeyhint="search">
+      <input id="emgInput" class="ask-input" type="text" enterkeyhint="send">
       <button class="ask-btn sos-btn" type="submit">确认</button>
     </form>
 
   </div>
 
 </main>
+  <!-- 演示审计视图：老人视图不变，评委可展开看“小安刚刚做了什么”。 -->
+  <button class="audit-toggle" id="auditToggle" type="button" aria-pressed="false">审计</button>
+  <aside class="audit-panel" id="auditPanel" hidden aria-label="小安决策审计">
+    <div class="audit-head">
+      <strong>小安刚刚做了什么</strong>
+      <button class="audit-close" id="auditClose" type="button" aria-label="收起审计面板">收起</button>
+    </div>
+    <div class="audit-body" id="auditBody">
+      <p class="audit-empty">还没有提问。说一句「煤气漏了」试试。</p>
+    </div>
+  </aside>
 
-<script src="log.js?v=20261121m32"></script>
-<script src="knowledge.js?v=20261121m32"></script>
-<script src="retrieval.js?v=20261121m32"></script>
-<script src="llm.js?v=20261121m32"></script>
-<script src="voice.js?v=20261121m32"></script>
-<script src="asr.js?v=20261121m32"></script>
+
+<script src="log.js?v=20261122m37"></script>
+<script src="knowledge.js?v=20261122m37"></script>
+<script src="retrieval.js?v=20261122m37"></script>
+<!-- 云服务 SDK（IIFE 构建，由 tools/build_standalone.mjs 内联进单文件）。
+     必须排在 cloud.js 之前：cloud.js 初始化时要读全局 WorkBuddyCloud。
+     不引外部 CDN —— 实测本机 CDN 不可达，引了会白屏。 -->
+<script src="cloud-sdk.js?v=20261122m37"></script>
+<script src="cloud.js?v=20261122m37"></script>
+<script src="llm.js?v=20261122m37"></script>
+<script src="voice.js?v=20261122m37"></script>
+<script src="asr.js?v=20261122m37"></script>
 <!-- 2026-11-19 拆分（docs/10 §7）：state 必须最先，其余模块依赖它；
      chat 在 render 之前：render 不依赖 chat，但 talk/app 都依赖 chat；
      app.js 必须最后，它消费其余全部模块。

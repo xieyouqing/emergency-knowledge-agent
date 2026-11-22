@@ -19,6 +19,8 @@
   --ink: #11151C;
   --ink-2: #3D4450;
   --bg: #FFFFFF;
+  --surface: #F4F7FB;
+  --surface-blue: #EAF2FF;
   --bg-soft: #F1F3F6;
   --line: #C9CFD8;
 
@@ -29,13 +31,14 @@
   --done: #1E6B3A;        /* 已完成：绿 */
 
   --tap: 56px;            /* 主按钮最小高度 */
+  --disclaimer-stack: 72px;
 }
 
 *{ box-sizing: border-box; }
 
 html,body{
   margin:0; padding:0;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--ink);
   font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
   font-size: var(--fs-min);
@@ -54,14 +57,18 @@ html,body{
   background: var(--ink);
   color: #FFFFFF;
   font-size: var(--fs-min);
-  padding: 12px 20px;
-  text-align: center;
+  padding: 8px 24px;
+  min-height: var(--disclaimer-stack);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
   letter-spacing: .01em;
 }
 
 /* ---------- 紧急模式色带（S8） ---------- */
 .mode-band{
-  position: sticky; top: 0; z-index: 29;
+  position: sticky; top: var(--disclaimer-stack); z-index: 29;
   display:flex; align-items:center; gap:14px;
   background: var(--sos);
   color:#FFFFFF;
@@ -80,11 +87,11 @@ html,body{
 
 /* ---------- 布局 ---------- */
 main{
-  max-width: 880px;
+  max-width: 1040px;
   margin: 0 auto;
   /* 底部留出固定输入区的高度，否则最后一条消息会被输入区盖住。
      高度由 .composer 决定（约 240px，含两行按钮与语速），这里多留 20px 余量。 */
-  padding: 24px 20px 280px;
+  padding: 28px 24px calc(var(--composer-h) + 36px + env(safe-area-inset-bottom, 0px));
   /* 让 #msgScroll 能撑满可见高度并独立滚动 */
   min-height: 100vh;
   display: flex;
@@ -102,12 +109,13 @@ main{
 .msg-scroll{
   flex: 1 1 auto;
   overflow-y: auto;
+  scroll-padding-bottom: calc(var(--composer-h) + 24px);
   -webkit-overflow-scrolling: touch;
 }
 .msg-flow{
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
 }
 
 /* 一条消息 = 一个气泡。
@@ -115,9 +123,11 @@ main{
    为什么用左右区分而不是头像：老人不需要认头像，位置差异一眼可辨。 */
 .msg{
   max-width: 100%;
-  padding: 18px 20px;
-  border-radius: 20px;
+  padding: 22px 24px;
+  border-radius: 24px;
   border: 2px solid transparent;
+  overflow-wrap: anywhere;
+  scroll-margin-top: calc(var(--disclaimer-stack) + 24px);
 }
 .msg-user{
   align-self: flex-end;
@@ -129,8 +139,56 @@ main{
 .msg-assistant{
   align-self: stretch;
   background: var(--bg);
-  border-color: var(--line);
-  border-bottom-left-radius: 6px;
+  border-color: transparent;
+  box-shadow: 0 8px 24px rgba(17,21,28,.06);
+  border-bottom-left-radius: 10px;
+}
+#welcomeMsg{
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+  column-gap: 30px;
+  align-items: start;
+  padding: 30px;
+  background: var(--surface-blue);
+  border: 0;
+  border-left: 12px solid var(--act);
+  box-shadow: 0 12px 30px rgba(20,72,143,.12);
+}
+#welcomeMsg .chat-greeting,
+#welcomeMsg .chat-sub,
+#welcomeMsg .voice-priority{ grid-column: 1; }
+#welcomeMsg .icons{
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  margin: 0;
+}
+#welcomeMsg .brand-wordmark{
+  font-size: 58px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: .12em;
+  color: var(--act);
+  margin: 0 0 10px;
+}
+.brand-wordmark span{
+  font-size: 30px;
+  letter-spacing: .04em;
+  color: var(--ink-2);
+  margin-left: 12px;
+  font-weight: 700;
+}
+#welcomeMsg .brand-wordmark{ grid-column: 1; margin-top: 0; }
+.chat-greeting{ margin-top: 0; }
+#welcomeMsg .chat-sub{ margin-bottom: 18px; }
+.voice-priority{
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 8px solid #E29B00;
+  background: #FFF8E6;
+  color: var(--ink);
+  font-size: var(--fs-min);
+  font-weight: 800;
+  line-height: 1.4;
 }
 /* 紧急消息：左侧红条 + 浅红底。
    为什么不用整块红底：整块红会让长文本对比度下降，老人看不清。
@@ -170,23 +228,30 @@ main{
 /* ---------- 输入区（常驻底部） ---------- */
 .composer{
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 50%; right: auto; bottom: 16px;
+  width: min(calc(100% - 32px), 1040px);
+  transform: translateX(-50%);
   z-index: 20;
   background: var(--bg);
-  border-top: 3px solid var(--line);
-  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  border: 3px solid var(--line);
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 14px 36px rgba(17,21,28,.18);
 }
 /* 输入区内容与消息流同宽同边距，视觉上对齐 */
 .composer > *{
-  max-width: 840px;
+  max-width: none;
   margin-left: auto;
   margin-right: auto;
 }
 /* 紧急态：输入区顶边变红，与消息红条呼应（S8 的可见性不靠隐藏视图） */
 body.is-emergency .composer{
-  border-top-color: var(--sos);
+  border-color: var(--sos);
   background: #FFF7F6;
 }
+/* 紧急链路遵循「全程零文字输入」：识别结果仍会作为用户消息留在消息流中，
+   但底部只保留按住说话，避免老人误以为还要打字确认。 */
+body.is-emergency #emgForm{ display: none !important; }
 /* 输入区里的间距比消息流小：这块是操作区，不是阅读区 */
 .composer .ask-row{ margin-bottom: 12px; }
 .composer .voicein-row{ margin-bottom: 12px; }
@@ -230,6 +295,9 @@ body.is-emergency .composer .progress{ background: var(--sos); }
 .ask-row{
   display: flex; gap: 12px; align-items: stretch;
   margin-bottom: 28px;
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--surface);
 }
 
 /* ---------- 按住说话（M2 语音输入） ----------
@@ -246,7 +314,7 @@ body.is-emergency .composer .progress{ background: var(--sos); }
 .talk-btn{
   display: flex; align-items: center; justify-content: center; gap: 14px;
   width: 100%;
-  min-height: 92px;
+  min-height: 84px;
   font-size: var(--fs-min);
   font-weight: 800;
   font-family: inherit;
@@ -254,6 +322,7 @@ body.is-emergency .composer .progress{ background: var(--sos); }
   background: var(--act);
   border: 3px solid var(--act);
   border-radius: 18px;
+  letter-spacing: .04em;
   cursor: pointer;
   /* 长按时不选中文字、不弹系统菜单 */
   -webkit-user-select: none; user-select: none;
@@ -319,6 +388,7 @@ body.is-emergency .composer .progress{ background: var(--sos); }
   outline: none;
   border-color: var(--act);
   background: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(20,72,143,.18);
 }
 .ask-input::placeholder{ color:#6B7280; }
 
@@ -339,6 +409,16 @@ body.is-emergency .composer .progress{ background: var(--sos); }
 .sos-btn{ background: var(--sos); }
 .ask-btn:active{ transform: translateY(1px); }
 
+.ask-btn:focus-visible,
+.talk-btn:focus-visible,
+.icon-btn:focus-visible,
+.icon-more:focus-visible,
+.dial-btn:focus-visible,
+.step:focus-visible{
+  outline: 4px solid #F0A400;
+  outline-offset: 3px;
+}
+
 .section-label{
   font-size: var(--fs-min);
   color: var(--ink-2);
@@ -347,41 +427,51 @@ body.is-emergency .composer .progress{ background: var(--sos); }
 
 /* ---------- 场景入口：文字按钮，不用 emoji ---------- */
 .icons{
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin: 14px 0 4px;
+  margin: 0;
 }
 .icon-btn{
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-width: 0;
-  min-height: 64px;
-  padding: 10px 18px;
+  min-height: 92px;
+  padding: 14px 14px 14px 20px;
   font-family: inherit;
   font-size: var(--fs-min);
   font-weight: 700;
   color: var(--ink);
   background: #FFFFFF;
-  border: 2px solid var(--line);
-  border-radius: 999px;
+  border: 3px solid var(--line);
+  border-left: 12px solid var(--act);
+  border-radius: 18px;
   cursor: pointer;
+  line-height: 1.25;
+  text-align: left;
 }
+.icon-btn:nth-child(2){ border-left-color: #B3261E; }
+.icon-btn:nth-child(3){ border-left-color: #B7791F; }
+.icon-btn:nth-child(4){ border-left-color: #1E6B3A; }
 .icon-btn:active{ background: #E3E7ED; }
-/* 首屏只放前 8 个常用场景，其余收起，避免一次铺开 */
+/* 首屏只放前 4 个常用场景，其余收起，避免一次铺开 */
 .icons:not(.is-expanded) .icon-btn.is-extra{ display: none; }
 .icon-more{
-  min-height: 64px;
-  padding: 10px 18px;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 76px;
+  padding: 10px 12px;
   font-family: inherit;
   font-size: var(--fs-min);
   font-weight: 700;
   color: var(--act);
   background: #FFFFFF;
   border: 2px dashed var(--act);
-  border-radius: 999px;
+  border-radius: 16px;
   cursor: pointer;
+  line-height: 1.25;
 }
 .icon-label{ text-align: center; }
 
@@ -699,9 +789,92 @@ body.is-emergency .composer .progress{ background: var(--sos); }
 /* ---------- 拨号：仅场景卡内（S5）。页脚常驻行已按 v0.6 删除 S9 移除 ---------- */
 
 @media (max-width: 520px){
-  :root{ --fs-h1: 40px; --fs-h2: 34px; --fs-min: 32px; --fs-step: 32px; }
-  main{ padding: 16px 14px 48px; }
+  :root{ --fs-h1: 40px; --fs-h2: 34px; --fs-min: 32px; --fs-step: 32px; --disclaimer-stack: 120px; }
+  main{ padding: 16px 14px calc(var(--composer-h) + 24px + env(safe-area-inset-bottom, 0px)); }
   .ask-row{ flex-wrap: nowrap; }
   .ask-btn{ flex: 0 0 96px; min-width: 96px; padding: 14px 10px; }
   .talk-btn{ padding: 12px; }
+  #welcomeMsg{
+    display: block;
+    padding: 22px 18px;
+    border-left-width: 8px;
+  }
+  #welcomeMsg .icons{ margin-top: 20px; }
+  .icons{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .icon-btn{ min-height: 100px; padding-left: 14px; }
+  .composer{ bottom: 10px; width: calc(100% - 20px); padding: 12px; border-radius: 20px; }
+  .ask-row{ gap: 8px; padding: 8px; }
 }
+
+@media (max-width: 360px){
+  :root{ --disclaimer-stack: 168px; }
+}
+
+/* ---------- 演示审计视图（2026-11-22） ----------
+   老人视图保持原样；评委点「审计」看模型做了什么。
+   不把内部字段塞进老人卡片，避免认知负担。 */
+.audit-toggle{
+  position: fixed;
+  top: 96px;
+  right: 18px;
+  z-index: 45;
+  min-height: 52px;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--act);
+  background: #FFFFFF;
+  border: 3px solid var(--act);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.audit-toggle[aria-pressed="true"]{ background: var(--act); color:#fff; }
+.audit-panel{
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 380px;
+  z-index: 44;
+  overflow-y: auto;
+  padding: 24px 22px 40px;
+  background: #F7F9FC;
+  border-left: 4px solid var(--act);
+  box-shadow: -12px 0 30px rgba(20,72,143,.16);
+}
+.audit-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:18px;
+  color: var(--ink);
+  font-size: 24px;
+}
+.audit-close{
+  min-height: 44px; padding: 6px 12px;
+  font-family: inherit; font-size: 20px; font-weight: 700;
+  color: var(--ink-2); background:#fff;
+  border:2px solid var(--line); border-radius:10px; cursor:pointer;
+}
+.audit-body{ font-size: 22px; line-height: 1.55; color: var(--ink); }
+.audit-empty{ color: var(--ink-2); }
+.audit-step{
+  background:#fff; border:2px solid var(--line); border-radius:14px;
+  padding:14px 16px; margin-bottom:14px;
+}
+.audit-step.is-bad{ border-color: var(--sos); background:#FFF7F6; }
+.audit-kv{ margin: 4px 0; }
+.audit-k{ color: var(--ink-2); font-weight:700; margin-right:8px; }
+.audit-src{ color: var(--act); font-weight:700; }
+.audit-quote{ color: var(--ink-2); font-size:20px; margin-top:6px; }
+
+body.audit-open main{
+  max-width: min(880px, calc(100vw - 420px));
+  margin-left: 24px;
+  margin-right: 0;
+}
+body.audit-open .composer{ right: 400px; }
+
+@media (max-width: 900px){
+  .audit-toggle{ display:none; }
+  .audit-panel{ display:none !important; }
+}
+
+body.audit-open .audit-toggle{ display:none; }
